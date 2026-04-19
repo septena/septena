@@ -3,7 +3,9 @@
 Cross-section correlations and patterns — does caffeine after 3pm hurt
 deep sleep? Do gym days line up with higher HRV the next morning?
 
-> Work in progress. Screenshot coming once the view stabilizes.
+![Insights](../screenshots/insights.png)
+
+> Work in progress — shape still evolving.
 
 ## What it does
 

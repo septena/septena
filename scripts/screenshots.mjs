@@ -49,7 +49,7 @@ const DEFAULT_SECTIONS = [
   { slug: "sleep", path: "/sleep" },
   { slug: "body", path: "/body" },
   { slug: "health", path: "/health" },
-  // insights is WIP; skip until it has content to render.
+  { slug: "insights", path: "/insights" },
 ];
 const SECTIONS = get("--sections")
   ? DEFAULT_SECTIONS.filter((s) => get("--sections").split(",").includes(s.slug))
