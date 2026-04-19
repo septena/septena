@@ -42,6 +42,12 @@ const DEFAULT_SECTIONS = [
   { slug: "nutrition", path: "/nutrition" },
   { slug: "habits", path: "/habits" },
   { slug: "supplements", path: "/supplements" },
+  { slug: "caffeine", path: "/caffeine" },
+  { slug: "chores", path: "/chores" },
+  { slug: "sleep", path: "/sleep" },
+  { slug: "body", path: "/body" },
+  { slug: "health", path: "/health" },
+  { slug: "insights", path: "/insights" },
 ];
 const SECTIONS = get("--sections")
   ? DEFAULT_SECTIONS.filter((s) => get("--sections").split(",").includes(s.slug))
@@ -93,25 +99,14 @@ async function startBackend() {
 
 // ── Start frontend ──────────────────────────────────────────────────────────
 async function buildFrontend() {
-  console.log(`🏗️   Building Next.js (first time: ~60-120s; subsequent builds are fast)…`);
-  await new Promise((resolve, reject) => {
-    const proc = spawn(join(ROOT, "node_modules", ".bin", "next"), ["build"], {
-      cwd: ROOT,
-      env: {
-        ...process.env,
-        SETLIST_BACKEND_URL: `http://127.0.0.1:${BACKEND_PORT}`,
-      },
-      stdio: "inherit",
-    });
-    proc.on("exit", (code) => code === 0 ? resolve() : reject(new Error(`next build failed (${code})`)));
-  });
-  console.log(`✓    Build complete`);
+  // Skipped: we use `next dev` to sidestep prerender/Suspense edge cases on
+  // sections that use useSearchParams without a Suspense boundary.
 }
 
 async function startFrontend() {
-  console.log(`⚡  Starting production server on :${FRONTEND_PORT}…`);
+  console.log(`⚡  Starting dev server on :${FRONTEND_PORT}…`);
   const proc = spawn(join(ROOT, "node_modules", ".bin", "next"), [
-    "start", "--port", String(FRONTEND_PORT),
+    "dev", "--port", String(FRONTEND_PORT),
   ], {
     cwd: ROOT,
     env: {
@@ -124,7 +119,7 @@ async function startFrontend() {
   proc.stdout.on("data", (c) => { log += c; });
   proc.stderr.on("data", (c) => { log += c; });
 
-  await waitFor(`http://127.0.0.1:${FRONTEND_PORT}/api/config`, 30_000, log);
+  await waitFor(`http://127.0.0.1:${FRONTEND_PORT}/`, 120_000, log);
   console.log(`✓    Frontend ready`);
   return proc;
 }

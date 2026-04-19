@@ -24,7 +24,7 @@ import { SectionStatusBar } from "@/components/section-status-bar";
 import { showToast, showError } from "@/lib/toast";
 import { todayLocalISO, daysAgoLocalISO, addDaysISO, nowHHMM, shortDate, formatWeekdayTickNarrow } from "@/lib/date-utils";
 import { useSelectedDate } from "@/hooks/use-selected-date";
-import { computeFastingState, isBreakingFast, FASTING_TARGET_MIN, FASTING_TARGET_MAX } from "@/lib/fasting";
+import { computeFastingState, isBreakingFast, useFastingConfig } from "@/lib/fasting";
 import { useMacroTargets, useFastingTarget, useFiberTarget, formatRange, progressTowardRange, type MacroKey, type MacroTarget } from "@/lib/macro-targets";
 import { StatCard } from "@/components/stat-card";
 import { SECTIONS } from "@/lib/sections";
@@ -631,6 +631,7 @@ function parseHM(hm: string | null): number | null {
 
 function FastingStatCard({ stats }: { stats: NutritionStats | null }) {
   const fastingTarget = useFastingTarget();
+  const fastingConfig = useFastingConfig();
   const today = todayLocalISO();
   const todayFast = (stats?.fasting ?? []).find((f) => f.date === today);
   const fastHours = todayFast?.hours;
@@ -639,7 +640,7 @@ function FastingStatCard({ stats }: { stats: NutritionStats | null }) {
     const id = setInterval(() => setTick((t) => t + 1), 60_000);
     return () => clearInterval(id);
   }, []);
-  const fastingState = useMemo(() => computeFastingState(stats ?? null), [stats, tick]);
+  const fastingState = useMemo(() => computeFastingState(stats ?? null, fastingConfig), [stats, tick, fastingConfig]);
   const liveHours = fastingState.state === "fasting" ? fastingState.totalMin / 60 : null;
   const displayHours = liveHours ?? fastHours;
   const progress = displayHours != null ? Math.min(1, displayHours / fastingTarget.max) : undefined;
@@ -718,6 +719,7 @@ function FiberChartCard({
 function FastingCard({ stats }: { stats: NutritionStats | null }) {
   const barAnim = useBarAnimation();
   const fastingTarget = useFastingTarget();
+  const fastingConfig = useFastingConfig();
   const today = todayLocalISO();
 
   // Build chart data from historical fasting windows, tagging today's entry.
@@ -742,7 +744,7 @@ function FastingCard({ stats }: { stats: NutritionStats | null }) {
     return () => clearInterval(id);
   }, []);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const fastingState = useMemo(() => computeFastingState(stats ?? null), [stats, tick]);
+  const fastingState = useMemo(() => computeFastingState(stats ?? null, fastingConfig), [stats, tick, fastingConfig]);
 
   const chartData = useMemo(() => {
     const data = [...rawData];
@@ -760,7 +762,7 @@ function FastingCard({ stats }: { stats: NutritionStats | null }) {
     return data;
   }, [rawData, fastingState, today]);
 
-  const fastingConfig = { metric: { label: "Fasting hours", color: NUTRITION_COLOR } } satisfies ChartConfig;
+  const fastingChartConfig = { metric: { label: "Fasting hours", color: NUTRITION_COLOR } } satisfies ChartConfig;
 
   return (
     <Card>
@@ -769,7 +771,7 @@ function FastingCard({ stats }: { stats: NutritionStats | null }) {
         <CardDescription>{fastingTarget.min}-{fastingTarget.max}h target</CardDescription>
       </CardHeader>
       <CardContent className="px-4">
-        <ChartContainer config={fastingConfig} className="h-[200px] w-full overflow-hidden">
+        <ChartContainer config={fastingChartConfig} className="h-[200px] w-full overflow-hidden">
           <BarChart data={chartData.slice(-7)} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
             <CartesianGrid vertical={false} strokeDasharray="3 3" />
             <XAxis dataKey="date" tickLine={false} axisLine={false} interval={0} fontSize={11}

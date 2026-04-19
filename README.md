@@ -38,18 +38,21 @@ whether its folder exists in your vault** — sections you haven't set
 up simply don't appear in the nav, and optional integrations stay
 hidden until their credentials land.
 
+Each section links to its own page with what it can do, the YAML
+schema, and the relevant endpoints.
+
 | Section | What it does | Storage |
 |---|---|---|
-| **Exercise** | Training sessions, progression charts, PR tracking. Pre-fillable templates for upper/lower/cardio/yoga days. | YAML per set |
-| **Nutrition** | Meals, supplements, snacks, per-meal macros, rolling daily targets, fasting-window tracking. | YAML per meal |
-| **Habits** | Fixed daily checklist bucketed morning / afternoon / evening with 30-day history. | YAML per day |
-| **Chores** | Recurring, deferrable tasks with overdue tracking. | YAML per chore + per completion |
-| **Supplements** | Daily stack checklist with streak history. | YAML per day |
-| **Caffeine** | V60s, matcha, time-of-day patterns. | YAML per drink |
-| **Sleep** | Score, stages, trends. | Read-only from Oura / Apple Health |
-| **Body** | Weight, body-fat trends. | Read-only from Withings |
-| **Health** | HRV, resting HR, steps, VO₂ max, active calories. | Read-only from Apple Health |
-| **Insights** | Cross-section correlations and patterns. | Derived |
+| [**Exercise**](docs/sections/exercise.md) | Training sessions, progression charts, PR tracking. Pre-fillable templates for upper/lower/cardio/yoga days. | YAML per set |
+| [**Nutrition**](docs/sections/nutrition.md) | Meals, supplements, snacks, per-meal macros, rolling daily targets, fasting-window tracking. | YAML per meal |
+| [**Habits**](docs/sections/habits.md) | Fixed daily checklist bucketed morning / afternoon / evening with 30-day history. | YAML per day |
+| [**Chores**](docs/sections/chores.md) | Recurring, deferrable tasks with overdue tracking. | YAML per chore + per completion |
+| [**Supplements**](docs/sections/supplements.md) | Daily stack checklist with streak history. | YAML per day |
+| [**Caffeine**](docs/sections/caffeine.md) | V60s, matcha, time-of-day patterns. | YAML per drink |
+| [**Sleep**](docs/sections/sleep.md) | Score, stages, trends. | Read-only from Oura / Apple Health |
+| [**Body**](docs/sections/body.md) | Weight, body-fat trends. | Read-only from Withings |
+| [**Health**](docs/sections/health.md) | HRV, resting HR, steps, VO₂ max, active calories. | Read-only from Apple Health |
+| [**Insights**](docs/sections/insights.md) | Cross-section correlations and patterns. | Derived |
 
 The core three — Exercise, Nutrition, Habits — ship as starter
 scaffolding under [`examples/vault/Bases/`](examples/vault/Bases/). The
