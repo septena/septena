@@ -35,6 +35,8 @@ const BACKEND_PORT = 14445;
 const FRONTEND_PORT = 14444;
 const VIEWPORT = { width: 1440, height: 900 };
 const KEEP_SERVERS = has("--keep");
+const CACHE_DIR = join(tmpdir(), "setlist-demo-cache");
+const HEALTH_CACHE_PATH = join(CACHE_DIR, "health-cache.json");
 
 const DEFAULT_SECTIONS = [
   { slug: "overview", path: "/" },
@@ -44,8 +46,10 @@ const DEFAULT_SECTIONS = [
   { slug: "supplements", path: "/supplements" },
   { slug: "caffeine", path: "/caffeine" },
   { slug: "chores", path: "/chores" },
-  // sleep/body/health need Oura/Withings/HAE fixtures to render
-  // non-empty; insights is WIP. Skip until seeder/integrations cover them.
+  { slug: "sleep", path: "/sleep" },
+  { slug: "body", path: "/body" },
+  { slug: "health", path: "/health" },
+  // insights is WIP; skip until it has content to render.
 ];
 const SECTIONS = get("--sections")
   ? DEFAULT_SECTIONS.filter((s) => get("--sections").split(",").includes(s.slug))
@@ -69,6 +73,24 @@ async function seedVault() {
   });
 }
 
+// ── Seed health cache ───────────────────────────────────────────────────────
+async function seedHealthCache() {
+  console.log(`🩺  Seeding demo health cache at ${HEALTH_CACHE_PATH}…`);
+  return new Promise((resolve, reject) => {
+    const p = spawn("python3", [
+      join(ROOT, "scripts", "seed_demo_health.py"),
+      "--out", HEALTH_CACHE_PATH,
+      "--days", "30",
+    ], { stdio: ["ignore", "pipe", "pipe"], cwd: ROOT });
+    let err = "";
+    p.stderr.on("data", (c) => { err += c; });
+    p.on("exit", (code) => {
+      if (code === 0) resolve();
+      else reject(new Error(`health seed failed (${code}): ${err}`));
+    });
+  });
+}
+
 // ── Start backend ───────────────────────────────────────────────────────────
 async function startBackend() {
   console.log(`🐍  Starting backend on :${BACKEND_PORT}…`);
@@ -80,9 +102,11 @@ async function startBackend() {
       ...process.env,
       SETLIST_VAULT: DEMO_VAULT,
       // Integrations dir that doesn't exist → Oura/Withings/HAE all fail
-      // fast with empty state (what we want for screenshots).
+      // fast. In demo mode the health router serves the pre-seeded cache
+      // (see SETLIST_DEMO_HEALTH + seed_demo_health.py).
       SETLIST_INTEGRATIONS_DIR: "/tmp/setlist-nonexistent-integrations",
-      SETLIST_CACHE_DIR: join(tmpdir(), "setlist-demo-cache"),
+      SETLIST_CACHE_DIR: CACHE_DIR,
+      SETLIST_DEMO_HEALTH: "1",
     },
     stdio: ["ignore", "pipe", "pipe"],
   });
@@ -214,6 +238,7 @@ async function takeScreenshots() {
 let backend, frontend;
 try {
   await seedVault();
+  await seedHealthCache();
   backend = await startBackend();
   await buildFrontend();
   frontend = await startFrontend();

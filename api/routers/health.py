@@ -8,6 +8,7 @@ endpoint so the frontend has an instant-load path.
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import urllib.parse
 import urllib.request
@@ -381,6 +382,13 @@ def health_summary() -> Dict[str, Any]:
 def health_combined(days: int = 7, end: str | None = None) -> Dict[str, Any]:
     """All health sources combined. Writes to cache only when anchored at today
     so the cache remains a live "now" snapshot rather than a time-travelled view."""
+    # Demo mode: return the pre-seeded cache so screenshots render without
+    # needing live Oura/Withings/HAE credentials.
+    if os.environ.get("SETLIST_DEMO_HEALTH") == "1" and HEALTH_CACHE_PATH.exists():
+        try:
+            return json.loads(HEALTH_CACHE_PATH.read_text())
+        except Exception:
+            pass
     apple = _aggregate_apple_days(days, end)
     oura = health_oura(days, end)["oura"]
     withings = health_withings(days, end)["withings"]

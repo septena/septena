@@ -2,7 +2,7 @@
 
 Read-only view of weight and body-fat trends from a Withings scale.
 
-> Screenshot coming soon.
+![Body](../screenshots/body.png)
 
 ## What it does
 

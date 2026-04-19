@@ -3,7 +3,7 @@
 Read-only view of your sleep score, stages, and trends — pulled from
 Oura (preferred) or Apple Health.
 
-> Screenshot coming soon.
+![Sleep](../screenshots/sleep.png)
 
 ## What it does
 

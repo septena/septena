@@ -3,7 +3,7 @@
 Read-only view of vitals and activity — HRV, resting HR, steps, VO₂ max,
 active calories, exercise minutes.
 
-> Screenshot coming soon.
+![Health](../screenshots/health.png)
 
 ## What it does
 
