@@ -1,0 +1,11 @@
+# Daily macro targets as ranges (min-max). The nutrition dashboard
+# shows progress toward the midpoint of each range. Edit freely —
+# Setlist picks up changes on the next request, no restart needed.
+#
+# If this file is missing, shipped defaults apply (roughly adult daily
+# values: 100-150g protein, 50-80g fat, 200-300g carbs, 2000-2500 kcal).
+targets:
+  protein: { min: 100, max: 150, unit: g }
+  fat:     { min: 50,  max: 80,  unit: g }
+  carbs:   { min: 200, max: 300, unit: g }
+  kcal:    { min: 2000, max: 2500, unit: "" }

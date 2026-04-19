@@ -1,0 +1,9 @@
+# Caffeine config — optional bean presets for quick logging.
+# `id` must be unique and kebab-case. Beans are optional when logging —
+# pick one if you know it, leave empty otherwise.
+beans: []
+  # Example entries — uncomment and edit to match your own.
+  # - id: ethiopia-yirgacheffe
+  #   name: Ethiopia Yirgacheffe
+  # - id: colombia-huila
+  #   name: Colombia Huila

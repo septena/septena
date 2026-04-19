@@ -1,0 +1,50 @@
+name: Bug report
+description: Something's broken in Setlist
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to file a bug. Setlist is single-user and
+        local-first, so details about your setup help a lot.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What did you expect to happen, and what actually happened?
+      placeholder: "When I click X, the app shows Y instead of Z."
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Go to /nutrition
+        2. Click "Log meal"
+        3. …
+    validations:
+      required: true
+  - type: input
+    id: section
+    attributes:
+      label: Which section?
+      placeholder: nutrition, exercise, habits, sleep, …
+  - type: textarea
+    id: env
+    attributes:
+      label: Environment
+      description: OS, Node/Python versions, whether you're on the demo vault or your own.
+      placeholder: |
+        - OS: macOS 15.2
+        - Node: 20.x
+        - Python: 3.12
+        - Vault: demo / own
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs or screenshots
+      description: Backend stderr, browser console errors, or a screenshot help a lot.
+      render: shell

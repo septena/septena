@@ -1,0 +1,28 @@
+# Habits config — fixed daily checklist bucketed by time of day.
+# The UI reads this file but never writes to it. Edit directly to
+# add/remove/reorder habits. `id` must be unique and kebab-case.
+# `bucket` is one of: morning | afternoon | evening.
+#
+# Changing the config is always safe: any ids already in your daily
+# logs that no longer exist here are silently dropped on next load.
+habits:
+  # ── Morning ─────────────────────────────────────────────────────────
+  - id: meditation
+    name: Meditation 10min
+    bucket: morning
+  - id: brush-teeth-morning
+    name: Brush teeth
+    bucket: morning
+
+  # ── Afternoon ───────────────────────────────────────────────────────
+  - id: walk
+    name: Walk outside
+    bucket: afternoon
+
+  # ── Evening ─────────────────────────────────────────────────────────
+  - id: stretch
+    name: 10min stretch
+    bucket: evening
+  - id: brush-teeth-evening
+    name: Brush teeth
+    bucket: evening

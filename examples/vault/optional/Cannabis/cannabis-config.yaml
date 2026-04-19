@@ -1,0 +1,15 @@
+# Cannabis config — strain presets and capsule model.
+#
+# Capsule model: each vape session counts as one "use" of a capsule.
+# Grams per session = capsule_g / uses_per_capsule (derived, not stored
+# per entry). Adjust these three numbers to your own device/routine.
+capsule_g: 0.15
+uses_per_capsule: 3
+daily_target_g: 0.3   # soft cap shown on the overview progress bar
+
+strains: []
+  # Example entries — uncomment and edit to match your own.
+  # - id: blue-dream
+  #   name: Blue Dream
+  # - id: northern-lights
+  #   name: Northern Lights

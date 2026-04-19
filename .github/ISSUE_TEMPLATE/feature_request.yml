@@ -1,0 +1,42 @@
+name: Feature request
+description: Suggest a new section, endpoint, or UI improvement
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Setlist is opinionated — not every idea fits. Before filing, skim
+        the README philosophy and existing sections to see if the thing
+        you want already has a natural home.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem are you trying to solve?
+      placeholder: "I want to track X but there's no good place for it."
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: A section, a setting, an endpoint, a UI change — whatever fits.
+    validations:
+      required: true
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Kind of change
+      options:
+        - New section
+        - New endpoint / API
+        - UI / UX improvement
+        - New integration (Oura, Withings, Apple Health, …)
+        - Agent / SKILL.md improvement
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Anything you tried, discarded, or think is worse than this.

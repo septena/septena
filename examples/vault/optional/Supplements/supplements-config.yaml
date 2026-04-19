@@ -1,0 +1,14 @@
+# Supplements config — fixed daily checklist.
+# Edit this file to add/remove items. `id` must be unique and
+# kebab-case. `emoji` is shown in the UI — pick anything.
+supplements: []
+  # Example entries — uncomment and edit to match your stack.
+  # - id: omega3
+  #   name: Omega-3
+  #   emoji: 🐟
+  # - id: creatine
+  #   name: Creatine
+  #   emoji: 💪
+  # - id: multivitamin
+  #   name: Multivitamin
+  #   emoji: 🍊

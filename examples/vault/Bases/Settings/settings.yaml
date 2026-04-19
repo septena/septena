@@ -1,0 +1,16 @@
+# App-level settings. All fields are optional — missing keys fall back
+# to defaults. Safe to delete and let Setlist regenerate on first write.
+section_order:
+  - exercise
+  - nutrition
+  - habits
+  - chores
+  - supplements
+  - cannabis
+  - caffeine
+  - health
+  - sleep
+  - body
+animations:
+  first_meal: true         # Confetti when you log the first meal of the day
+  histograms_raise: true   # Quick raise-from-baseline on chart bars
