@@ -44,10 +44,8 @@ const DEFAULT_SECTIONS = [
   { slug: "supplements", path: "/supplements" },
   { slug: "caffeine", path: "/caffeine" },
   { slug: "chores", path: "/chores" },
-  { slug: "sleep", path: "/sleep" },
-  { slug: "body", path: "/body" },
-  { slug: "health", path: "/health" },
-  { slug: "insights", path: "/insights" },
+  // sleep/body/health need Oura/Withings/HAE fixtures to render
+  // non-empty; insights is WIP. Skip until seeder/integrations cover them.
 ];
 const SECTIONS = get("--sections")
   ? DEFAULT_SECTIONS.filter((s) => get("--sections").split(",").includes(s.slug))
@@ -149,12 +147,37 @@ async function takeScreenshots() {
 
   mkdirSync(OUT_DIR, { recursive: true });
 
+  page.on("pageerror", (err) => console.log(`      ! pageerror: ${err.message}`));
+  page.on("console", (msg) => {
+    const t = msg.text();
+    if (t.includes("webpack-hmr") || t.includes("Download the React DevTools")) return;
+    if (msg.type() === "error" || msg.type() === "warning") {
+      console.log(`      ! ${msg.type()}: ${t}`);
+    }
+  });
+  page.on("requestfailed", (req) => {
+    const url = req.url();
+    if (url.includes("_next") || url.includes("hot-update")) return;
+    console.log(`      ! requestfailed: ${url} (${req.failure()?.errorText})`);
+  });
+
   for (const section of SECTIONS) {
     const url = `http://127.0.0.1:${FRONTEND_PORT}${section.path}`;
     console.log(`    → ${section.slug}  (${url})`);
-    await page.goto(url, { waitUntil: "networkidle", timeout: 30_000 });
-    // Settle charts — SWR + recharts animations can continue after networkidle.
+    await page.goto(url, { waitUntil: "domcontentloaded", timeout: 30_000 });
+    // next dev compiles routes lazily and its HMR websocket (unreachable
+    // under playwright) confuses SWR's first fetch. Reload once the route
+    // is compiled — the second pass is served from the dev cache and SWR
+    // resolves cleanly.
     await page.waitForTimeout(2000);
+    await page.reload({ waitUntil: "networkidle", timeout: 30_000 });
+    try {
+      await page.waitForFunction(() => {
+        const txt = document.body?.innerText ?? "";
+        return !/Loading/i.test(txt);
+      }, null, { timeout: 10_000 });
+    } catch {}
+    await page.waitForTimeout(1200);
     // Hide Next.js dev chrome.
     await page.addStyleTag({ content: `
       [data-nextjs-toast], [data-next-badge], nextjs-portal,

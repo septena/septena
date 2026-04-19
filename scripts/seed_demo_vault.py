@@ -253,6 +253,115 @@ def seed_supplements(cfg: SeedConfig) -> None:
             (log_dir / fname).write_text(_dump_frontmatter(fm))
 
 
+# ── Caffeine ────────────────────────────────────────────────────────────────
+
+CAFFEINE_BEANS = [
+    {"id": "ethiopia-yirgacheffe", "name": "Ethiopia Yirgacheffe"},
+    {"id": "colombia-huila",       "name": "Colombia Huila"},
+    {"id": "kenya-nyeri",          "name": "Kenya Nyeri"},
+]
+
+# (time, method, grams, beans_id-or-None)
+CAFFEINE_DRINKS = [
+    ("07:30", "v60",    14, "ethiopia-yirgacheffe"),
+    ("08:00", "v60",    15, "colombia-huila"),
+    ("08:15", "v60",    14, "kenya-nyeri"),
+    ("10:30", "matcha",  2, None),
+    ("13:15", "v60",    12, "colombia-huila"),
+    ("15:30", "matcha",  2, None),
+]
+
+
+def seed_caffeine(cfg: SeedConfig) -> None:
+    rnd = random.Random(cfg.seed + 4)
+    section = cfg.vault / "Caffeine"
+    log_dir = section / "Log"
+    _ensure_clean(log_dir)
+    _write_config(section / "caffeine-config.yaml", {"beans": CAFFEINE_BEANS})
+
+    for offset in range(cfg.days):
+        day = cfg.today - timedelta(days=offset)
+        # 1–3 drinks/day, biased toward morning
+        n = rnd.choices([1, 2, 3], weights=[2, 4, 2])[0]
+        picks = rnd.sample(CAFFEINE_DRINKS, k=n)
+        picks.sort(key=lambda d: d[0])
+        counters: dict[str, int] = {}
+        for time_str, method, grams, beans_id in picks:
+            counters[method] = counters.get(method, 0) + 1
+            nn = counters[method]
+            fm = {
+                "date": day.isoformat(),
+                "time": time_str,
+                "id": f"caffeine-{day.isoformat()}-{method}-{nn:02d}",
+                "section": "caffeine",
+                "method": method,
+                "beans": beans_id,
+                "grams": grams,
+                "note": None,
+            }
+            fname = f"{day.isoformat()}--{method}--{nn:02d}.md"
+            (log_dir / fname).write_text(_dump_frontmatter(fm))
+
+
+# ── Chores ──────────────────────────────────────────────────────────────────
+
+CHORES_DEFS = [
+    {"id": "dishes",       "name": "Dishes",            "cadence_days": 1,  "emoji": "🍽️"},
+    {"id": "laundry",      "name": "Laundry",           "cadence_days": 7,  "emoji": "🧺"},
+    {"id": "vacuum",       "name": "Vacuum",            "cadence_days": 7,  "emoji": "🧹"},
+    {"id": "trash",        "name": "Take out trash",    "cadence_days": 3,  "emoji": "🗑️"},
+    {"id": "plants",       "name": "Water plants",      "cadence_days": 4,  "emoji": "🪴"},
+    {"id": "sheets",       "name": "Change sheets",     "cadence_days": 14, "emoji": "🛏️"},
+    {"id": "bathroom",     "name": "Clean bathroom",    "cadence_days": 7,  "emoji": "🛁"},
+]
+
+
+def seed_chores(cfg: SeedConfig) -> None:
+    rnd = random.Random(cfg.seed + 5)
+    section = cfg.vault / "Chores"
+    defs_dir = section / "Definitions"
+    log_dir = section / "Log"
+    _ensure_clean(defs_dir)
+    _ensure_clean(log_dir)
+
+    # Definitions: one note per chore.
+    for c in CHORES_DEFS:
+        fm = {
+            "id": c["id"],
+            "name": c["name"],
+            "cadence_days": c["cadence_days"],
+            "emoji": c["emoji"],
+            "section": "chores",
+        }
+        (defs_dir / f"{c['id']}.md").write_text(_dump_frontmatter(fm))
+
+    # Completions: walk forward from earliest date, simulate each chore
+    # being completed at (roughly) its cadence. Skip occasional cadences
+    # so a few chores land overdue today.
+    for c in CHORES_DEFS:
+        # Start N days ago so the most recent completion lands ~1 cadence
+        # before today (half the chores overdue, half fresh).
+        skew = rnd.randint(0, c["cadence_days"])
+        current = cfg.today - timedelta(days=cfg.days - 1) + timedelta(days=skew)
+        while current <= cfg.today:
+            # 10% chance to skip this completion — nobody's perfect.
+            if rnd.random() >= 0.1:
+                fm = {
+                    "date": current,
+                    "time": f"{rnd.randint(7, 21):02d}:{rnd.randint(0, 59):02d}",
+                    "id": f"chore-{current.isoformat()}-{c['id']}-complete",
+                    "section": "chores",
+                    "chore_id": c["id"],
+                    "chore_name": c["name"],
+                    "action": "complete",
+                }
+                fname = f"{current.isoformat()}--{c['id']}--complete.md"
+                (log_dir / fname).write_text(_dump_frontmatter(fm))
+            # Jitter the cadence so the history chart isn't uniform.
+            jitter = rnd.randint(-1, 1) if c["cadence_days"] > 1 else 0
+            current += timedelta(days=max(1, c["cadence_days"] + jitter))
+
+
 # ── Settings + macros ───────────────────────────────────────────────────────
 
 def seed_settings_and_macros(cfg: SeedConfig) -> None:
@@ -314,6 +423,8 @@ def main() -> int:
     seed_exercise(cfg)
     seed_habits(cfg)
     seed_supplements(cfg)
+    seed_caffeine(cfg)
+    seed_chores(cfg)
     seed_settings_and_macros(cfg)
 
     print("Done.")
