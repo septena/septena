@@ -3,6 +3,8 @@
 Recurring deferrable household tasks, each with its own cadence, tracked
 via a replayed event log.
 
+![Chores](../screenshots/chores.png)
+
 ## What it does
 
 - **Per-chore cadence** (every N days) — due date derived from the last completion.

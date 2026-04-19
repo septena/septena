@@ -13,6 +13,10 @@ const DEV_ORIGINS = (process.env.SETLIST_DEV_ORIGINS ?? "localhost")
 const nextConfig: NextConfig = {
   devIndicators: false,
   allowedDevOrigins: DEV_ORIGINS,
+  // Lets the screenshot pipeline run a second `next dev` against the demo
+  // vault in parallel with the user's main dev server at :4444 — each
+  // server gets its own build output dir (and thus its own `dev/lock`).
+  ...(process.env.NEXT_DIST_DIR ? { distDir: process.env.NEXT_DIST_DIR } : {}),
   async rewrites() {
     return [
       {

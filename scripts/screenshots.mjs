@@ -97,19 +97,42 @@ async function startBackend() {
 
 // ── Start frontend ──────────────────────────────────────────────────────────
 async function buildFrontend() {
-  // Skipped: we use `next dev` to sidestep prerender/Suspense edge cases on
-  // sections that use useSearchParams without a Suspense boundary.
+  // Production build: `next dev`'s HMR WebSocket crashes in headless
+  // Chromium (ERR_INVALID_HTTP_RESPONSE), which aborts hydration before
+  // useSWR fires any fetches. `next start` has no HMR client.
+  console.log(`🔨  Building frontend…`);
+  return new Promise((resolve, reject) => {
+    const p = spawn(join(ROOT, "node_modules", ".bin", "next"), ["build"], {
+      cwd: ROOT,
+      env: {
+        ...process.env,
+        SETLIST_BACKEND_URL: `http://127.0.0.1:${BACKEND_PORT}`,
+        NEXT_DIST_DIR: ".next-screenshots",
+        NEXT_TELEMETRY_DISABLED: "1",
+      },
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    let log = "";
+    p.stdout.on("data", (c) => { log += c; });
+    p.stderr.on("data", (c) => { log += c; });
+    p.on("exit", (code) => {
+      if (code === 0) { console.log(`✓    Build complete`); resolve(); }
+      else reject(new Error(`next build failed (${code}):\n${log}`));
+    });
+  });
 }
 
 async function startFrontend() {
-  console.log(`⚡  Starting dev server on :${FRONTEND_PORT}…`);
+  console.log(`⚡  Starting prod server on :${FRONTEND_PORT}…`);
   const proc = spawn(join(ROOT, "node_modules", ".bin", "next"), [
-    "dev", "--port", String(FRONTEND_PORT),
+    "start", "--port", String(FRONTEND_PORT),
   ], {
     cwd: ROOT,
     env: {
       ...process.env,
       SETLIST_BACKEND_URL: `http://127.0.0.1:${BACKEND_PORT}`,
+      NEXT_DIST_DIR: ".next-screenshots",
+      NEXT_TELEMETRY_DISABLED: "1",
     },
     stdio: ["ignore", "pipe", "pipe"],
   });
@@ -117,7 +140,7 @@ async function startFrontend() {
   proc.stdout.on("data", (c) => { log += c; });
   proc.stderr.on("data", (c) => { log += c; });
 
-  await waitFor(`http://127.0.0.1:${FRONTEND_PORT}/`, 120_000, log);
+  await waitFor(`http://127.0.0.1:${FRONTEND_PORT}/`, 60_000, log);
   console.log(`✓    Frontend ready`);
   return proc;
 }
@@ -164,20 +187,14 @@ async function takeScreenshots() {
   for (const section of SECTIONS) {
     const url = `http://127.0.0.1:${FRONTEND_PORT}${section.path}`;
     console.log(`    → ${section.slug}  (${url})`);
-    await page.goto(url, { waitUntil: "domcontentloaded", timeout: 30_000 });
-    // next dev compiles routes lazily and its HMR websocket (unreachable
-    // under playwright) confuses SWR's first fetch. Reload once the route
-    // is compiled — the second pass is served from the dev cache and SWR
-    // resolves cleanly.
-    await page.waitForTimeout(2000);
-    await page.reload({ waitUntil: "networkidle", timeout: 30_000 });
+    await page.goto(url, { waitUntil: "networkidle", timeout: 30_000 });
     try {
       await page.waitForFunction(() => {
         const txt = document.body?.innerText ?? "";
         return !/Loading/i.test(txt);
       }, null, { timeout: 10_000 });
     } catch {}
-    await page.waitForTimeout(1200);
+    await page.waitForTimeout(800);
     // Hide Next.js dev chrome.
     await page.addStyleTag({ content: `
       [data-nextjs-toast], [data-next-badge], nextjs-portal,

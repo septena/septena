@@ -3,7 +3,7 @@
 Log coffee, matcha, and other caffeinated drinks with source and method,
 then see time-of-day patterns.
 
-> Screenshot coming soon.
+![Caffeine](../screenshots/caffeine.png)
 
 ## What it does
 
