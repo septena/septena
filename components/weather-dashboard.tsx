@@ -3,7 +3,7 @@
 import Link from "next/link";
 import useSWR from "swr";
 import { getWeather } from "@/lib/api";
-import { SECTIONS } from "@/lib/sections";
+import { useSectionColor } from "@/hooks/use-sections";
 import { usePageHeaderSubtitle } from "@/components/page-header-context";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SectionStatusBar } from "@/components/section-status-bar";
@@ -13,7 +13,7 @@ export function WeatherDashboard() {
     refreshInterval: 600_000,
     shouldRetryOnError: false,
   });
-  const color = SECTIONS.weather.color;
+  const color = useSectionColor("weather");
   usePageHeaderSubtitle("weather", data?.location?.split(",")[0]?.trim() ?? null);
 
   return (

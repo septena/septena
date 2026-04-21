@@ -2,7 +2,7 @@
 
 import useSWR from "swr";
 import { getCalendar, type CalendarEvent } from "@/lib/api";
-import { SECTIONS } from "@/lib/sections";
+import { useSectionColor } from "@/hooks/use-sections";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SectionStatusBar } from "@/components/section-status-bar";
 
@@ -43,7 +43,7 @@ export function CalendarDashboard() {
     refreshInterval: 300_000,
     shouldRetryOnError: false,
   });
-  const color = SECTIONS.calendar.color;
+  const color = useSectionColor("calendar");
   const grouped = groupByDay(data?.events ?? []);
   const days = Object.keys(grouped).sort();
 

@@ -34,7 +34,7 @@ import {
   type HabitBucket,
   type HabitConfigItem,
 } from "@/lib/api";
-import { SECTIONS } from "@/lib/sections";
+import { useSectionColor } from "@/hooks/use-sections";
 import { DEFAULT_DAY_PHASES } from "@/lib/day-phases";
 
 // Inline per-item editing lives here — one card per configurable section
@@ -254,7 +254,7 @@ function ShellCard({ title, children }: { title: string; children: React.ReactNo
 // ── Habits ───────────────────────────────────────────────────────────────────
 
 export function ManageHabitsCard() {
-  const accent = SECTIONS.habits.color;
+  const accent = useSectionColor("habits");
   const { data, mutate, isLoading } = useSWR("habits-config", getHabitConfig);
   const phases = useDayPhases();
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -431,7 +431,7 @@ function HabitAddRow({ accent, onAdded }: { accent: string; onAdded: () => Promi
 // ── Supplements ──────────────────────────────────────────────────────────────
 
 export function ManageSupplementsCard() {
-  const accent = SECTIONS.supplements.color;
+  const accent = useSectionColor("supplements");
   const { data, mutate, isLoading } = useSWR("supplements-config", getSupplementConfig);
   const [editingId, setEditingId] = useState<string | null>(null);
 
@@ -607,7 +607,7 @@ function cadenceLabel(days: number): string {
 }
 
 export function ManageChoresCard() {
-  const accent = SECTIONS.chores.color;
+  const accent = useSectionColor("chores");
   const { data, mutate, isLoading } = useSWR("chores-config", getChores);
   const [editingId, setEditingId] = useState<string | null>(null);
 
@@ -769,7 +769,7 @@ function ChoreEditRow({
 // ── Exercises ────────────────────────────────────────────────────────────────
 
 export function ManageExercisesCard() {
-  const accent = SECTIONS.exercise.color;
+  const accent = useSectionColor("exercise");
   const { data, mutate, isLoading } = useSWR("exercise-config", getExerciseConfig);
   const [editingId, setEditingId] = useState<string | null>(null);
 
@@ -1111,7 +1111,7 @@ const GROCERY_CATEGORY_EMOJI: Record<GroceryCategory, string> = {
 };
 
 export function ManageGroceriesCard() {
-  const accent = SECTIONS.groceries.color;
+  const accent = useSectionColor("groceries");
   const { data, mutate, isLoading } = useSWR("groceries", getGroceries);
   const [editingId, setEditingId] = useState<string | null>(null);
 

@@ -15,21 +15,19 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChartContainer, type ChartConfig } from "@/components/ui/chart";
 import { SectionStatusBar } from "@/components/section-status-bar";
-import { SECTIONS } from "@/lib/sections";
 import { TaskGroup, TaskRow } from "@/components/tasks";
 import { useBarAnimation } from "@/hooks/use-bar-animation";
-
-const SUPPLEMENTS_COLOR = "hsl(340,70%,50%)";
-
-const chartConfig = {
-  metric: { label: "Completion", color: SUPPLEMENTS_COLOR },
-} satisfies ChartConfig;
+import { useSectionColor } from "@/hooks/use-sections";
 
 import { computeStreak, formatWeekdayTick } from "@/lib/date-utils";
 import { useSelectedDate } from "@/hooks/use-selected-date";
 import { StatCard } from "@/components/stat-card";
 
 export function SupplementsDashboard() {
+  const SUPPLEMENTS_COLOR = useSectionColor("supplements");
+  const chartConfig = {
+    metric: { label: "Completion", color: SUPPLEMENTS_COLOR },
+  } satisfies ChartConfig;
   const [pending, setPending] = useState<Set<string>>(new Set());
   const [optimisticDay, setOptimisticDay] = useState<SupplementDay | null>(null);
   const barAnim = useBarAnimation();

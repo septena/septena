@@ -29,7 +29,7 @@ import {
   type NutritionEntry,
   type SupplementItem,
 } from "@/lib/api";
-import { SECTIONS } from "@/lib/sections";
+import { useSectionColor } from "@/hooks/use-sections";
 import {
   DEFAULT_DAY_PHASES,
   activePhaseId,
@@ -149,7 +149,7 @@ function fmtDaysAgo(n: number | null): string {
 }
 
 export function ExerciseQuickLog({ onDone }: { onDone: () => void }) {
-  const accent = SECTIONS.exercise.color;
+  const accent = useSectionColor("exercise");
   const router = useRouter();
   const { data, isLoading } = useSWR("quicklog-exercise", () => getNextWorkout());
   const [navigating, setNavigating] = useState<SessionType | null>(null);
@@ -228,22 +228,26 @@ export function ExerciseQuickLog({ onDone }: { onDone: () => void }) {
 // ── Nutrition ────────────────────────────────────────────────────────────────
 
 export function NutritionQuickLog({ onDone }: { onDone: () => void }) {
-  const accent = SECTIONS.nutrition.color;
+  const accent = useSectionColor("nutrition");
   const { data, isLoading } = useSWR("quicklog-nutrition", () =>
     getNutritionEntries(daysAgoLocalISO(7)),
   );
   const [savingFile, setSavingFile] = useState<string | null>(null);
 
-  // Unique recent entries by first food (the title) — collapse duplicates so
-  // the list isn't 15 copies of the same whey shake. Keep newest instance.
+  // Unique recent entries ranked by most-used (frequency) — deduplicate by
+  // first food name, sort by how many times each appears, keep top 8.
   const recent = useMemo(() => {
     if (!data) return [];
+    const counts = new Map<string, number>();
+    for (const e of data) {
+      const key = e.foods[0] ?? "";
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+    }
+    const unique = [...new Set(data.map((e) => e.foods[0] ?? ""))];
+    unique.sort((a, b) => (counts.get(b) ?? 0) - (counts.get(a) ?? 0));
     const seen = new Set<string>();
-    const sorted = [...data].sort((a, b) =>
-      `${b.date} ${b.time}`.localeCompare(`${a.date} ${a.time}`),
-    );
     const out: NutritionEntry[] = [];
-    for (const e of sorted) {
+    for (const e of data) {
       const key = e.foods[0] ?? "";
       if (seen.has(key)) continue;
       seen.add(key);
@@ -336,7 +340,7 @@ const CAFFEINE_METHODS: { value: CaffeineMethod; label: string }[] = [
 ];
 
 export function CaffeineQuickLog({ onDone }: { onDone: () => void }) {
-  const accent = SECTIONS.caffeine.color;
+  const accent = useSectionColor("caffeine");
   const today = todayLocalISO();
   const { data } = useSWR("quicklog-caffeine", async () => {
     const [sessions, cfg] = await Promise.all([getCaffeineSessions(7), getCaffeineConfig()]);
@@ -447,7 +451,7 @@ const CANNABIS_METHODS: { value: "vape" | "edible"; label: string }[] = [
 ];
 
 export function CannabisQuickLog({ onDone }: { onDone: () => void }) {
-  const accent = SECTIONS.cannabis.color;
+  const accent = useSectionColor("cannabis");
   const today = todayLocalISO();
   const { data, mutate } = useSWR("quicklog-cannabis", async () => {
     const [day, cap, sessions] = await Promise.all([
@@ -554,7 +558,7 @@ export function CannabisQuickLog({ onDone }: { onDone: () => void }) {
 // ── Habits ───────────────────────────────────────────────────────────────────
 
 export function HabitsQuickLog() {
-  const accent = SECTIONS.habits.color;
+  const accent = useSectionColor("habits");
   const today = todayLocalISO();
   const { data, mutate, isLoading } = useSWR("quicklog-habits", () => getHabitDay(today));
   const { data: settings } = useSWR("settings", getSettings);
@@ -656,7 +660,7 @@ export function HabitsQuickLog() {
 // ── Supplements ──────────────────────────────────────────────────────────────
 
 export function SupplementsQuickLog() {
-  const accent = SECTIONS.supplements.color;
+  const accent = useSectionColor("supplements");
   const today = todayLocalISO();
   const { data, mutate, isLoading } = useSWR("quicklog-supplements", () =>
     getSupplementDay(today),
@@ -722,7 +726,7 @@ export function SupplementsQuickLog() {
 // ── Chores ───────────────────────────────────────────────────────────────────
 
 export function ChoresQuickLog() {
-  const accent = SECTIONS.chores.color;
+  const accent = useSectionColor("chores");
   const { data, mutate, isLoading } = useSWR("quicklog-chores", () => getChores());
   const [pending, setPending] = useState<Set<string>>(new Set());
 

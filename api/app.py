@@ -9,6 +9,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from api.routers import (
+    air,
     caffeine,
     calendar,
     cannabis,
@@ -56,7 +57,16 @@ app.include_router(chores.router)
 app.include_router(groceries.router)
 app.include_router(weather.router)
 app.include_router(calendar.router)
+app.include_router(air.router)
 app.include_router(settings.router)
 app.include_router(sections.router)
 # Meta endpoints (/api/config, /api/meta) cross every section's paths.
 app.include_router(meta.router)
+
+# Optional local-only extensions. When `api/routers/_local.py` is present
+# it gets a chance to register additional routers; it's a no-op when absent.
+try:
+    from api.routers import _local as _local_plugin  # type: ignore[import-not-found]
+    _local_plugin.register(app)
+except ImportError:
+    pass

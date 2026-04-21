@@ -2,7 +2,7 @@
 // Adding a new section means: add an entry here, create app/{path}/page.tsx,
 // and mount an APIRouter in main.py at apiBase.
 
-export type SectionKey = "exercise" | "nutrition" | "habits" | "chores" | "groceries" | "supplements" | "cannabis" | "caffeine" | "health" | "sleep" | "body" | "weather" | "calendar" | "correlations";
+export type SectionKey = "exercise" | "nutrition" | "habits" | "chores" | "groceries" | "supplements" | "cannabis" | "caffeine" | "health" | "sleep" | "body" | "weather" | "calendar" | "air" | "correlations";
 
 export type Section = {
   key: SectionKey;
@@ -141,6 +141,16 @@ export const SECTIONS: Record<SectionKey, Section> = {
     color: "hsl(205,75%,50%)",
     tagline: "Today's conditions & forecast",
     emoji: "☀️",
+  },
+  air: {
+    key: "air",
+    label: "Air",
+    path: "/air",
+    apiBase: "/api/air",
+    obsidianDir: "Bases/Air/Log",
+    color: "hsl(190,70%,45%)",
+    tagline: "CO₂, temperature & humidity",
+    emoji: "🌬️",
   },
   calendar: {
     key: "calendar",

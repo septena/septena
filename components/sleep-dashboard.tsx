@@ -13,14 +13,12 @@ import {
   type OuraRow,
   type AppleRow,
 } from "@/lib/api";
-import { SECTIONS } from "@/lib/sections";
+import { useSectionColor } from "@/hooks/use-sections";
 import { formatDateShort as formatDate, formatWeekdayTick } from "@/lib/date-utils";
 import { StatCard } from "@/components/stat-card";
 import { useBarAnimation } from "@/hooks/use-bar-animation";
 import { useSelectedDate } from "@/hooks/use-selected-date";
 
-const SLEEP = SECTIONS.sleep;
-const COLOR = SLEEP.color;
 
 function ScoreRing({ value, label, color, max = 100, subtitle, direction, target }: {
   value: number | null;
@@ -34,7 +32,7 @@ function ScoreRing({ value, label, color, max = 100, subtitle, direction, target
   if (value === null && !subtitle) {
     return (
       <div className="flex flex-col items-center justify-center rounded-2xl border border-border bg-card p-4">
-        <p className="text-3xl font-semibold" style={{ color: COLOR }}>—</p>
+        <p className="text-3xl font-semibold" style={{ color }}>—</p>
         <p className="mt-1 text-xs text-muted-foreground">{label}</p>
       </div>
     );
@@ -67,22 +65,21 @@ function ScoreRing({ value, label, color, max = 100, subtitle, direction, target
   );
 }
 
-const sleepScoreConfig = {
-  sleep_score: { label: "Sleep Score", color: COLOR },
-  readiness_score: { label: "Readiness", color: "hsl(140,60%,45%)" },
-} satisfies ChartConfig;
-
 const sleepStagesConfig = {
   deep_h: { label: "Deep", color: "hsl(250,65%,25%)" },
   rem_h: { label: "REM", color: "hsl(275,50%,55%)" },
   light_h: { label: "Light", color: "hsl(230,35%,68%)" },
 } satisfies ChartConfig;
 
-const totalConfig = {
-  total_h: { label: "Total Sleep", color: COLOR },
-} satisfies ChartConfig;
-
 export function SleepDashboard() {
+  const COLOR = useSectionColor("sleep");
+  const sleepScoreConfig = {
+    sleep_score: { label: "Sleep Score", color: COLOR },
+    readiness_score: { label: "Readiness", color: "hsl(140,60%,45%)" },
+  } satisfies ChartConfig;
+  const totalConfig = {
+    total_h: { label: "Total Sleep", color: COLOR },
+  } satisfies ChartConfig;
   const barAnim = useBarAnimation();
   const { data: cached } = useSWR("health-cache", getHealthCache, {
     revalidateOnFocus: false,

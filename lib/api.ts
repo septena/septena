@@ -691,6 +691,14 @@ export async function deleteGroceryItem(itemId: string) {
   return request<{ ok: boolean }>(`/api/groceries/item/${itemId}`, { method: "DELETE" });
 }
 
+export type GroceryHistory = {
+  daily: Array<{ date: string; bought: number; needed: number }>;
+};
+
+export async function getGroceryHistory(days = 30) {
+  return request<GroceryHistory>(`/api/groceries/history?days=${days}`);
+}
+
 // ── Caffeine ────────────────────────────────────────────────────────────
 export type CaffeineMethod = "v60" | "matcha" | "other";
 
@@ -768,6 +776,89 @@ export async function getCaffeineSessions(days = 30) {
   return request<CaffeineSessions>(`/api/caffeine/sessions?days=${days}`);
 }
 
+// ── Air (Aranet4) ────────────────────────────────────────────────────────
+export type AirReading = {
+  date: string;
+  time: string;
+  id?: string;
+  co2_ppm: number | null;
+  temp_c: number | null;
+  humidity_pct: number | null;
+  pressure_hpa: number | null;
+};
+
+export type AirDayStats = {
+  readings: number;
+  co2_avg: number | null;
+  co2_max: number | null;
+  co2_min: number | null;
+  temp_avg: number | null;
+  humidity_avg: number | null;
+  minutes_over_1000: number;
+};
+
+export type AirCo2Band = "good" | "ok" | "poor" | "bad";
+
+export type AirSummary = {
+  latest: AirReading | null;
+  last_reading_at: string | null;
+  co2_band: AirCo2Band | null;
+  today: AirDayStats;
+};
+
+export type AirDay = {
+  date: string;
+  readings: AirReading[];
+  stats: AirDayStats;
+};
+
+export type AirHistoryPoint = { date: string } & AirDayStats;
+export type AirHistory = { daily: AirHistoryPoint[] };
+
+export type AirTimeSeriesPoint = {
+  datetime: string;
+  date: string;
+  time: string;
+  co2_ppm: number | null;
+  temp_c: number | null;
+  humidity_pct: number | null;
+  pressure_hpa: number | null;
+};
+export type AirReadings = { readings: AirTimeSeriesPoint[] };
+
+export async function getAirSummary() {
+  return request<AirSummary>("/api/air/summary");
+}
+
+export async function getAirDay(day: string) {
+  return request<AirDay>(`/api/air/day/${day}`);
+}
+
+export async function getAirHistory(days = 7) {
+  return request<AirHistory>(`/api/air/history?days=${days}`);
+}
+
+export async function getAirReadings(days = 1) {
+  return request<AirReadings>(`/api/air/readings?days=${days}`);
+}
+
+export type AirOvernightPoint = {
+  date: string;
+  readings: number;
+  co2_avg: number | null;
+  co2_max: number | null;
+  co2_min: number | null;
+  temp_avg: number | null;
+  temp_min: number | null;
+  temp_max: number | null;
+  humidity_avg: number | null;
+};
+export type AirOvernight = { nights: AirOvernightPoint[] };
+
+export async function getAirOvernight(days = 30) {
+  return request<AirOvernight>(`/api/air/overnight?days=${days}`);
+}
+
 // ── Health (Oura + Withings) ──────────────────────────────────────────────
 export type OuraRow = {
   date: string;
@@ -792,6 +883,11 @@ export type WithingsRow = {
   date: string;
   weight_kg: number | null;
   fat_pct: number | null;
+  fat_ratio_pct?: number | null;
+  bone_mineral_kg?: number | null;
+  pulse_wave_mps?: number | null;
+  vascular_age?: number | null;
+  spo2_pct?: number | null;
 };
 
 export type HealthSummary = {
@@ -1030,6 +1126,10 @@ export type Targets = {
   fasting_max_h: number;
   evening_hour_24h: number;
   post_meal_grace_min: number;
+  weight_min_kg: number;
+  weight_max_kg: number;
+  fat_min_pct: number;
+  fat_max_pct: number;
 };
 
 export type AppAnimations = {

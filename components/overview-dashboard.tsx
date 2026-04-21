@@ -13,7 +13,10 @@ import {
 } from "recharts";
 import { ChartContainer, type ChartConfig } from "@/components/ui/chart";
 import { SECTIONS, EXERCISE_SHADES } from "@/lib/sections";
-import { useSections } from "@/hooks/use-sections";
+import { useSections, useSectionColor } from "@/hooks/use-sections";
+// Optional local-only overlay module adds extra mini tiles. When missing,
+// next.config.ts aliases the import to `false`, so EXTRA_MINIS is undefined.
+import { EXTRA_MINIS as LOCAL_EXTRA_MINIS } from "@/components/overview-minis.local";
 import {
   getCardioHistory,
   getEntries,
@@ -32,8 +35,11 @@ import {
   getChores,
   getChoreHistory,
   getGroceries,
+  getGroceryHistory,
   getWeather,
   getCalendar,
+  getAirSummary,
+  getAirHistory,
   getSettings,
 } from "@/lib/api";
 import { DEFAULT_DAY_PHASES, activePhaseId } from "@/lib/day-phases";
@@ -230,7 +236,7 @@ function ExerciseMini() {
     return { cardio, entries };
   }, { refreshInterval: 60_000 });
 
-  const color = SECTIONS.exercise.color;
+  const color = useSectionColor("exercise");
   const cardio = data?.cardio;
   const latestRolling = cardio?.daily?.at(-1)?.rolling_7d ?? 0;
   const target = cardio?.target_weekly_min ?? 150;
@@ -321,7 +327,7 @@ function NutritionMini() {
     return () => clearInterval(id);
   }, []);
 
-  const color = SECTIONS.nutrition.color;
+  const color = useSectionColor("nutrition");
   const stats = data;
   const daily = stats?.daily ?? [];
   const todayRow = daily.find((d) => d.date === selectedDate);
@@ -398,7 +404,7 @@ function HabitsMini() {
     return { day, history };
   }, { refreshInterval: 60_000 });
 
-  const color = SECTIONS.habits.color;
+  const color = useSectionColor("habits");
   const day = data?.day;
   const history = data?.history;
   const streak = useMemo(() => computeStreak(history?.daily), [history]);
@@ -442,7 +448,7 @@ function ChoresMini() {
     return { list, history };
   }, { refreshInterval: 60_000 });
 
-  const color = SECTIONS.chores.color;
+  const color = useSectionColor("chores");
   const chores = data?.list.chores ?? [];
   const today = data?.list.today ?? "";
   const overdue = chores.filter((c) => c.days_overdue > 0 && c.last_completed !== today).length;
@@ -491,19 +497,42 @@ function ChoresMini() {
 
 function GroceriesMini() {
   const { data, isLoading } = useSWR("groceries", getGroceries);
-  const color = SECTIONS.groceries.color;
+  const { data: history } = useSWR("overview-groceries-history", () => getGroceryHistory(7), {
+    refreshInterval: 60_000,
+  });
+  const color = useSectionColor("groceries");
   const items = data?.items ?? [];
-  const lowCount = items.filter((i: any) => i.low).length;
-  const boughtCount = items.filter((i: any) => i.bought).length;
+  const lowCount = items.filter((i) => i.low).length;
+
+  const chartData = useMemo(
+    () =>
+      (history?.daily ?? []).slice(-7).map((d) => ({
+        date: weekdayShort(d.date),
+        bought: d.bought,
+        needed: d.needed,
+      })),
+    [history],
+  );
+  const weekTotal = chartData.reduce((s, d) => s + d.bought + d.needed, 0);
+  // Needed is the darker accent, bought is a lighter tint — reads as
+  // "stock running low" vs "restocked" at a glance.
+  const chartConfig = {
+    needed: { label: "Needed", color },
+    bought: { label: "Bought", color },
+  } satisfies ChartConfig;
 
   return (
     <SectionCard section="groceries" loading={isLoading}>
       <div className="grid grid-cols-2 gap-3">
         <MiniStat label="Need" value={lowCount > 0 ? lowCount : "—"} color={color} />
-        <MiniStat label="In cart" value={boughtCount > 0 ? boughtCount : "—"} />
+        <MiniStat label="7-day marks" value={weekTotal > 0 ? weekTotal : "—"} />
       </div>
-      {items.length > 0 && (
-        <p className="mt-2 text-xs text-muted-foreground">{items.length} items tracked</p>
+
+      {weekTotal > 0 && (
+        <MiniBarChart label="Needed vs Bought (7d)" data={chartData} chartConfig={chartConfig}>
+          <Bar dataKey="needed" stackId="g" fill={color} radius={[0, 0, 0, 0]} />
+          <Bar dataKey="bought" stackId="g" fill={color} fillOpacity={0.4} radius={[3, 3, 0, 0]} />
+        </MiniBarChart>
       )}
     </SectionCard>
   );
@@ -518,7 +547,7 @@ function SupplementsMini() {
     return { day, history };
   }, { refreshInterval: 60_000 });
 
-  const color = SECTIONS.supplements.color;
+  const color = useSectionColor("supplements");
   const day = data?.day;
   const history = data?.history;
   const streak = useMemo(() => computeStreak(history?.daily), [history]);
@@ -574,7 +603,7 @@ function CannabisMini() {
     return () => clearInterval(id);
   }, []);
 
-  const color = SECTIONS.cannabis.color;
+  const color = useSectionColor("cannabis");
   const day = data?.day;
   const history = data?.history;
   const sessions = data?.sessions?.sessions ?? [];
@@ -646,7 +675,7 @@ function CaffeineMini() {
     { refreshInterval: 60_000 },
   );
 
-  const color = SECTIONS.caffeine.color;
+  const color = useSectionColor("caffeine");
   const day = data?.day;
   const history = data?.history;
 
@@ -709,7 +738,7 @@ function HealthMini() {
     refreshInterval: 60_000,
   });
 
-  const color = SECTIONS.health.color;
+  const color = useSectionColor("health");
   const oura = data?.oura ?? [];
   const apple = data?.apple ?? [];
 
@@ -769,7 +798,7 @@ function SleepMini() {
     refreshInterval: 60_000,
   });
 
-  const color = SECTIONS.sleep.color;
+  const color = useSectionColor("sleep");
   const oura = data?.oura ?? [];
 
   const latestSleep = [...oura].reverse().find((r) => r.sleep_score != null || r.efficiency != null);
@@ -828,7 +857,7 @@ function BodyMini() {
     refreshInterval: 60_000,
   });
 
-  const color = SECTIONS.body.color;
+  const color = useSectionColor("body");
   const withings = data?.withings ?? [];
 
   const latestWeight = [...withings].reverse().find((r) => r.weight_kg != null);
@@ -943,7 +972,7 @@ function WeatherMini() {
     { refreshInterval: 600_000, shouldRetryOnError: false },
   );
 
-  const color = SECTIONS.weather.color;
+  const color = useSectionColor("weather");
 
   if (error || (!isLoading && !data)) {
     return (
@@ -1026,10 +1055,22 @@ function CalendarMini() {
     { refreshInterval: 300_000, shouldRetryOnError: false },
   );
 
-  const color = SECTIONS.calendar.color;
+  const color = useSectionColor("calendar");
   const today = data?.today ?? "";
-  const todayEvents = (data?.events ?? []).filter((e) => localDay(e.start) === today);
-  const next = (data?.events ?? []).find((e) => new Date(e.start) >= new Date());
+  const now = new Date();
+  const events = data?.events ?? [];
+  const upcomingToday = events.filter(
+    (e) => localDay(e.start) === today && (e.all_day || new Date(e.start) >= now),
+  );
+  const next = events.find((e) => new Date(e.start) >= now);
+  const tomorrowDay = (() => {
+    const d = new Date(today || now);
+    d.setDate(d.getDate() + 1);
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${d.getFullYear()}-${m}-${day}`;
+  })();
+  const tomorrowEvents = events.filter((e) => localDay(e.start) === tomorrowDay);
 
   return (
     <SectionCard section="calendar" loading={isLoading}>
@@ -1040,21 +1081,86 @@ function CalendarMini() {
 
       {data?.error ? (
         <p className="mt-3 text-xs text-muted-foreground">{data.error}</p>
-      ) : todayEvents.length > 0 ? (
+      ) : upcomingToday.length > 0 ? (
         <div className="mt-3 space-y-1.5">
-          {todayEvents.slice(0, 4).map((e, i) => (
+          {upcomingToday.slice(0, 4).map((e, i) => (
             <div key={`${e.start}-${i}`} className="flex min-w-0 items-baseline gap-2 text-xs">
               <span className="shrink-0 tabular-nums text-muted-foreground">{fmtEventTime(e.start)}</span>
               <span className="min-w-0 flex-1 overflow-hidden truncate" style={{ color }}>{e.title}</span>
             </div>
           ))}
         </div>
-      ) : next ? (
-        <p className="mt-3 truncate text-xs text-muted-foreground">
-          Next: <span className="font-medium" style={{ color }}>{next.title}</span> · {fmtEventTime(next.start)}
-        </p>
+      ) : tomorrowEvents.length > 0 ? (
+        <div className="mt-3 space-y-1.5">
+          <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Tomorrow</p>
+          <div className="flex min-w-0 items-baseline gap-2 text-xs">
+            <span className="shrink-0 tabular-nums text-muted-foreground">
+              {tomorrowEvents[0].all_day ? "all-day" : fmtEventTime(tomorrowEvents[0].start)}
+            </span>
+            <span className="min-w-0 flex-1 overflow-hidden truncate" style={{ color }}>
+              {tomorrowEvents[0].title}
+            </span>
+          </div>
+        </div>
       ) : (
         <p className="mt-3 text-xs text-muted-foreground">No upcoming events</p>
+      )}
+    </SectionCard>
+  );
+}
+
+// ── Air Mini ────────────────────────────────────────────────────────────────
+
+function AirMini() {
+  const { data: summary, isLoading: sumLoading } = useSWR("overview-air-summary", getAirSummary, { refreshInterval: 60_000 });
+  const { data: history, isLoading: hLoading } = useSWR("overview-air-history", () => getAirHistory(7), { refreshInterval: 60_000 });
+  const color = useSectionColor("air");
+
+  const latest = summary?.latest ?? null;
+
+  const chartData = useMemo(() => {
+    const daily = history?.daily ?? [];
+    const byDate = new Map(daily.map((d) => [d.date, d.co2_max]));
+    return lastSevenDays().map(({ iso, weekday }) => {
+      const v = byDate.get(iso);
+      return {
+        date: weekday,
+        v: v != null ? Math.round(v) : 0,
+        missing: v == null,
+      };
+    });
+  }, [history]);
+  const hasData = chartData.some((d) => !d.missing);
+  const chartConfig = { v: { label: "ppm", color } } satisfies ChartConfig;
+
+  return (
+    <SectionCard section="air" loading={sumLoading || hLoading}>
+      <div className="grid grid-cols-2 gap-3">
+        <MiniStat
+          label="CO₂"
+          value={latest?.co2_ppm != null ? `${latest.co2_ppm}` : "—"}
+          unit="ppm"
+        />
+        <MiniStat
+          label="Today > 1000"
+          value={summary?.today ? `${summary.today.minutes_over_1000}` : "—"}
+          unit="m"
+        />
+      </div>
+
+      {hasData && (
+        <MiniBarChart label="7-day peak CO₂" data={chartData} chartConfig={chartConfig} yDomain={[400, "auto"]}>
+          <ReferenceLine y={1000} stroke={color} strokeDasharray="3 3" strokeOpacity={0.4} />
+          <Bar dataKey="v" radius={[3, 3, 3, 3]}>
+            {chartData.map((d, i) => (
+              <Cell
+                key={i}
+                fill={d.missing ? "hsl(var(--muted-foreground))" : color}
+                fillOpacity={d.missing ? 0.15 : 1}
+              />
+            ))}
+          </Bar>
+        </MiniBarChart>
       )}
     </SectionCard>
   );
@@ -1076,6 +1182,8 @@ const SECTION_MINI: Record<string, React.FC> = {
   body: BodyMini,
   weather: WeatherMini,
   calendar: CalendarMini,
+  air: AirMini,
+  ...(LOCAL_EXTRA_MINIS ?? {}),
 };
 
 // ── Bottom action buttons ──────────────────────────────────────────────────
@@ -1184,6 +1292,7 @@ function SectionCard({ section, loading, children }: {
   children: React.ReactNode;
 }) {
   const s = SECTIONS[section as keyof typeof SECTIONS];
+  const color = useSectionColor(s.key);
   const openQuickLog = useContext(QuickLogContext);
   const quickLog = QUICK_LOG[s.key];
   const hasQuickLog = !!openQuickLog && !!quickLog;
@@ -1192,7 +1301,7 @@ function SectionCard({ section, loading, children }: {
       <Link href={s.path} className="block p-5">
         <div
           className="absolute left-0 top-4 h-8 w-1 rounded-r-full"
-          style={{ backgroundColor: s.color }}
+          style={{ backgroundColor: color }}
         />
         <div className="mb-3 pr-10">
           <h2 className="text-base font-semibold tracking-tight">{s.label}</h2>
@@ -1220,7 +1329,7 @@ function SectionCard({ section, loading, children }: {
             </div>
           </div>
         ) : (
-          <SectionColorContext.Provider value={s.color}>{children}</SectionColorContext.Provider>
+          <SectionColorContext.Provider value={color}>{children}</SectionColorContext.Provider>
         )}
       </Link>
       {hasQuickLog && (
@@ -1240,7 +1349,7 @@ function SectionCard({ section, loading, children }: {
         >
           <span
             className="flex h-8 w-8 items-center justify-center rounded-full text-white shadow-sm"
-            style={{ backgroundColor: s.color }}
+            style={{ backgroundColor: color }}
           >
             <QuickLogGlyph icon={quickLog!.icon} />
           </span>
@@ -1265,12 +1374,13 @@ export function OverviewDashboard() {
   }, [phases]);
   const [openKey, setOpenKey] = useState<SectionKey | null>(null);
   const active = openKey ? QUICK_LOG[openKey] : null;
-  const activeSection = openKey ? SECTIONS[openKey] : null;
+  const allSections = useSections();
+  const activeSection = openKey ? allSections.find((s) => s.key === openKey) ?? null : null;
 
   // Home tiles respect user's section_order from settings. Correlations
   // is excluded — it's a meta view on the bottom action row, not a
   // section to log into.
-  const visibleSections = useSections().filter(
+  const visibleSections = allSections.filter(
     (s) => s.enabled && s.key !== "correlations",
   );
 

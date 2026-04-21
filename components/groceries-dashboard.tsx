@@ -17,10 +17,8 @@ import {
   SectionHeaderActionButton,
 } from "@/components/section-header-action";
 import { TaskGroup, TaskRow } from "@/components/tasks";
-import { SECTIONS } from "@/lib/sections";
 import { StatCard } from "@/components/stat-card";
-
-const GROCERIES_COLOR = SECTIONS.groceries.color;
+import { useSectionColor } from "@/hooks/use-sections";
 
 const CATEGORIES = ["produce", "dairy", "grains", "meat", "frozen", "household", "other"] as const;
 type Category = typeof CATEGORIES[number];
@@ -48,6 +46,7 @@ function relativeDays(iso: string | null): string {
 }
 
 export function GroceriesDashboard() {
+  const GROCERIES_COLOR = useSectionColor("groceries");
   const { data, isLoading, mutate } = useSWR("groceries", getGroceries);
   const [pending, setPending] = useState<Set<string>>(new Set());
   const [shopperMode, setShopperMode] = useState(false);
@@ -186,8 +185,15 @@ export function GroceriesDashboard() {
               <TaskGroup key={cat} title={cat.charAt(0).toUpperCase() + cat.slice(1)} emoji={CATEGORY_EMOJI[cat]} accent={GROCERIES_COLOR} doneCount={catItems.filter((i) => i.low).length} totalCount={catItems.length}>
                 {catItems.map((it) => (
                   <div key={it.id} className="flex items-center gap-2">
-                    <TaskRow label={it.name} emoji={it.emoji} done={it.low} pending={pending.has(it.id)} accent={GROCERIES_COLOR} onClick={() => toggleLow(it)} />
-                    <span className="shrink-0 text-xs text-muted-foreground">{relativeDays(it.last_bought)}</span>
+                    <TaskRow
+                      label={it.name}
+                      emoji={it.emoji}
+                      sublabel={relativeDays(it.last_bought)}
+                      done={it.low}
+                      pending={pending.has(it.id)}
+                      accent={GROCERIES_COLOR}
+                      onClick={() => toggleLow(it)}
+                    />
                   </div>
                 ))}
               </TaskGroup>

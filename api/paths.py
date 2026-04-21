@@ -44,6 +44,10 @@ CHORES_DEFS_DIR = VAULT_ROOT / "Chores/Definitions"
 CHORES_LOG_DIR = VAULT_ROOT / "Chores/Log"
 GROCERIES_DIR = VAULT_ROOT / "Groceries"
 GROCERIES_PATH = VAULT_ROOT / "Groceries/groceries.yaml"
+GROCERIES_LOG_DIR = VAULT_ROOT / "Groceries/Log"
+
+AIR_DIR = VAULT_ROOT / "Air/Log"
+AIR_STATE_PATH = CACHE_DIR / "aranet-state.json"
 
 SETTINGS_DIR = VAULT_ROOT / "Settings"
 SETTINGS_PATH = SETTINGS_DIR / "settings.yaml"
@@ -69,6 +73,7 @@ _VAULT_FOLDER_SECTIONS: Dict[str, str] = {
     "caffeine":    "Caffeine",
     "cannabis":    "Cannabis",
     "groceries":   "Groceries",
+    "air":         "Air",
 }
 
 

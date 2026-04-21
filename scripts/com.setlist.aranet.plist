@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.setlist.aranet</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/opt/homebrew/bin/python3</string>
+        <string>/Users/botbot/Documents/repos/setlist/scripts/aranet_poller.py</string>
+    </array>
+
+    <!-- Every 6 hours. Aranet4 stores ~7 days on-device, so catching up after downtime is free. -->
+    <key>StartInterval</key>
+    <integer>21600</integer>
+
+    <!-- Run once shortly after load so we don't wait 6h for the first pull. -->
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>StandardOutPath</key>
+    <string>/Users/botbot/.config/setlist/aranet.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/botbot/.config/setlist/aranet.err</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+    </dict>
+</dict>
+</plist>

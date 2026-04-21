@@ -35,8 +35,16 @@ SECTION_IMMUTABLE: Dict[str, Dict[str, str]] = {
     "body":         {"path": "/body",         "apiBase": "/api/health",      "obsidianDir": ""},
     "weather":      {"path": "/weather",      "apiBase": "/api/weather",     "obsidianDir": ""},
     "calendar":     {"path": "/calendar",     "apiBase": "/api/calendar",    "obsidianDir": ""},
+    "air":          {"path": "/air",          "apiBase": "/api/air",         "obsidianDir": "Bases/Air/Log"},
     "correlations": {"path": "/insights",     "apiBase": "",                 "obsidianDir": ""},
 }
+
+# Optional local-only extensions extend the registry.
+try:
+    from api.routers import _local as _local_plugin  # type: ignore[import-not-found]
+    SECTION_IMMUTABLE.update(getattr(_local_plugin, "SECTION_IMMUTABLE_EXTRA", {}))
+except ImportError:
+    pass
 
 
 router = APIRouter(prefix="/api/sections", tags=["sections"])

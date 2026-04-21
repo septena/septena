@@ -52,13 +52,17 @@ DEFAULT_SETTINGS: Dict[str, Any] = {
     "section_order": [
         "exercise", "nutrition", "habits", "chores", "groceries", "supplements",
         "cannabis", "caffeine", "health", "sleep", "body",
-        "weather", "calendar",
+        "weather", "calendar", "air",
     ],
     "targets": {
         "protein_min_g": 130,
         "protein_max_g": 150,
         "fat_min_g": 55,
         "fat_max_g": 75,
+        "weight_min_kg": 83,
+        "weight_max_kg": 85,
+        "fat_min_pct": 12,
+        "fat_max_pct": 15,
         "carbs_min_g": 160,
         "carbs_max_g": 240,
         "fiber_min_g": 25,
@@ -121,6 +125,7 @@ DEFAULT_SETTINGS: Dict[str, Any] = {
         # location for weather).
         "weather":      {"label": "Weather",      "emoji": "☀️", "color": "hsl(205,75%,50%)",  "tagline": "Today's conditions & forecast", "enabled": False},
         "calendar":     {"label": "Calendar",     "emoji": "📅", "color": "hsl(290,55%,55%)",  "tagline": "Today's events at a glance",   "enabled": False},
+        "air":          {"label": "Air",          "emoji": "🌬️", "color": "hsl(190,70%,45%)",  "tagline": "CO₂, temperature & humidity"},
         "correlations": {"label": "Insights",     "emoji": "🔗", "color": "hsl(220,8%,55%)",   "tagline": "Cross-section patterns"},
     },
     # Per-tile config for the optional sections.
@@ -133,6 +138,15 @@ DEFAULT_SETTINGS: Dict[str, Any] = {
         "enabled_calendars": None,  # None = show all; list of names = explicit allowlist
     },
 }
+
+# Optional local-only extensions may extend DEFAULT_SETTINGS (section order,
+# per-section metadata, etc.). No-op when the hook module is absent.
+try:
+    from api.routers import _local as _local_plugin  # type: ignore[import-not-found]
+    if hasattr(_local_plugin, "apply_defaults"):
+        _local_plugin.apply_defaults(DEFAULT_SETTINGS)
+except ImportError:
+    pass
 
 
 def _deep_merge(base: Dict[str, Any], overlay: Dict[str, Any]) -> Dict[str, Any]:

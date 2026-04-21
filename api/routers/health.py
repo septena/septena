@@ -126,7 +126,7 @@ def _withings_measure(start: str, end: str) -> List[Dict[str, Any]]:
     url = (
         f"https://wbsapi.withings.net/v2/measure"
         f"?action=getmeas"
-        f"&meastypes=1,6"
+        f"&meastypes=1,5,6,8,76,77,88"
         f"&startdate={start_ts}"
         f"&enddate={end_ts}"
         f"&timezone=Europe/Amsterdam"
@@ -148,10 +148,13 @@ def _withings_measure(start: str, end: str) -> List[Dict[str, Any]]:
         }
         for m in g.get("measures", []):
             t, v, u = m["type"], m["value"], m.get("unit", 1)
-            if t == 1:
-                entry["weight_kg"] = round(v * (0.001 if u == -3 else 1), 1)
-            if t == 6:
-                entry["fat_pct"] = round(v * (0.001 if u == -3 else 1), 1)
+            if t == 1:   entry["weight_kg"]         = round(v * (0.001 if u == -3 else 1), 1)
+            if t == 5:   entry["bone_mineral_kg"]  = round(v * (0.001 if u == -3 else 1), 2)
+            if t == 6:   entry["fat_pct"]          = round(v * (0.001 if u == -3 else 1), 1)
+            if t == 8:   entry["fat_ratio_pct"]    = round(v * (0.01 if u == -2 else (0.001 if u == -3 else 1)), 1)
+            if t == 76:  entry["pulse_wave_mps"]   = round(v * (0.01 if u == -2 else (0.001 if u == -3 else 1)), 2)
+            if t == 77:  entry["vascular_age"]     = round(v * (0.01 if u == -2 else (0.001 if u == -3 else 1)), 0)
+            if t == 88:  entry["spo2_pct"]         = round(v * (0.01 if u == -2 else (0.001 if u == -3 else 1)), 1)
         if "weight_kg" in entry:
             results.append(entry)
     return results
@@ -337,7 +340,7 @@ def health_withings(days: int = 30, end: str | None = None) -> Dict[str, Any]:
     for offset in range(days - 1, -1, -1):
         d = (date.fromisoformat(end) - timedelta(days=offset)).isoformat()
         m = meas_map.get(d, {})
-        rows.append({"date": d, "weight_kg": m.get("weight_kg"), "fat_pct": m.get("fat_pct")})
+        rows.append({"date": d, "weight_kg": m.get("weight_kg"), "fat_pct": m.get("fat_pct"), "fat_ratio_pct": m.get("fat_ratio_pct"), "bone_mineral_kg": m.get("bone_mineral_kg"), "pulse_wave_mps": m.get("pulse_wave_mps"), "vascular_age": m.get("vascular_age"), "spo2_pct": m.get("spo2_pct")})
     return {"withings": rows}
 
 

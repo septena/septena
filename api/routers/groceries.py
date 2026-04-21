@@ -7,15 +7,17 @@ Data lives in Groceries/groceries.yaml. A grocery item has:
 from __future__ import annotations
 
 import uuid
-from datetime import date
-from typing import Any, Dict
+from collections import defaultdict
+from datetime import date, datetime, timedelta
+from typing import Any, Dict, List
 
 import yaml
 from fastapi import APIRouter, HTTPException
 from starlette.requests import Request
 
 from api import logger
-from api.paths import GROCERIES_DIR, GROCERIES_PATH
+from api.parsing import _extract_frontmatter, _normalize_date
+from api.paths import GROCERIES_DIR, GROCERIES_LOG_DIR, GROCERIES_PATH
 
 router = APIRouter(prefix="/api/groceries", tags=["groceries"])
 
@@ -80,11 +82,41 @@ async def groceries_add(request: Request) -> Dict[str, Any]:
     return new_item
 
 
+def _write_toggle_event(item: Dict[str, Any], action: str) -> None:
+    """Append a per-toggle event file so history can be replayed.
+
+    action is "needed" (low flipped true) or "bought" (low flipped false).
+    NN suffix disambiguates multiple toggles of the same item on one day.
+    """
+    GROCERIES_LOG_DIR.mkdir(parents=True, exist_ok=True)
+    today = date.today()
+    now = datetime.now()
+    n = 1
+    while True:
+        path = GROCERIES_LOG_DIR / f"{today.isoformat()}--{item.get('id')}--{action}--{n:02d}.md"
+        if not path.exists():
+            break
+        n += 1
+    event = {
+        "date": today,
+        "time": now.strftime("%H:%M"),
+        "id": f"grocery-{today.isoformat()}-{item.get('id')}-{action}-{n:02d}",
+        "section": "groceries",
+        "item_id": str(item.get("id", "")),
+        "item_name": str(item.get("name", "")),
+        "category": str(item.get("category", "other")),
+        "action": action,
+    }
+    body = "---\n" + yaml.safe_dump(event, sort_keys=False, allow_unicode=True) + "---\n"
+    path.write_text(body, encoding="utf-8")
+
+
 @router.patch("/item/{item_id}")
 async def groceries_patch(item_id: str, request: Request) -> Dict[str, Any]:
     """Body: partial fields {low?, name?, category?, emoji?}. Updates one item.
 
-    When `low` flips from true to false, stamps `last_bought` with today.
+    When `low` flips, stamps `last_bought` (on true→false) and writes a
+    toggle event to Log/ so history can be reconstructed per day.
     """
     payload = await request.json()
     data = _load()
@@ -92,8 +124,12 @@ async def groceries_patch(item_id: str, request: Request) -> Dict[str, Any]:
         if it.get("id") == item_id:
             if "low" in payload:
                 new_low = bool(payload["low"])
-                if it.get("low") and not new_low:
+                prev_low = bool(it.get("low"))
+                if prev_low and not new_low:
                     it["last_bought"] = date.today().isoformat()
+                    _write_toggle_event(it, "bought")
+                elif new_low and not prev_low:
+                    _write_toggle_event(it, "needed")
                 it["low"] = new_low
             if "name" in payload:
                 it["name"] = str(payload["name"]).strip()
@@ -104,6 +140,38 @@ async def groceries_patch(item_id: str, request: Request) -> Dict[str, Any]:
             _save(data)
             return it
     raise HTTPException(status_code=404, detail="item not found")
+
+
+@router.get("/history")
+def groceries_history(days: int = 30) -> Dict[str, Any]:
+    """Daily counts of items marked needed vs bought, for the last N days."""
+    bought_by_day: Dict[str, int] = defaultdict(int)
+    needed_by_day: Dict[str, int] = defaultdict(int)
+    if GROCERIES_LOG_DIR.exists():
+        for p in sorted(GROCERIES_LOG_DIR.glob("*.md")):
+            try:
+                fm = _extract_frontmatter(p.read_text(encoding="utf-8"))
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("grocery event %s failed to parse: %s", p.name, exc)
+                continue
+            day = _normalize_date(fm.get("date"))
+            action = fm.get("action")
+            if not day:
+                continue
+            if action == "bought":
+                bought_by_day[day] += 1
+            elif action == "needed":
+                needed_by_day[day] += 1
+    today = date.today()
+    out: List[Dict[str, Any]] = []
+    for offset in range(days - 1, -1, -1):
+        d = (today - timedelta(days=offset)).isoformat()
+        out.append({
+            "date": d,
+            "bought": bought_by_day.get(d, 0),
+            "needed": needed_by_day.get(d, 0),
+        })
+    return {"daily": out}
 
 
 @router.delete("/item/{item_id}")

@@ -13,17 +13,11 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChartContainer, type ChartConfig } from "@/components/ui/chart";
 import { SectionStatusBar } from "@/components/section-status-bar";
-import { SECTIONS } from "@/lib/sections";
 import { StatCard } from "@/components/stat-card";
 import { TaskGroup, TaskRow } from "@/components/tasks";
 import { shortDate } from "@/lib/date-utils";
 import { useBarAnimation } from "@/hooks/use-bar-animation";
-
-const CHORES_COLOR = SECTIONS.chores.color;
-
-const chartConfig = {
-  metric: { label: "Completions", color: CHORES_COLOR },
-} satisfies ChartConfig;
+import { useSectionColor } from "@/hooks/use-sections";
 
 const HAPTIC = () => {
   try {
@@ -60,6 +54,10 @@ function choreSublabel(chore: Chore, today: string): { text?: string; tone?: "wa
 }
 
 export function ChoresDashboard() {
+  const CHORES_COLOR = useSectionColor("chores");
+  const chartConfig = {
+    metric: { label: "Completions", color: CHORES_COLOR },
+  } satisfies ChartConfig;
   const [pending, setPending] = useState<Set<string>>(new Set());
   const barAnim = useBarAnimation();
 

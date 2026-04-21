@@ -31,14 +31,13 @@ import {
 import { WeekStreak } from "@/components/week-streak";
 import { SectionStatusBar } from "@/components/section-status-bar";
 import { SectionHeaderAction, SectionHeaderActionButton } from "@/components/section-header-action";
-import { SECTIONS, EXERCISE_SHADES } from "@/lib/sections";
+import { EXERCISE_SHADES } from "@/lib/sections";
+import { useSectionColor } from "@/hooks/use-sections";
 import { relativeTime, formatDateLong as formatDate, addDaysISO, formatWeekdayTick } from "@/lib/date-utils";
 import { useSelectedDate } from "@/hooks/use-selected-date";
 import { StatCard } from "@/components/stat-card";
 import { DashboardSkeleton } from "@/components/dashboard-skeleton";
 import { useBarAnimation } from "@/hooks/use-bar-animation";
-
-const EXERCISE_COLOR = SECTIONS.exercise.color;
 
 type DashboardState = {
   stats: Stats | null;
@@ -161,6 +160,7 @@ function repsAsNumber(reps: number | string | null | undefined): number | null {
 }
 
 export function TrainingDashboard() {
+  const EXERCISE_COLOR = useSectionColor("exercise");
   const [windowDays, setWindowDays] = useState<WindowDays>(DEFAULT_WINDOW_DAYS);
   const barAnim = useBarAnimation();
   const { date: selectedDate } = useSelectedDate();

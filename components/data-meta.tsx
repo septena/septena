@@ -2,7 +2,8 @@
 
 import useSWR from "swr";
 import { getMeta, type SourceMeta } from "@/lib/api";
-import { SECTIONS } from "@/lib/sections";
+import { useSection, useSectionColor } from "@/hooks/use-sections";
+import type { SectionKey } from "@/lib/sections";
 import { cn } from "@/lib/utils";
 
 function timeAgo(iso: string | null | undefined): string {
@@ -48,7 +49,7 @@ const FRESHNESS_LABEL: Record<Freshness, string> = {
 // ── Vault source row ────────────────────────────────────────────────────────
 
 function VaultSourceRow({ sectionKey, meta }: { sectionKey: string; meta: SourceMeta }) {
-  const section = SECTIONS[sectionKey as keyof typeof SECTIONS];
+  const section = useSection(sectionKey as SectionKey);
   const color = section?.color ?? "hsl(0,0%,50%)";
   const f = freshness(meta.newest ?? meta.last_modified);
   const isLive = meta.status === "live";
@@ -117,6 +118,7 @@ function HealthSubRow({ sub }: { sub: { label: string; status?: string; last_mod
 // ── Main component ──────────────────────────────────────────────────────────
 
 export function DataMeta() {
+  const healthColor = useSectionColor("health");
   const { data, error, isLoading } = useSWR("meta", getMeta, { refreshInterval: 60_000 });
 
   if (isLoading) {
@@ -163,7 +165,7 @@ export function DataMeta() {
           <div className="flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-3">
             <div
               className="h-8 w-1 shrink-0 rounded-full"
-              style={{ backgroundColor: SECTIONS.health.color }}
+              style={{ backgroundColor: healthColor }}
             />
             <div className="min-w-0 flex-1">
               <p className="text-sm font-medium">{health.label}</p>

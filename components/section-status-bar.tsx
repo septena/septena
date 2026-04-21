@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { getCaffeineHistory, getCalendar, getCannabisHistory, getChores, getEntries, getGroceries, getHabitHistory, getHealthApple, getHealthOura, getHealthWithings, getNutritionEntries, getNutritionStats, getStats, getSupplementHistory, getWeather, type Stats } from "@/lib/api";
 import { computeStreak } from "@/lib/date-utils";
 import { SECTIONS } from "@/lib/sections";
+import { useSectionColor, useSection } from "@/hooks/use-sections";
 import { useAppConfig } from "@/lib/app-config";
 import { StatusPill } from "@/components/ui/status-pill";
 import { useLoadTime } from "@/components/load-timer";
@@ -40,9 +41,11 @@ export function SectionStatusBar({ section }: { section: SectionKey }) {
   const { paths } = useAppConfig();
   const vault = paths.vault.replace(/\/$/, "");
   const loadTime = useLoadTime();
+  const color = useSectionColor(section);
+  const sectionMeta = useSection(section);
+  const sectionLabel = sectionMeta?.label ?? SECTIONS[section].label;
 
   useEffect(() => {
-    const color = SECTIONS[section].color;
     const fetchStatus = async () => {
       try {
         if (section === "exercise") {
@@ -170,7 +173,7 @@ export function SectionStatusBar({ section }: { section: SectionKey }) {
       }
     };
     fetchStatus();
-  }, [section, vault]);
+  }, [section, vault, color]);
 
   if (!data) return null;
 
@@ -190,7 +193,7 @@ export function SectionStatusBar({ section }: { section: SectionKey }) {
           href={`/settings/${section}`}
           className="underline-offset-4 hover:text-foreground hover:underline"
         >
-          {SECTIONS[section].label} settings →
+          {sectionLabel} settings →
         </Link>
       </div>
     </StatusPill>

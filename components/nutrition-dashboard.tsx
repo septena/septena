@@ -27,16 +27,15 @@ import { useSelectedDate } from "@/hooks/use-selected-date";
 import { computeFastingState, isBreakingFast, useFastingConfig } from "@/lib/fasting";
 import { useMacroTargets, useFastingTarget, useFiberTarget, formatRange, progressTowardRange, type MacroKey, type MacroTarget } from "@/lib/macro-targets";
 import { StatCard } from "@/components/stat-card";
-import { SECTIONS } from "@/lib/sections";
 import { useBarAnimation } from "@/hooks/use-bar-animation";
-
-const NUTRITION_COLOR = SECTIONS.nutrition.color;
+import { useSectionColor } from "@/hooks/use-sections";
 
 export function NutritionDashboard() {
   return <NutritionDashboardInner />;
 }
 
 function NutritionDashboardInner() {
+  const NUTRITION_COLOR = useSectionColor("nutrition");
   const { date: selectedDate } = useSelectedDate();
   // Fetch a 7-day window ending at the selected date — covers both the day's
   // cards and the RecentEntries list.

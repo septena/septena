@@ -21,15 +21,8 @@ import {
 import { SectionStatusBar } from "@/components/section-status-bar";
 import { SectionHeaderAction, SectionHeaderActionButton } from "@/components/section-header-action";
 import { StatCard } from "@/components/stat-card";
-import { SECTIONS } from "@/lib/sections";
 import { useBarAnimation } from "@/hooks/use-bar-animation";
-
-const CANNABIS_SECTION = SECTIONS.cannabis;
-
-const chartConfig = {
-  grams: { label: "Grams", color: CANNABIS_SECTION.color },
-  count: { label: "Sessions", color: CANNABIS_SECTION.color },
-} satisfies ChartConfig;
+import { useSectionColor } from "@/hooks/use-sections";
 
 // 30-minute buckets → 48 slots covering the full day (matches caffeine).
 const BUCKET_MIN = 30;
@@ -50,6 +43,11 @@ import {
 import { useSelectedDate } from "@/hooks/use-selected-date";
 
 export function CannabisDashboard() {
+  const cannabisColor = useSectionColor("cannabis");
+  const chartConfig = {
+    grams: { label: "Grams", color: cannabisColor },
+    count: { label: "Sessions", color: cannabisColor },
+  } satisfies ChartConfig;
   const [showForm, setShowForm] = useState(() => {
     if (typeof window !== "undefined") {
       return new URLSearchParams(window.location.search).has("log");
@@ -214,7 +212,7 @@ export function CannabisDashboard() {
     <main data-section="cannabis" className="mx-auto min-h-screen w-full min-w-0 max-w-6xl overflow-hidden px-4 py-6 sm:px-6 lg:px-8">
       <SectionHeaderAction>
         <SectionHeaderActionButton
-          color={CANNABIS_SECTION.color}
+          color={cannabisColor}
           onClick={() => setShowForm((v) => !v)}
         >
           + Log
@@ -289,7 +287,7 @@ export function CannabisDashboard() {
                 onClick={handleAdd}
                 disabled={saving}
                 className="flex-1 rounded-xl py-2.5 text-sm font-semibold text-white disabled:opacity-50"
-                style={{ backgroundColor: CANNABIS_SECTION.color }}
+                style={{ backgroundColor: cannabisColor }}
               >
                 {saving ? "Saving…" : needsNewCapsule ? "Start & log" : "Save"}
               </button>
@@ -304,7 +302,7 @@ export function CannabisDashboard() {
           <p className="text-xs uppercase tracking-wide text-muted-foreground">Active capsule</p>
           {activeCapsule ? (
             <>
-              <p className="mt-1 truncate text-2xl font-semibold" style={{ color: CANNABIS_SECTION.color }}>
+              <p className="mt-1 truncate text-2xl font-semibold" style={{ color: cannabisColor }}>
                 {activeCapsule.strain ?? "No strain"}
               </p>
               <p className="mt-0.5 text-xs text-muted-foreground">
@@ -315,27 +313,27 @@ export function CannabisDashboard() {
                 type="button"
                 onClick={handleEndCapsule}
                 className="mt-2 w-full rounded-lg px-2 py-1 text-xs font-semibold text-white"
-                style={{ backgroundColor: CANNABIS_SECTION.color }}
+                style={{ backgroundColor: cannabisColor }}
               >
                 End capsule
               </button>
             </>
           ) : (
             <>
-              <p className="mt-1 text-2xl font-semibold" style={{ color: CANNABIS_SECTION.color }}>None</p>
+              <p className="mt-1 text-2xl font-semibold" style={{ color: cannabisColor }}>None</p>
               <button
                 type="button"
                 onClick={handleStartCapsule}
                 className="mt-2 w-full rounded-lg px-2 py-1 text-xs font-semibold text-white"
-                style={{ backgroundColor: CANNABIS_SECTION.color }}
+                style={{ backgroundColor: cannabisColor }}
               >
                 Start capsule
               </button>
             </>
           )}
         </div>
-        <StatCard label="Sessions" value={day ? day.session_count : null} color={CANNABIS_SECTION.color} />
-        <StatCard label="Total" value={day ? `${day.total_g}g` : null} color={CANNABIS_SECTION.color} />
+        <StatCard label="Sessions" value={day ? day.session_count : null} color={cannabisColor} />
+        <StatCard label="Total" value={day ? `${day.total_g}g` : null} color={cannabisColor} />
         <StatCard
           label="Method"
           value={day ? [
@@ -355,7 +353,7 @@ export function CannabisDashboard() {
               {day.entries.map((entry) => (
                 <div key={entry.id} className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3">
                   <div className="flex shrink-0 items-center justify-center rounded-full px-2.5 py-1 text-xs font-bold"
-                    style={{ backgroundColor: CANNABIS_SECTION.color, color: "white" }}>
+                    style={{ backgroundColor: cannabisColor, color: "white" }}>
                     {entry.time.slice(0, 5)}
                   </div>
                   <div className="flex-1 min-w-0">
@@ -503,16 +501,16 @@ export function CannabisDashboard() {
                 {avgHour !== null && (
                   <ReferenceLine
                     y={avgHour}
-                    stroke={CANNABIS_SECTION.color}
+                    stroke={cannabisColor}
                     strokeDasharray="4 3"
                     strokeOpacity={0.6}
                   />
                 )}
                 <Scatter
                   data={scatterData}
-                  fill={CANNABIS_SECTION.color}
+                  fill={cannabisColor}
                   fillOpacity={0.55}
-                  stroke={CANNABIS_SECTION.color}
+                  stroke={cannabisColor}
                   strokeOpacity={0.9}
                 />
               </ScatterChart>

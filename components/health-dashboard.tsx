@@ -13,13 +13,10 @@ import {
   type OuraRow,
   type AppleRow,
 } from "@/lib/api";
-import { SECTIONS } from "@/lib/sections";
 import { formatDateShort as formatDate, formatWeekdayTick } from "@/lib/date-utils";
 import { StatCard } from "@/components/stat-card";
 import { useBarAnimation } from "@/hooks/use-bar-animation";
 import { useSelectedDate } from "@/hooks/use-selected-date";
-
-const HEALTH = SECTIONS.health;
 
 function fmt(n: number | null | undefined): string {
   if (n == null) return "—";

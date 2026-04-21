@@ -20,7 +20,7 @@ import {
 import { SectionStatusBar } from "@/components/section-status-bar";
 import { SectionHeaderAction, SectionHeaderActionButton } from "@/components/section-header-action";
 import { StatCard } from "@/components/stat-card";
-import { SECTIONS } from "@/lib/sections";
+import { useSectionColor } from "@/hooks/use-sections";
 import { useBarAnimation } from "@/hooks/use-bar-animation";
 import {
   todayLocalISO,
@@ -30,12 +30,6 @@ import {
   formatWeekdayTick,
 } from "@/lib/date-utils";
 import { useSelectedDate } from "@/hooks/use-selected-date";
-
-const CAFFEINE_SECTION = SECTIONS.caffeine;
-
-const chartConfig = {
-  count: { label: "Sessions", color: CAFFEINE_SECTION.color },
-} satisfies ChartConfig;
 
 // 30-minute buckets → 48 slots covering the full day.
 const BUCKET_MIN = 30;
@@ -58,6 +52,10 @@ function fmtHour(frac: number): string {
 }
 
 export function CaffeineDashboard() {
+  const caffeineColor = useSectionColor("caffeine");
+  const chartConfig = {
+    count: { label: "Sessions", color: caffeineColor },
+  } satisfies ChartConfig;
   const [showForm, setShowForm] = useState(() => {
     if (typeof window !== "undefined") {
       return new URLSearchParams(window.location.search).has("log");
@@ -206,7 +204,7 @@ export function CaffeineDashboard() {
       className="mx-auto min-h-screen w-full min-w-0 max-w-6xl overflow-hidden px-4 py-6 sm:px-6 lg:px-8"
     >
       <SectionHeaderAction>
-        <SectionHeaderActionButton color={CAFFEINE_SECTION.color} onClick={handleToggleForm}>
+        <SectionHeaderActionButton color={caffeineColor} onClick={handleToggleForm}>
           + Log
         </SectionHeaderActionButton>
       </SectionHeaderAction>
@@ -237,7 +235,7 @@ export function CaffeineDashboard() {
                     className="rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors"
                     style={
                       formMethod === m
-                        ? { backgroundColor: CAFFEINE_SECTION.color, color: "white" }
+                        ? { backgroundColor: caffeineColor, color: "white" }
                         : undefined
                     }
                   >
@@ -295,7 +293,7 @@ export function CaffeineDashboard() {
                 onClick={handleAdd}
                 disabled={saving}
                 className="flex-1 rounded-xl py-2.5 text-sm font-semibold text-white disabled:opacity-50"
-                style={{ backgroundColor: CAFFEINE_SECTION.color }}
+                style={{ backgroundColor: caffeineColor }}
               >
                 {saving ? "Saving…" : "Save"}
               </button>
@@ -309,12 +307,12 @@ export function CaffeineDashboard() {
         <StatCard
           label="Sessions"
           value={day ? day.session_count : null}
-          color={CAFFEINE_SECTION.color}
+          color={caffeineColor}
         />
         <StatCard
           label="Grams"
           value={day && day.total_g != null ? `${day.total_g}g` : day ? "—" : null}
-          color={CAFFEINE_SECTION.color}
+          color={caffeineColor}
         />
         <StatCard
           label="Method"
@@ -327,7 +325,7 @@ export function CaffeineDashboard() {
                   .join(" ") || "—"
               : null
           }
-          color={CAFFEINE_SECTION.color}
+          color={caffeineColor}
         />
       </div>
 
@@ -346,7 +344,7 @@ export function CaffeineDashboard() {
                 >
                   <div
                     className="flex shrink-0 items-center justify-center rounded-full px-2.5 py-1 text-xs font-bold"
-                    style={{ backgroundColor: CAFFEINE_SECTION.color, color: "white" }}
+                    style={{ backgroundColor: caffeineColor, color: "white" }}
                   >
                     {entry.time.slice(0, 5)}
                   </div>

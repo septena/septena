@@ -2,7 +2,7 @@
 
 import useSWR from "swr";
 import { useEffect, useState } from "react";
-import { SECTIONS } from "@/lib/sections";
+import { useSectionColor } from "@/hooks/use-sections";
 import {
   getNutritionEntries,
   getCannabisDay,
@@ -30,6 +30,13 @@ function parseHHMM(t: string | null | undefined): number | null {
 
 export function TodayTimeline() {
   const { date: today, isToday } = useSelectedDate();
+  const nutritionColor = useSectionColor("nutrition");
+  const cannabisColor = useSectionColor("cannabis");
+  const caffeineColor = useSectionColor("caffeine");
+  const exerciseColor = useSectionColor("exercise");
+  const habitsColor = useSectionColor("habits");
+  const supplementsColor = useSectionColor("supplements");
+  const choresColor = useSectionColor("chores");
 
   const { data } = useSWR(
     ["today-timeline", today],
@@ -67,17 +74,17 @@ export function TodayTimeline() {
     if (n.date !== today) continue;
     const h = parseHHMM(n.time);
     if (h == null) continue;
-    dots.push({ hour: h, color: SECTIONS.nutrition.color, label: `${n.time} · ${n.foods[0] ?? "meal"}` });
+    dots.push({ hour: h, color: nutritionColor, label: `${n.time} · ${n.foods[0] ?? "meal"}` });
   }
   for (const c of data?.cannabis?.entries ?? []) {
     const h = parseHHMM(c.time);
     if (h == null) continue;
-    dots.push({ hour: h, color: SECTIONS.cannabis.color, label: `${c.time} · cannabis` });
+    dots.push({ hour: h, color: cannabisColor, label: `${c.time} · cannabis` });
   }
   for (const c of data?.caffeine?.entries ?? []) {
     const h = parseHHMM(c.time);
     if (h == null) continue;
-    dots.push({ hour: h, color: SECTIONS.caffeine.color, label: `${c.time} · ${c.method}` });
+    dots.push({ hour: h, color: caffeineColor, label: `${c.time} · ${c.method}` });
   }
   // Exercise — one dot per session (dedupe on concluded_at time).
   const seenExerciseTimes = new Set<string>();
@@ -88,7 +95,7 @@ export function TodayTimeline() {
     seenExerciseTimes.add(hhmm);
     const h = parseHHMM(hhmm);
     if (h == null) continue;
-    dots.push({ hour: h, color: SECTIONS.exercise.color, label: `${hhmm} · ${e.session || e.exercise || "exercise"}` });
+    dots.push({ hour: h, color: exerciseColor, label: `${hhmm} · ${e.session || e.exercise || "exercise"}` });
   }
   // Habits — one dot per completed habit with a recorded time.
   for (const bucket of data?.habits?.buckets ?? []) {
@@ -96,7 +103,7 @@ export function TodayTimeline() {
       if (!h.done || !h.time) continue;
       const hr = parseHHMM(h.time);
       if (hr == null) continue;
-      dots.push({ hour: hr, color: SECTIONS.habits.color, label: `${h.time} · ${h.name}` });
+      dots.push({ hour: hr, color: habitsColor, label: `${h.time} · ${h.name}` });
     }
   }
   // Supplements — one dot per supplement taken with a recorded time.
@@ -104,14 +111,14 @@ export function TodayTimeline() {
     if (!s.done || !s.time) continue;
     const hr = parseHHMM(s.time);
     if (hr == null) continue;
-    dots.push({ hour: hr, color: SECTIONS.supplements.color, label: `${s.time} · ${s.name}` });
+    dots.push({ hour: hr, color: supplementsColor, label: `${s.time} · ${s.name}` });
   }
   // Chores — dot for each chore completed today, keyed on last_completed_time.
   for (const c of data?.chores?.chores ?? []) {
     if (c.last_completed !== today || !c.last_completed_time) continue;
     const hr = parseHHMM(c.last_completed_time);
     if (hr == null) continue;
-    dots.push({ hour: hr, color: SECTIONS.chores.color, label: `${c.last_completed_time} · ${c.name}` });
+    dots.push({ hour: hr, color: choresColor, label: `${c.last_completed_time} · ${c.name}` });
   }
   dots.sort((a, b) => a.hour - b.hour);
 

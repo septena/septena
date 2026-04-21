@@ -1,15 +1,15 @@
 "use client";
 
 import useSWR from "swr";
-import { getSettings, type SectionMeta } from "@/lib/api";
+import { getSections, getSettings, type SectionMeta } from "@/lib/api";
 import { SECTIONS, SECTION_LIST, type SectionKey } from "@/lib/sections";
 
 // Merges code-side wiring (path, apiBase, obsidianDir, defaults) with user
-// overrides from settings.yaml. Reads /api/settings rather than
-// /api/sections so live overrides still flow on backends that pre-date the
-// /api/sections endpoint. Falls back to the static registry when settings
-// haven't loaded yet (first paint + offline).
-function buildSections(settings: Awaited<ReturnType<typeof getSettings>> | undefined): SectionMeta[] {
+// overrides from settings.yaml. Falls back to the static registry when
+// settings haven't loaded yet (first paint + offline).
+function buildSectionsFromSettings(
+  settings: Awaited<ReturnType<typeof getSettings>> | undefined,
+): SectionMeta[] {
   const overrides = (settings?.sections ?? {}) as Record<string, Partial<SectionMeta>>;
   const order = settings?.section_order ?? [];
 
@@ -38,8 +38,13 @@ function buildSections(settings: Awaited<ReturnType<typeof getSettings>> | undef
 }
 
 export function useSections(): SectionMeta[] {
-  const { data } = useSWR("settings", getSettings, { revalidateOnFocus: false });
-  return buildSections(data);
+  // /api/sections is the authoritative merged list — wiring from code,
+  // metadata from settings.yaml, plus any keys added by optional local
+  // extensions that aren't present in the static code-side registry.
+  const { data: registry } = useSWR("sections-registry", getSections, { revalidateOnFocus: false });
+  const { data: settings } = useSWR("settings", getSettings, { revalidateOnFocus: false });
+  if (registry && registry.length > 0) return registry;
+  return buildSectionsFromSettings(settings);
 }
 
 /** Nav-visible sections: enabled only, excluding meta entries like
@@ -50,4 +55,10 @@ export function useNavSections(): SectionMeta[] {
 
 export function useSection(key: SectionKey): SectionMeta | undefined {
   return useSections().find((s) => s.key === key);
+}
+
+/** Accent color for a section, honoring settings.yaml overrides. Falls back
+ *  to the static registry value for first paint / SSR. */
+export function useSectionColor(key: SectionKey): string {
+  return useSection(key)?.color ?? SECTIONS[key].color;
 }

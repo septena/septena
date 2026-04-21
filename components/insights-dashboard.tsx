@@ -12,10 +12,9 @@ import {
   getNutritionStats,
   getCaffeineSessions,
   getHabitHistory,
+  getAirOvernight,
 } from "@/lib/api";
-import { SECTIONS } from "@/lib/sections";
-
-const COLOR = SECTIONS.correlations.color;
+import { useSectionColor } from "@/hooks/use-sections";
 
 function fmt(n: number | null | undefined, d = 1): string {
   if (n == null) return "—";
@@ -186,16 +185,24 @@ function InsightChart({ title, xLabel, yLabel, data, color, xUnit, yUnit, yDomai
 }
 
 export function InsightsDashboard() {
+  const exerciseColor = useSectionColor("exercise");
+  const cannabisColor = useSectionColor("cannabis");
+  const sleepColor = useSectionColor("sleep");
+  const nutritionColor = useSectionColor("nutrition");
+  const caffeineColor = useSectionColor("caffeine");
+  const habitsColor = useSectionColor("habits");
+  const airColor = useSectionColor("air");
   const { data, isLoading } = useSWR("insights", async () => {
-    const [health, entries, cannabis, nutrition, caffeine, habits] = await Promise.all([
+    const [health, entries, cannabis, nutrition, caffeine, habits, air] = await Promise.all([
       getHealthCombined(30),
       getEntries(),
       getCannabisHistory(30),
       getNutritionStats(30),
       getCaffeineSessions(30),
       getHabitHistory(30),
+      getAirOvernight(30).catch(() => ({ nights: [] })),
     ]);
-    return { health, entries, cannabis, nutrition, caffeine, habits };
+    return { health, entries, cannabis, nutrition, caffeine, habits, air };
   }, { refreshInterval: 60_000 });
 
   const loading = isLoading && !data;
@@ -440,6 +447,51 @@ export function InsightsDashboard() {
     return points;
   }, [ouraByDate, lastMealHourByDate]);
 
+  // Overnight air maps — labeled by wake date (matches Oura sleep_score).
+  const airByDate = useMemo(() => {
+    const map = new Map<string, any>();
+    for (const n of data?.air?.nights ?? []) map.set(n.date, n);
+    return map;
+  }, [data?.air?.nights]);
+
+  // 12. Overnight CO₂ (avg) → sleep score. Higher bedroom CO₂ is a
+  // plausible sleep-quality disruptor — the canonical ask here.
+  const sleepVsCo2 = useMemo(() => {
+    const points: { x: number; y: number; date: string }[] = [];
+    for (const [date, oura] of ouraByDate) {
+      if (oura.sleep_score == null) continue;
+      const night = airByDate.get(date);
+      if (!night || night.co2_avg == null) continue;
+      points.push({ x: night.co2_avg, y: oura.sleep_score, date });
+    }
+    return points;
+  }, [ouraByDate, airByDate]);
+
+  // 13. Overnight CO₂ peak → HRV.
+  const hrvVsCo2Peak = useMemo(() => {
+    const points: { x: number; y: number; date: string }[] = [];
+    for (const [date, oura] of ouraByDate) {
+      if (oura.hrv == null) continue;
+      const night = airByDate.get(date);
+      if (!night || night.co2_max == null) continue;
+      points.push({ x: night.co2_max, y: oura.hrv, date });
+    }
+    return points;
+  }, [ouraByDate, airByDate]);
+
+  // 14. Overnight temperature → sleep score. Bedroom too warm tanks deep
+  // sleep — sweet spot is ~16-19°C.
+  const sleepVsTemp = useMemo(() => {
+    const points: { x: number; y: number; date: string }[] = [];
+    for (const [date, oura] of ouraByDate) {
+      if (oura.sleep_score == null) continue;
+      const night = airByDate.get(date);
+      if (!night || night.temp_avg == null) continue;
+      points.push({ x: night.temp_avg, y: oura.sleep_score, date });
+    }
+    return points;
+  }, [ouraByDate, airByDate]);
+
   // 11. Habit completion % → readiness.
   const readinessVsHabits = useMemo(() => {
     const points: { x: number; y: number; date: string }[] = [];
@@ -479,7 +531,7 @@ export function InsightsDashboard() {
           yLabel="Sleep"
           xUnit="k"
           data={sleepVsTraining}
-          color={SECTIONS.exercise.color}
+          color={exerciseColor}
           yDomain={[50, 100]}
         />
 
@@ -488,7 +540,7 @@ export function InsightsDashboard() {
           xLabel="Sessions"
           yLabel="Sleep"
           data={sleepVsCannabis}
-          color={SECTIONS.cannabis.color}
+          color={cannabisColor}
           yDomain={[50, 100]}
         />
 
@@ -499,7 +551,7 @@ export function InsightsDashboard() {
           xUnit="hrs"
           yUnit="ms"
           data={hrvVsSleep}
-          color={SECTIONS.sleep.color}
+          color={sleepColor}
         />
 
         <InsightChart
@@ -508,7 +560,7 @@ export function InsightsDashboard() {
           yLabel="HRV"
           yUnit="ms"
           data={hrvVsCannabis}
-          color={SECTIONS.cannabis.color}
+          color={cannabisColor}
         />
 
         <InsightChart
@@ -517,7 +569,7 @@ export function InsightsDashboard() {
           yLabel="Readiness"
           xUnit="g"
           data={readinessVsProtein}
-          color={SECTIONS.nutrition.color}
+          color={nutritionColor}
           yDomain={[50, 100]}
         />
 
@@ -527,7 +579,7 @@ export function InsightsDashboard() {
           yLabel="Volume"
           yUnit="k"
           data={trainingVsSleep}
-          color={SECTIONS.exercise.color}
+          color={exerciseColor}
         />
 
         <InsightChart
@@ -536,7 +588,7 @@ export function InsightsDashboard() {
           yLabel="Sleep"
           xUnit="h"
           data={sleepVsCaffeineHour}
-          color={SECTIONS.caffeine.color}
+          color={caffeineColor}
           yDomain={[50, 100]}
         />
 
@@ -546,7 +598,7 @@ export function InsightsDashboard() {
           yLabel="Readiness"
           xUnit="h"
           data={readinessVsFasting}
-          color={SECTIONS.nutrition.color}
+          color={nutritionColor}
           yDomain={[50, 100]}
         />
 
@@ -557,7 +609,7 @@ export function InsightsDashboard() {
           xUnit="min"
           yUnit="bpm"
           data={rhrVsExercise}
-          color={SECTIONS.exercise.color}
+          color={exerciseColor}
         />
 
         <InsightChart
@@ -566,7 +618,37 @@ export function InsightsDashboard() {
           yLabel="Sleep"
           xUnit="h"
           data={sleepVsLastMeal}
-          color={SECTIONS.nutrition.color}
+          color={nutritionColor}
+          yDomain={[50, 100]}
+        />
+
+        <InsightChart
+          title="Overnight CO₂ → Sleep score"
+          xLabel="CO₂"
+          yLabel="Sleep"
+          xUnit="ppm"
+          data={sleepVsCo2}
+          color={airColor}
+          yDomain={[50, 100]}
+        />
+
+        <InsightChart
+          title="Overnight CO₂ peak → HRV"
+          xLabel="CO₂ peak"
+          yLabel="HRV"
+          xUnit="ppm"
+          yUnit="ms"
+          data={hrvVsCo2Peak}
+          color={airColor}
+        />
+
+        <InsightChart
+          title="Bedroom temp → Sleep score"
+          xLabel="Temp"
+          yLabel="Sleep"
+          xUnit="°C"
+          data={sleepVsTemp}
+          color={airColor}
           yDomain={[50, 100]}
         />
 
@@ -576,7 +658,7 @@ export function InsightsDashboard() {
           yLabel="Readiness"
           xUnit="%"
           data={readinessVsHabits}
-          color={SECTIONS.habits.color}
+          color={habitsColor}
           yDomain={[50, 100]}
         />
       </div>

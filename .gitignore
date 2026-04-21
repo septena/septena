@@ -58,3 +58,12 @@ venv/
 # Built calendar helper binary (compile locally via tools/calendar_helper/build.sh)
 /tools/calendar_helper/CalendarHelper.app/
 /tools/calendar_helper/calendar_helper
+
+# Local-only modules — optional per-install extensions that aren't shipped
+# upstream. The backend picks them up via `api.routers._local` if present;
+# the frontend picks them up via file-system routes & imports. Safe to omit.
+*.local.ts
+*.local.tsx
+*.local.py
+api/routers/_local*.py
+app/(local)/

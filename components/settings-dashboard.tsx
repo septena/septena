@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Eye, EyeOff } from "lucide-react";
 import { useTheme } from "next-themes";
 import useSWR, { mutate as globalMutate } from "swr";
-import { useSections } from "@/hooks/use-sections";
+import { useSections, useSectionColor } from "@/hooks/use-sections";
 import {
   type AppSettings,
   type AppTheme,
@@ -17,18 +17,12 @@ import {
   getSupplementConfig,
   saveSettings,
 } from "@/lib/api";
-import { SECTIONS, SECTION_LIST, type SectionKey } from "@/lib/sections";
+import { SECTIONS, type SectionKey } from "@/lib/sections";
 import { DEFAULT_DAY_PHASES } from "@/lib/day-phases";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/page-header";
 import { SaveRow } from "@/components/save-row";
 import { cn } from "@/lib/utils";
-
-// Derived from the section registry so new sections show up automatically.
-// "correlations" lives on the homepage action row, not the nav settings list.
-const SECTION_KEYS: SectionKey[] = SECTION_LIST
-  .map((s) => s.key)
-  .filter((k) => k !== "correlations");
 
 // Shared input styling — consistent width so value columns align across rows.
 const NUM_INPUT_CLASS =
@@ -213,7 +207,7 @@ function CalendarConfigCard({
   const { data } = useSWR("settings-calendar-list", getCalendar, {
     shouldRetryOnError: false,
   });
-  const color = SECTIONS.calendar.color;
+  const color = useSectionColor("calendar");
   const cals = data?.calendars ?? [];
 
   const isEnabled = (title: string) =>
@@ -289,6 +283,10 @@ function CalendarConfigCard({
 export function SettingsDashboard() {
   const { setTheme } = useTheme();
   const sectionsMeta = useSections();
+  const correlationsColor = useSectionColor("correlations");
+  const weatherColor = useSectionColor("weather");
+  const exerciseColor = useSectionColor("exercise");
+  const nutritionColor = useSectionColor("nutrition");
   const { data, isLoading, mutate } = useSWR("settings", getSettings);
   const { data: habitsCfg } = useSWR("habits-config", getHabitConfig);
   const { data: supplCfg } = useSWR("supplements-config", getSupplementConfig);
@@ -303,29 +301,40 @@ export function SettingsDashboard() {
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    if (data && !draft) {
-      // Back-fill day_phases from code-side defaults when the backend
-      // hasn't been restarted with the new DEFAULT_SETTINGS — keeps the
-      // editor from rendering an empty card on stale servers, and the
-      // first save writes the phases out to settings.yaml.
-      // Append any known section keys missing from the persisted order.
-      // Older settings.yaml files predate newer sections (weather, calendar,
-      // groceries) — without this merge they'd never appear in the settings
-      // list until the user manually edited YAML. SECTION_KEYS is the code-
-      // side source of truth, so new sections auto-show here on next load.
-      const persisted = data.section_order ?? [];
-      const mergedOrder: SectionKey[] = [
-        ...persisted.filter((k): k is SectionKey => SECTION_KEYS.includes(k as SectionKey)),
-        ...SECTION_KEYS.filter((k) => !persisted.includes(k)),
-      ];
-      const hydrated: AppSettings = {
+    if (!data || sectionsMeta.length === 0) return;
+    // /api/sections is the single source of truth for what a section is —
+    // it merges code-side wiring, settings metadata, and any backend
+    // `_local` extensions. Hydrate section_order by taking the current
+    // order first and appending any registry keys it doesn't yet mention,
+    // so newly-registered sections auto-appear without touching code. The
+    // merge runs whenever the registry grows (e.g. once /api/sections
+    // resolves after the initial settings.yaml fallback), so late-arriving
+    // extension keys get picked up without blowing away the user's edits.
+    const registryKeys = sectionsMeta.map((s) => s.key).filter((k) => k !== "correlations");
+    const registrySet = new Set(registryKeys);
+    const baseOrder = draft?.section_order ?? data.section_order ?? [];
+    const ordered = baseOrder.filter((k) => registrySet.has(k));
+    const orderedSet = new Set(ordered);
+    const mergedOrder = [
+      ...ordered,
+      ...registryKeys.filter((k) => !orderedSet.has(k)),
+    ] as SectionKey[];
+    if (!draft) {
+      setDraft({
         ...data,
         section_order: mergedOrder,
+        // Back-fill day_phases from code-side defaults when the backend
+        // hasn't been restarted with the new DEFAULT_SETTINGS — keeps the
+        // editor from rendering an empty card on stale servers.
         day_phases: data.day_phases?.length ? data.day_phases : DEFAULT_DAY_PHASES,
-      };
-      setDraft(hydrated);
+      });
+    } else if (
+      mergedOrder.length !== draft.section_order.length ||
+      mergedOrder.some((k, i) => k !== draft.section_order[i])
+    ) {
+      setDraft({ ...draft, section_order: mergedOrder });
     }
-  }, [data, draft]);
+  }, [data, draft, sectionsMeta]);
 
   const patch = useCallback((p: Partial<AppSettings>) => {
     setDraft((d) => (d ? { ...d, ...p } : d));
@@ -444,7 +453,7 @@ export function SettingsDashboard() {
     );
   }
 
-  const accent = SECTIONS.correlations.color;
+  const accent = correlationsColor;
 
   return (
     <main className="mx-auto min-h-screen max-w-3xl px-4 py-6 pb-24 sm:px-6 sm:pb-6">
@@ -469,9 +478,9 @@ export function SettingsDashboard() {
           <CardContent>
             <ul className="space-y-1.5">
               {draft.section_order
-                .filter((k): k is SectionKey => SECTION_KEYS.includes(k as SectionKey))
+                .filter((k): k is SectionKey => sectionsMeta.some((s) => s.key === k))
                 .map((key, i, arr) => {
-                  const meta = sectionsMeta.find((s) => s.key === key) ?? SECTIONS[key];
+                  const meta = sectionsMeta.find((s) => s.key === key)!;
                   const emoji = "emoji" in meta ? meta.emoji : "";
                   // Enabled state: explicit user override wins; otherwise fall
                   // back to whatever the registry (/api/sections) resolved to.
@@ -586,6 +595,30 @@ export function SettingsDashboard() {
                   max={draft.targets.kcal_max}
                   onMinChange={(v) => patchTargets({ kcal_min: v })}
                   onMaxChange={(v) => patchTargets({ kcal_max: v })}
+                />
+              </div>
+            </section>
+
+            <section>
+              <p className="mb-1 text-[10px] uppercase tracking-wide text-muted-foreground">Body</p>
+              <div className="divide-y divide-border/60">
+                <RangeField
+                  label="Weight"
+                  unit="kg"
+                  step={0.5}
+                  min={draft.targets.weight_min_kg}
+                  max={draft.targets.weight_max_kg}
+                  onMinChange={(v) => patchTargets({ weight_min_kg: v })}
+                  onMaxChange={(v) => patchTargets({ weight_max_kg: v })}
+                />
+                <RangeField
+                  label="Body fat"
+                  unit="%"
+                  step={0.5}
+                  min={draft.targets.fat_min_pct}
+                  max={draft.targets.fat_max_pct}
+                  onMinChange={(v) => patchTargets({ fat_min_pct: v })}
+                  onMaxChange={(v) => patchTargets({ fat_max_pct: v })}
                 />
               </div>
             </section>
@@ -781,7 +814,7 @@ export function SettingsDashboard() {
                     ]}
                     value={draft.weather?.units ?? "celsius"}
                     onChange={(v) => patchWeather({ units: v })}
-                    color={SECTIONS.weather.color}
+                    color={weatherColor}
                   />
                 </div>
               </div>
@@ -811,14 +844,14 @@ export function SettingsDashboard() {
                 description="Confetti when a workout wraps."
                 checked={draft.animations.exercise_complete}
                 onChange={(v) => patchAnimations({ exercise_complete: v })}
-                color={SECTIONS.exercise.color}
+                color={exerciseColor}
               />
               <ToggleRow
                 label="First meal"
                 description="Break-fast burst on today's first nutrition entry."
                 checked={draft.animations.first_meal}
                 onChange={(v) => patchAnimations({ first_meal: v })}
-                color={SECTIONS.nutrition.color}
+                color={nutritionColor}
               />
               <ToggleRow
                 label="Raise histograms"
