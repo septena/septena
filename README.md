@@ -51,6 +51,7 @@ schema, and the relevant endpoints.
 | [**Sleep**](docs/sections/sleep.md) | Score, stages, trends. | Read-only from Oura / Apple Health |
 | [**Body**](docs/sections/body.md) | Weight, body-fat trends. | Read-only from Withings |
 | [**Health**](docs/sections/health.md) | HRV, resting HR, steps, VO₂ max, active calories. | Read-only from Apple Health |
+| [**Air**](docs/sections/air.md) | Ambient CO₂, temperature, humidity — live band, day-stats, overnight windows. | Read-only from Aranet4 |
 | [**Insights**](docs/sections/insights.md) | Cross-section correlations and patterns. | Derived |
 
 The core three — Exercise, Nutrition, Habits — ship as starter
@@ -71,9 +72,13 @@ the section simply shows empty state — the rest of the app still works.
   and sleep (as a fallback when Oura isn't present). Data arrives via the
   [Health Auto Export](https://www.healthyapps.dev/) iOS app posting to a
   local webhook; Setlist reads the resulting JSON snapshot.
+- **Aranet4** — ambient CO₂, temperature, humidity, pressure from a
+  Bluetooth sensor. Polled locally by `scripts/aranet_poller.py` (launchd
+  plist in `scripts/com.setlist.aranet.plist`); readings land in
+  `$SETLIST_VAULT/Air/Log/{date}.md` as a daily rollup.
 
-All three are optional and each is independent — you can wire up one,
-two, three, or none.
+All four are optional and each is independent — wire up as many or as few
+as you like.
 
 ## Data model
 

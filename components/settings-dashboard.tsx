@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { Eye, EyeOff } from "lucide-react";
-import { useTheme } from "next-themes";
+import { useTheme } from "@/components/theme-provider";
 import useSWR, { mutate as globalMutate } from "swr";
 import { useSections, useSectionColor } from "@/hooks/use-sections";
 import {
