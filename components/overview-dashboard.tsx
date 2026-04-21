@@ -716,14 +716,10 @@ function HealthMini() {
   const latestReadiness = [...oura].reverse().find((r) => r.readiness_score != null);
   const latestHRV = [...oura].reverse().find((r) => r.hrv != null);
 
-  const hrvData = useMemo(
-    () =>
-      oura
-        .slice(-7)
-        .filter((r) => r.hrv != null)
-        .map((r) => ({ date: weekdayShort(r.date), v: r.hrv as number })),
-    [oura],
-  );
+  const hrvData = useMemo(() => {
+    const byDate = new Map(oura.filter((r) => r.hrv != null).map((r) => [r.date, r.hrv as number]));
+    return lastSevenDays().map(({ iso, weekday }) => ({ date: weekday, v: byDate.get(iso) ?? 0 }));
+  }, [oura]);
   const chartConfig = { v: { label: "HRV", color } } satisfies ChartConfig;
 
   const readinessScore = latestReadiness?.readiness_score ?? null;
@@ -771,14 +767,10 @@ function SleepMini() {
   const latestTotal = [...oura].reverse().find((r) => r.total_h != null);
   const totalH = latestTotal?.total_h ?? 0;
 
-  const chartData = useMemo(
-    () =>
-      oura
-        .slice(-7)
-        .filter((r) => r.total_h != null)
-        .map((r) => ({ date: weekdayShort(r.date), v: r.total_h as number })),
-    [oura],
-  );
+  const chartData = useMemo(() => {
+    const byDate = new Map(oura.filter((r) => r.total_h != null).map((r) => [r.date, r.total_h as number]));
+    return lastSevenDays().map(({ iso, weekday }) => ({ date: weekday, v: byDate.get(iso) ?? 0 }));
+  }, [oura]);
   const chartConfig = { v: { label: "Hours", color } } satisfies ChartConfig;
 
   return (
@@ -827,12 +819,16 @@ function BodyMini() {
   const latestFat = [...withings].reverse().find((r) => r.fat_pct != null);
 
   const weightData = useMemo(() => {
-    const filtered = withings.slice(-7).filter((r) => r.weight_kg != null);
-    if (filtered.length === 0) return [];
-    const avg = filtered.reduce((s, r) => s + (r.weight_kg as number), 0) / filtered.length;
-    return filtered.map((r) => {
-      const delta = Number(((r.weight_kg as number) - avg).toFixed(2));
-      return { date: weekdayShort(r.date), v: delta };
+    const byDate = new Map(
+      withings.filter((r) => r.weight_kg != null).map((r) => [r.date, r.weight_kg as number]),
+    );
+    const days = lastSevenDays();
+    const present = days.map(({ iso }) => byDate.get(iso)).filter((v): v is number => v != null);
+    if (present.length === 0) return [];
+    const avg = present.reduce((s, v) => s + v, 0) / present.length;
+    return days.map(({ iso, weekday }) => {
+      const w = byDate.get(iso);
+      return { date: weekday, v: w != null ? Number((w - avg).toFixed(2)) : 0 };
     });
   }, [withings]);
   const chartConfig = { v: { label: "kg", color } } satisfies ChartConfig;
@@ -1027,7 +1023,7 @@ function CalendarMini() {
           {todayEvents.slice(0, 4).map((e, i) => (
             <div key={`${e.start}-${i}`} className="flex min-w-0 items-baseline gap-2 text-xs">
               <span className="shrink-0 tabular-nums text-muted-foreground">{fmtEventTime(e.start)}</span>
-              <span className="min-w-0 flex-1 truncate" style={{ color }}>{e.title}</span>
+              <span className="min-w-0 flex-1 overflow-hidden truncate" style={{ color }}>{e.title}</span>
             </div>
           ))}
         </div>
@@ -1170,7 +1166,7 @@ function SectionCard({ section, loading, children }: {
   const quickLog = QUICK_LOG[s.key];
   const hasQuickLog = !!openQuickLog && !!quickLog;
   return (
-    <div className="group relative rounded-2xl border border-border bg-background shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md">
+    <div className="group relative min-w-0 w-full rounded-2xl border border-border bg-background shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md">
       <Link href={s.path} className="block p-5">
         <div
           className="absolute left-0 top-4 h-8 w-1 rounded-r-full"
