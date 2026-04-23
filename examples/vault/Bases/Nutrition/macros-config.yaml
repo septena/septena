@@ -1,6 +1,6 @@
 # Daily macro targets as ranges (min-max). The nutrition dashboard
 # shows progress toward the midpoint of each range. Edit freely —
-# Setlist picks up changes on the next request, no restart needed.
+# Septena picks up changes on the next request, no restart needed.
 #
 # If this file is missing, shipped defaults apply (roughly adult daily
 # values: 100-150g protein, 50-80g fat, 200-300g carbs, 2000-2500 kcal).

@@ -1,17 +1,17 @@
 ---
-name: setlist-settings
-description: Read and update Setlist's app-level configuration — macro/cardio/sleep targets, section order, theme, units, animations, per-section enable/disable, and optional-tile config (weather, calendar). Single YAML file, partial writes OK.
+name: septena-settings
+description: Read and update Septena's app-level configuration — macro/cardio/sleep targets, section order, theme, units, animations, per-section enable/disable, and optional-tile config (weather, calendar). Single YAML file, partial writes OK.
 ---
 
-# Setlist · Settings
+# Septena · Settings
 
 App-level user preferences live in one file. Partial writes are safe —
 missing keys fall back to shipped defaults on every read. Edit by hand
-in Obsidian, via the in-app Settings UI, or via `PUT /api/settings`.
+on disk, via the in-app Settings UI, or via `PUT /api/settings`.
 
 ## Where it lives
 
-`$SETLIST_VAULT/Settings/settings.yaml`
+`$SEPTENA_DATA_DIR/Settings/settings.yaml`
 
 Missing file → shipped defaults apply. Malformed YAML → shipped defaults
 + a warning in the backend logs. Safe to delete entirely.
@@ -107,7 +107,7 @@ leaves every other key alone.
 
 ### Via file (app not running)
 
-Write valid YAML to `$SETLIST_VAULT/Settings/settings.yaml`. Only include
+Write valid YAML to `$SEPTENA_DATA_DIR/Settings/settings.yaml`. Only include
 the keys you want to override — the backend deep-merges on next load,
 so partial files are valid. A brand-new install can create this file
 from scratch or from the template at `examples/vault/Bases/Settings/settings.yaml`.

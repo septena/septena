@@ -1,9 +1,9 @@
 ---
-name: setlist-nutrition
-description: Log meals and snacks to Setlist's Nutrition section. One Markdown file per eating event, YAML frontmatter, human-readable.
+name: septena-nutrition
+description: Log meals and snacks to Septena's Nutrition section. One Markdown file per eating event, YAML frontmatter, human-readable.
 ---
 
-# Setlist · Nutrition
+# Septena · Nutrition
 
 Track meals, macros, and (by derivation) fasting windows.
 

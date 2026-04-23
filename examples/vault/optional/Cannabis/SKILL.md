@@ -1,9 +1,9 @@
 ---
-name: setlist-cannabis
+name: septena-cannabis
 description: Log cannabis vape sessions with strain and capsule tracking. Capsule inventory is derived from a simple grams-per-capsule model.
 ---
 
-# Setlist · Cannabis
+# Septena · Cannabis
 
 Log vape sessions, strains, and capsule usage for self-awareness tracking.
 

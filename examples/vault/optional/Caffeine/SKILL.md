@@ -1,9 +1,9 @@
 ---
-name: setlist-caffeine
+name: septena-caffeine
 description: Log caffeine intake (coffee, matcha, tea) with brewing method and time of day. Optional bean presets live in config.
 ---
 
-# Setlist · Caffeine
+# Septena · Caffeine
 
 Log coffee/matcha/tea events for time-of-day pattern analysis.
 

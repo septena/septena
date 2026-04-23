@@ -1,9 +1,9 @@
 ---
-name: setlist-chores
+name: septena-chores
 description: Track recurring household chores with a user-defined cadence. One Markdown file per chore definition plus one file per completion.
 ---
 
-# Setlist · Chores
+# Septena · Chores
 
 Recurring, deferrable tasks with overdue tracking. Chores are NOT ad-hoc — each is defined once in its own file (with a cadence in days) and completions are separate event files.
 

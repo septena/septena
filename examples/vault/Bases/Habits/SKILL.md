@@ -1,9 +1,9 @@
 ---
-name: setlist-habits
+name: septena-habits
 description: Track daily habits from a fixed user-defined checklist, bucketed by time of day. Two file shapes — config lists the habits, per-event logs mark completions.
 ---
 
-# Setlist · Habits
+# Septena · Habits
 
 A fixed, configurable checklist of daily habits bucketed into morning / afternoon / evening. Habits are NOT ad-hoc — the set is defined in `habits-config.yaml`, and each daily completion is one small Markdown file.
 
@@ -24,7 +24,7 @@ habits:
     bucket: afternoon
 ```
 
-The UI reads this file on every request but never writes to it — safe for manual edits in Obsidian.
+The UI reads this file on every request but never writes to it — safe for manual edits on disk.
 
 ## Log filename
 

@@ -1,4 +1,4 @@
-# Setlist vault skeleton
+# Septena vault skeleton
 
 Two layers: a lean **core** (`Bases/`) that's the sensible default, and
 **optional** extensions (`optional/`) you drop in when you want them.
@@ -10,8 +10,8 @@ nav).
 ## Core — copy to bootstrap
 
 ```bash
-cp -R examples/vault/Bases/* "$SETLIST_VAULT"
-# default: cp -R examples/vault/Bases/* ~/Documents/obsidian/Bases/
+cp -R examples/vault/Bases/* "$SEPTENA_DATA_DIR"
+# default: cp -R examples/vault/Bases/* ~/Documents/septena-data/
 ```
 
 Gives you three active-tracking sections plus app settings:
@@ -22,7 +22,7 @@ Gives you three active-tracking sections plus app settings:
 - **Settings** — app preferences (section order, animations)
 
 Three integration-gated sections appear automatically when their tokens
-are present under `$SETLIST_INTEGRATIONS_DIR`:
+are present under `$SEPTENA_INTEGRATIONS_DIR`:
 
 - **Sleep** — when Oura or Apple Health Auto Export is configured
 - **Body** — when Withings is configured
@@ -32,10 +32,10 @@ are present under `$SETLIST_INTEGRATIONS_DIR`:
 
 ```bash
 # pick one, all, or none
-cp -R examples/vault/optional/Supplements "$SETLIST_VAULT/"
-cp -R examples/vault/optional/Chores "$SETLIST_VAULT/"
-cp -R examples/vault/optional/Caffeine "$SETLIST_VAULT/"
-cp -R examples/vault/optional/Cannabis "$SETLIST_VAULT/"
+cp -R examples/vault/optional/Supplements "$SEPTENA_DATA_DIR/"
+cp -R examples/vault/optional/Chores "$SEPTENA_DATA_DIR/"
+cp -R examples/vault/optional/Caffeine "$SEPTENA_DATA_DIR/"
+cp -R examples/vault/optional/Cannabis "$SEPTENA_DATA_DIR/"
 ```
 
 - **Supplements** — daily stack checklist with streak tracking
@@ -43,12 +43,12 @@ cp -R examples/vault/optional/Cannabis "$SETLIST_VAULT/"
 - **Caffeine** — drink log with time-of-day patterns
 - **Cannabis** — session log, strains, capsule inventory
 
-Each section folder is self-contained — copy the whole thing and Setlist
+Each section folder is self-contained — copy the whole thing and Septena
 picks it up on the next request.
 
 ## What's not included
 
 - **Session templates** for Exercise — these live in
   `lib/session-templates.ts` and must be edited in TypeScript for now.
-- **Integration tokens** — put those under `SETLIST_INTEGRATIONS_DIR`,
+- **Integration tokens** — put those under `SEPTENA_INTEGRATIONS_DIR`,
   not inside the vault. See the main README.

@@ -16,5 +16,5 @@ Example chore definition. Each chore is one `.md` file under
 - `emoji` — shown in the UI.
 - Free-text body (like this) is shown as a hint when logging.
 
-Delete this file and add your own — Setlist picks up changes on the
+Delete this file and add your own — Septena picks up changes on the
 next request.

@@ -1,9 +1,9 @@
 ---
-name: setlist-supplements
+name: septena-supplements
 description: Track daily supplement intake against a fixed user-defined stack. Two file shapes — config lists the stack, per-event logs mark completions.
 ---
 
-# Setlist · Supplements
+# Septena · Supplements
 
 Daily stack checklist with streak tracking. Same shape as Habits — a fixed config of known supplements plus per-event completion files.
 

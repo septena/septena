@@ -1,9 +1,9 @@
 ---
-name: setlist-exercise
-description: Log training sessions (strength, cardio, mobility) to Setlist's Exercise section. One Markdown file per exercise entry.
+name: septena-exercise
+description: Log training sessions (strength, cardio, mobility) to Septena's Exercise section. One Markdown file per exercise entry.
 ---
 
-# Setlist · Exercise
+# Septena · Exercise
 
 Track training sessions, exercise progression, and cardio zones.
 
