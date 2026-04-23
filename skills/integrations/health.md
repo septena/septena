@@ -1,12 +1,12 @@
 ---
-name: setlist-health
-description: Read Setlist's Health section — per-day vitals (HRV, resting HR, steps, VO₂ max, active calories, exercise minutes) from Apple Health Auto Export. Read-only.
+name: septena-health
+description: Read Septena's Health section — per-day vitals (HRV, resting HR, steps, VO₂ max, active calories, exercise minutes) from Apple Health Auto Export. Read-only.
 ---
 
-# Setlist · Health (integration-backed)
+# Septena · Health (integration-backed)
 
 Vitals and activity from **Apple Health Auto Export**. An iOS app dumps
-the full HealthKit snapshot to a local file; Setlist reads and
+the full HealthKit snapshot to a local file; Septena reads and
 aggregates per day. No vault folder — read via HTTP API.
 
 ## When to use this skill
@@ -21,7 +21,7 @@ aggregates per day. No vault folder — read via HTTP API.
 
 | File | Purpose |
 |---|---|
-| `$SETLIST_INTEGRATIONS_DIR/health_auto_export/latest.json` | Full HealthKit snapshot from the Health Auto Export iOS app |
+| `$SEPTENA_INTEGRATIONS_DIR/health_auto_export/latest.json` | Full HealthKit snapshot from the Health Auto Export iOS app |
 
 The iOS app posts to a user-run local webhook that writes this file.
 Setup detail: [`docs/HEALTH_DATA_SPEC.md`](../../docs/HEALTH_DATA_SPEC.md).
@@ -76,7 +76,7 @@ metrics are absent from the row (not null-padded).
 ## File-only fallback
 
 If the app isn't running, read and parse
-`$SETLIST_INTEGRATIONS_DIR/health_auto_export/latest.json` directly —
+`$SEPTENA_INTEGRATIONS_DIR/health_auto_export/latest.json` directly —
 structure is `data.data.metrics[]`, each with `name` + `data[{date, qty}]`.
 See `docs/HEALTH_DATA_SPEC.md` for the full list of metric names.
 

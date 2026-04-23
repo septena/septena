@@ -14,7 +14,7 @@ then see time-of-day patterns.
 
 ## Data shape
 
-One file per drink at `$SETLIST_VAULT/Caffeine/Log/{date}--{HHMM}--NN.md` with `bean`, `method`, `amount_g`, `section: caffeine`. Bean presets live in `$SETLIST_VAULT/Caffeine/caffeine-config.yaml`. See [`examples/vault/optional/Caffeine/SKILL.md`](../../examples/vault/optional/Caffeine/SKILL.md).
+One file per drink at `$SEPTENA_DATA_DIR/Caffeine/Log/{date}--{HHMM}--NN.md` with `bean`, `method`, `amount_g`, `section: caffeine`. Bean presets live in `$SEPTENA_DATA_DIR/Caffeine/caffeine-config.yaml`. See [`examples/vault/optional/Caffeine/SKILL.md`](../../examples/vault/optional/Caffeine/SKILL.md).
 
 ## Endpoints
 

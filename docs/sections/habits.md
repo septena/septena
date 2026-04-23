@@ -15,7 +15,7 @@ with a 30-day history grid.
 
 ## Data shape
 
-**Config** at `$SETLIST_VAULT/Habits/habits-config.yaml`:
+**Config** at `$SEPTENA_DATA_DIR/Habits/habits-config.yaml`:
 
 ```yaml
 habits:
@@ -27,7 +27,7 @@ habits:
     bucket: morning
 ```
 
-**Per-completion events** at `$SETLIST_VAULT/Habits/Log/{date}--{habit_id}--01.md`:
+**Per-completion events** at `$SEPTENA_DATA_DIR/Habits/Log/{date}--{habit_id}--01.md`:
 
 ```yaml
 ---

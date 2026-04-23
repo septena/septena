@@ -1,13 +1,13 @@
 ---
-name: setlist-body
-description: Read Setlist's Body section — daily weight and body fat percentage measurements from a Withings smart scale, exposed via /api/health/withings. Read-only.
+name: septena-body
+description: Read Septena's Body section — daily weight and body fat percentage measurements from a Withings smart scale, exposed via /api/health/withings. Read-only.
 ---
 
-# Setlist · Body (integration-backed)
+# Septena · Body (integration-backed)
 
 Body composition data is pulled live from **Withings** (smart scale,
 typically Body+ or Body Smart). No vault folder — agents read via HTTP
-API. OAuth2 tokens live under `$SETLIST_INTEGRATIONS_DIR/withings/`;
+API. OAuth2 tokens live under `$SEPTENA_INTEGRATIONS_DIR/withings/`;
 the backend auto-refreshes them.
 
 ## When to use this skill
@@ -20,8 +20,8 @@ the backend auto-refreshes them.
 
 | File | Purpose |
 |---|---|
-| `$SETLIST_INTEGRATIONS_DIR/withings/token.json` | OAuth2 access + refresh tokens (auto-refreshed) |
-| `$SETLIST_INTEGRATIONS_DIR/withings/credentials.json` | `{client_id, client_secret}` — one-time setup |
+| `$SEPTENA_INTEGRATIONS_DIR/withings/token.json` | OAuth2 access + refresh tokens (auto-refreshed) |
+| `$SEPTENA_INTEGRATIONS_DIR/withings/credentials.json` | `{client_id, client_secret}` — one-time setup |
 
 If both files aren't present, `GET /api/config` → `integrations.withings`
 is `false` and the Body section is hidden from the UI.

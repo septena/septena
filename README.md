@@ -1,9 +1,9 @@
-# Setlist
+# Septena
 
 **A local-first personal health dashboard that stores everything as
-human-readable YAML inside your Obsidian vault.**
+human-readable YAML in a plain, git-native folder on your disk.**
 
-Setlist is one app for several corners of personal health — exercise,
+Septena is one app for several corners of personal health — exercise,
 nutrition, habits, sleep, body, vitals, supplements, caffeine, chores —
 tracked through a clean web UI, stored as plain text files you
 can read, edit, and back up like any other notes.
@@ -16,12 +16,12 @@ with data before logging your own._
 ## Philosophy
 
 - **Your data is yours.** Every event you log is one Markdown file with
-  YAML frontmatter in your Obsidian vault. No database, no cloud, no
+  YAML frontmatter in a folder on your disk. No database, no cloud, no
   account. Delete the app tomorrow and your history is untouched.
-- **Obsidian-native.** If you already live in Obsidian, Setlist reads
-  and writes into the same vault you already sync. You can see, search,
-  edit, and link to any entry from Obsidian itself.
-- **One person, one machine.** Setlist is built for a single user on
+- **Git-native.** The data folder is just a folder — version it with
+  git, sync it with anything, read it with any Markdown/YAML-aware
+  tool (including Obsidian if you want). Nothing is locked to one app.
+- **One person, one machine.** Septena is built for a single user on
   localhost, not for multi-tenant deployment. Auth, rate limits, and
   CORS tightening are intentionally absent because the threat model is
   "nobody but me."
@@ -32,8 +32,8 @@ with data before logging your own._
 
 ## What you can track
 
-Setlist ships with these sections. Each one is **auto-detected by
-whether its folder exists in your vault** — sections you haven't set
+Septena ships with these sections. Each one is **auto-detected by
+whether its folder exists in your data directory** — sections you haven't set
 up simply don't appear in the nav, and optional integrations stay
 hidden until their credentials land.
 
@@ -71,11 +71,11 @@ the section simply shows empty state — the rest of the app still works.
 - **Apple Health** — steps, HRV, resting HR, VO₂ max, exercise minutes,
   and sleep (as a fallback when Oura isn't present). Data arrives via the
   [Health Auto Export](https://www.healthyapps.dev/) iOS app posting to a
-  local webhook; Setlist reads the resulting JSON snapshot.
+  local webhook; Septena reads the resulting JSON snapshot.
 - **Aranet4** — ambient CO₂, temperature, humidity, pressure from a
   Bluetooth sensor. Polled locally by `scripts/aranet_poller.py` (launchd
-  plist in `scripts/com.setlist.aranet.plist`); readings land in
-  `$SETLIST_VAULT/Air/Log/{date}.md` as a daily rollup.
+  plist in `scripts/com.septena.aranet.plist`); readings land in
+  `$SEPTENA_DATA_DIR/Air/Log/{date}.md` as a daily rollup.
 
 All four are optional and each is independent — wire up as many or as few
 as you like.
@@ -94,7 +94,7 @@ section: nutrition
 ---
 ```
 
-Files live at `$SETLIST_VAULT/<Section>/Log/`. Filenames vary by section
+Files live at `$SEPTENA_DATA_DIR/<Section>/Log/`. Filenames vary by section
 (e.g. nutrition uses `YYYY-MM-DD--HHMM--NN.md`; exercise uses
 `YYYY-MM-DD--{exercise-slug}--NN.md`). Each section has its own parser
 but they share `date`, `id`, and `section` across the universe.
@@ -104,15 +104,15 @@ See `docs/HEALTH_DATA_SPEC.md` for the health-data pipeline and
 
 ## Try it with demo data
 
-Before committing to your own vault, run Setlist against a disposable
+Before committing to your own vault, run Septena against a disposable
 vault of deterministic fake data:
 
 ```bash
 pip install -r requirements.txt                 # one-time
 npm install                                     # one-time
-npm run seed-demo                               # generates /tmp/setlist-demo-vault
-SETLIST_VAULT=/tmp/setlist-demo-vault \
-  SETLIST_INTEGRATIONS_DIR=/tmp/none \
+npm run seed-demo                               # generates /tmp/septena-demo-vault
+SEPTENA_DATA_DIR=/tmp/septena-demo-vault \
+  SEPTENA_INTEGRATIONS_DIR=/tmp/none \
   uvicorn main:app --port 4445 --reload         # backend
 npm run dev                                     # frontend → :4444
 ```
@@ -122,18 +122,18 @@ the sections. Delete the folder when done — nothing else is touched.
 
 ## Quickstart
 
-**Prerequisites:** Python 3.11+, Node 20+, Obsidian (technically
-optional — you can use any folder of Markdown files).
+**Prerequisites:** Python 3.11+, Node 20+. The data directory is just a
+folder of Markdown files — no Obsidian required.
 
 ```bash
 # 1. Clone
-git clone https://github.com/michellzappa/setlist.git
-cd setlist
+git clone https://github.com/septena/septena.git
+cd septena
 
-# 2. Point Setlist at a vault (or leave defaults)
+# 2. Point Septena at a vault (or leave defaults)
 cp .env.example .env.local
-# edit .env.local — at minimum, SETLIST_VAULT if your vault isn't at
-# ~/Documents/obsidian/Bases/
+# edit .env.local — at minimum, SEPTENA_DATA_DIR if your vault isn't at
+# ~/Documents/septena-data/
 
 # 3. Install
 pip install -r requirements.txt
@@ -144,26 +144,26 @@ uvicorn main:app --port 4445 --reload        # backend
 npm run dev                                   # frontend → :4444
 ```
 
-Open `http://localhost:4444`. **First run:** if your vault doesn't exist
-yet, Setlist shows an onboarding screen with two paths — copy the
-starter scaffolding from `examples/vault/Bases/` into a new directory,
-or point `SETLIST_VAULT` at an existing Obsidian vault. Once any
+Open `http://localhost:4444`. **First run:** if your data directory
+doesn't exist yet, Septena shows an onboarding screen with two paths —
+copy the starter scaffolding from `examples/vault/Bases/` into a new
+directory, or point `SEPTENA_DATA_DIR` at an existing folder. Once any
 section folder is present, that section appears in the nav.
 
 ## Configuration
 
-All config is environment variables — Setlist has no global config file.
-Defaults work if your Obsidian vault lives at
-`~/Documents/obsidian/Bases/`.
+All config is environment variables — Septena has no global config file.
+Defaults work if your data directory lives at
+`~/Documents/septena-data/`.
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `SETLIST_VAULT` | `~/Documents/obsidian/Bases` | Where section YAML logs + configs live |
-| `SETLIST_HEALTH_DIR` | `~/Documents/obsidian/Health` | Read-only health snapshots folder |
-| `SETLIST_INTEGRATIONS_DIR` | `~/.config/openclaw` | Tokens/credentials for Oura/Withings/Apple Health |
-| `SETLIST_CACHE_DIR` | `~/.config/setlist` | App-owned scratch space (health cache etc.) |
-| `SETLIST_BACKEND_URL` | `http://127.0.0.1:4445` | Where Next.js proxies `/api/*` |
-| `SETLIST_DEV_ORIGINS` | `localhost` | Comma-separated hostnames for LAN/Tailscale access |
+| `SEPTENA_DATA_DIR` | `~/Documents/septena-data` | Where section YAML logs + configs live (legacy alias: `SEPTENA_DATA_DIR`) |
+| `SEPTENA_HEALTH_DIR` | `~/Documents/septena-data/Health` | Read-only health snapshots folder |
+| `SEPTENA_INTEGRATIONS_DIR` | `~/.config/openclaw` | Tokens/credentials for Oura/Withings/Apple Health |
+| `SEPTENA_CACHE_DIR` | `~/.config/septena` | App-owned scratch space (health cache etc.) |
+| `SEPTENA_BACKEND_URL` | `http://127.0.0.1:4445` | Where Next.js proxies `/api/*` |
+| `SEPTENA_DEV_ORIGINS` | `localhost` | Comma-separated hostnames for LAN/Tailscale access |
 
 Full list with comments: [`.env.example`](.env.example).
 
@@ -172,7 +172,7 @@ Full list with comments: [`.env.example`](.env.example).
 ### Oura Ring (optional)
 
 1. Get a personal access token at https://cloud.ouraring.com/personal-access-tokens
-2. Save it to `$SETLIST_INTEGRATIONS_DIR/oura/token.txt`
+2. Save it to `$SEPTENA_INTEGRATIONS_DIR/oura/token.txt`
 3. The Sleep, Health, and Vitals sections will start populating.
 
 ### Withings (optional)
@@ -180,13 +180,13 @@ Full list with comments: [`.env.example`](.env.example).
 1. Register an app at https://developer.withings.com/
 2. Complete the OAuth2 flow (we don't ship a helper yet — any OAuth2
    script works) and write the resulting token JSON to
-   `$SETLIST_INTEGRATIONS_DIR/withings/token.json`
+   `$SEPTENA_INTEGRATIONS_DIR/withings/token.json`
 3. Save your app credentials to
-   `$SETLIST_INTEGRATIONS_DIR/withings/credentials.json`:
+   `$SEPTENA_INTEGRATIONS_DIR/withings/credentials.json`:
    ```json
    { "client_id": "...", "client_secret": "..." }
    ```
-4. The Body section will start populating. Setlist auto-refreshes the
+4. The Body section will start populating. Septena auto-refreshes the
    token when it expires.
 
 ### Apple Health via Health Auto Export (optional)
@@ -195,7 +195,7 @@ Full list with comments: [`.env.example`](.env.example).
 2. Configure a REST API export destination pointing to your Mac
    (Tailscale / LAN).
 3. Run a receiver that writes payloads to
-   `$SETLIST_INTEGRATIONS_DIR/health_auto_export/latest.json`.
+   `$SEPTENA_INTEGRATIONS_DIR/health_auto_export/latest.json`.
    See `docs/HEALTH_DATA_SPEC.md` for the expected schema.
 4. The Health, Sleep, and Body sections will start populating.
 
@@ -204,7 +204,7 @@ Full list with comments: [`.env.example`](.env.example).
 Because every section is plain YAML in a known folder, any AI agent that
 can read and write files (Claude, Cursor, Codex, Claude Code, Claude
 Desktop) can log data, compute totals, and modify configuration — the
-Setlist app doesn't even need to be running.
+Septena app doesn't even need to be running.
 
 Every section ships a **`SKILL.md`** describing its file layout, YAML
 schema, and agent-friendly examples:
@@ -224,7 +224,7 @@ contract; context stays small.
 Then:
 > "Log breakfast — Greek yogurt with berries and coffee, ~22g protein, ~340 kcal"
 
-The agent writes `$SETLIST_VAULT/Nutrition/Log/{today}--{HHMM}--01.md`
+The agent writes `$SEPTENA_DATA_DIR/Nutrition/Log/{today}--{HHMM}--01.md`
 with the correct schema.
 
 See [`SKILLS.md`](SKILLS.md) for the full index and shared conventions.
@@ -233,13 +233,13 @@ See [`SKILLS.md`](SKILLS.md) for the full index and shared conventions.
 
 Most section behavior is driven by YAML you edit directly:
 
-- **Macro targets:** `$SETLIST_VAULT/Nutrition/macros-config.yaml` —
+- **Macro targets:** `$SEPTENA_DATA_DIR/Nutrition/macros-config.yaml` —
   protein/fat/carbs/kcal ranges. Missing file → neutral defaults.
-- **Habit list:** `$SETLIST_VAULT/Habits/habits-config.yaml` — what
+- **Habit list:** `$SEPTENA_DATA_DIR/Habits/habits-config.yaml` — what
   habits appear and in which time-of-day bucket.
-- **Supplement stack:** `$SETLIST_VAULT/Supplements/supplements-config.yaml`
-- **Caffeine sources:** `$SETLIST_VAULT/Caffeine/caffeine-config.yaml`
-- **App settings:** `$SETLIST_VAULT/Settings/settings.yaml` — section
+- **Supplement stack:** `$SEPTENA_DATA_DIR/Supplements/supplements-config.yaml`
+- **Caffeine sources:** `$SEPTENA_DATA_DIR/Caffeine/caffeine-config.yaml`
+- **App settings:** `$SEPTENA_DATA_DIR/Settings/settings.yaml` — section
   order, animation preferences, fasting/eating window targets, per-section
   enable/disable. Also editable via the Settings tab.
 - **Session templates** (gym routine): `lib/session-templates.ts` — the
@@ -249,7 +249,7 @@ Most section behavior is driven by YAML you edit directly:
 ## Architecture
 
 ```
-setlist/
+septena/
   app/                      Next.js App Router pages — one folder per section
   components/               React components — one *-dashboard.tsx per section
   hooks/                    Shared React hooks (useSections, useSelectedDate, …)
@@ -282,7 +282,7 @@ One `APIRouter` per section under `api/routers/`. Dev server on port
 4445, hot-reloaded with `--reload`. No database — every request re-reads
 YAML from disk (cheap at personal-scale data volumes).
 
-**No build step for data.** Edit a YAML file in Obsidian, reload the
+**No build step for data.** Edit a YAML file in any editor, reload the
 page, changes appear. The Exercise section caches for performance and
 auto-invalidates on file mtime change.
 
@@ -309,7 +309,7 @@ than writing from scratch.
 
 ## Scope and limitations
 
-**What Setlist is not:**
+**What Septena is not:**
 - **Not multi-user.** Running it on a server exposes your data — the
   threat model assumes localhost, LAN, or Tailscale-only.
 - **Not a replacement for Oura/Withings/Apple Health.** It reads their
@@ -331,7 +331,7 @@ than writing from scratch.
 
 ## Contributing
 
-Setlist is a personal project shared publicly under the MIT license.
+Septena is a personal project shared publicly under the MIT license.
 Issues and PRs are welcome but I only merge changes that match how I
 actually use the app. For significantly different flavors,
 **fork freely** — the philosophy encourages it.
@@ -343,4 +343,4 @@ actually use the app. For significantly different flavors,
 ```
 
 Starts both frontend and backend with logs in `./logs/`. Useful for
-putting Setlist behind a launchd or systemd service.
+putting Septena behind a launchd or systemd service.

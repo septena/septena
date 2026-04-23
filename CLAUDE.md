@@ -1,8 +1,8 @@
-# CLAUDE.md — Setlist
+# CLAUDE.md — Septena
 
 ## App Purpose
 
-Setlist is a local-first personal health command center. Multiple areas of life, one app:
+Septena is a local-first personal health command center. Multiple areas of life, one app:
 
 - **Exercise** — sessions, progressions & PRs
 - **Nutrition** — meals, macros & fasting
@@ -14,12 +14,12 @@ Setlist is a local-first personal health command center. Multiple areas of life,
 - **Weather / Calendar** — optional ambient tiles (Open-Meteo + macOS Calendar); off by default
 - **Insights** — cross-section correlations (WIP)
 
-**Canonical data:** All structured data lives in Obsidian YAML files under `~/Documents/obsidian/Bases/<Section>/`. Each section has its own folder containing any per-section config YAML plus a `Log/` subfolder with one file per event. Every event shares a universal frontmatter core — `date`, `id`, `section` (plus `time` when the event has a moment) — with section-specific fields added flat. Health/Sleep/Body are the exceptions — they read Oura, Withings, and Health Auto Export data directly. No separate database.
+**Canonical data:** All structured data lives as plain YAML files under `~/Documents/septena-data/Bases/<Section>/` (override with `$SEPTENA_DATA_DIR`). Each section has its own folder containing any per-section config YAML plus a `Log/` subfolder with one file per event. Every event shares a universal frontmatter core — `date`, `id`, `section` (plus `time` when the event has a moment) — with section-specific fields added flat. Health/Sleep/Body are the exceptions — they read Oura, Withings, and Health Auto Export data directly. No separate database.
 
 ## Architecture
 
 ```
-setlist/                              # Next.js frontend :4444
+septena/                              # Next.js frontend :4444
   app/
     page.tsx                          → root launcher (grid of section cards)
     layout.tsx                        → shell: BackendStatusBanner + SectionTabs
@@ -46,7 +46,7 @@ setlist/                              # Next.js frontend :4444
   main.py                             → thin entrypoint: `from api.app import app`
   api/                                → FastAPI backend :4445
     app.py                            → FastAPI app, CORS, lifespan, router inclusion
-    paths.py                          → VAULT_ROOT / HEALTH_ROOT / section dirs / token paths
+    paths.py                          → DATA_ROOT / HEALTH_ROOT / section dirs / token paths
     parsing.py                        → _extract_frontmatter, _normalize_date/number, _slugify
     routers/
       exercise/                       → package: cache.py (in-memory cache), taxonomy.py (config + grouping), sessions.py (/api/sessions, /api/next-workout…), progression.py (/api/summary, /api/last-entries…)
@@ -70,7 +70,7 @@ setlist/                              # Next.js frontend :4444
 
 Two halves: the wiring (stable, code) and the metadata (user-editable, settings).
 
-- **`api/routers/sections.py:SECTION_IMMUTABLE`** — `{ key: { path, apiBase, obsidianDir } }`. Changing any of these means shipping a new frontend route, so it stays in source.
+- **`api/routers/sections.py:SECTION_IMMUTABLE`** — `{ key: { path, apiBase, dataDir } }` (`dataDir` is the on-disk folder under `$SEPTENA_DATA_DIR`). Changing any of these means shipping a new frontend route, so it stays in source.
 - **`DEFAULT_SETTINGS["sections"]`** in `api/routers/settings.py` — `{ label, emoji, color, tagline }` per key. Users override in `Bases/Settings/settings.yaml`.
 - **`lib/sections.ts`** — code-side defaults the frontend falls back to before `GET /api/sections` resolves. Also exports `EXERCISE_SHADES` (strength / cardio / mobility shades of orange, aligned to tailwind `orange-500/400/300`).
 
@@ -303,7 +303,7 @@ One block per section, all appended to the same file. See the `// ── {Sectio
 3. Add section paths to `api/paths.py` (`{SECTION}_DIR`, config paths).
 4. Create `api/routers/{section}.py` with an `APIRouter(prefix="/api/{section}")`. Reuse `_extract_frontmatter`, `_normalize_date/number`, `_slugify` from `api.parsing`.
 5. Wire the new router into `api/app.py` (import + `app.include_router`).
-6. If the section should be visible in the nav based on folder presence, add it to `_VAULT_FOLDER_SECTIONS` in `api/paths.py`.
+6. If the section should be visible in the nav based on folder presence, add it to `_DATA_FOLDER_SECTIONS` in `api/paths.py`.
 7. Verify with `curl`.
 
 ### Phase 2: API Client
@@ -322,5 +322,5 @@ One block per section, all appended to the same file. See the `// ── {Sectio
 
 ## Running locally
 
-- Frontend: `npm run dev` on :4444 (managed via `.claude/launch.json` → `setlist-dev`).
+- Frontend: `npm run dev` on :4444 (managed via `.claude/launch.json` → `septena-dev`).
 - Backend: `python3 -m uvicorn main:app --port 4445` — run directly; the preview-server config for this one fails due to sandbox import restrictions on `h11`. `start.sh` wraps the same command.

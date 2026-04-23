@@ -13,7 +13,7 @@ A daily checklist of your supplement stack with streak history.
 
 ## Data shape
 
-**Config** at `$SETLIST_VAULT/Supplements/supplements-config.yaml`:
+**Config** at `$SEPTENA_DATA_DIR/Supplements/supplements-config.yaml`:
 
 ```yaml
 supplements:
@@ -23,7 +23,7 @@ supplements:
     name: Vitamin D 5000IU
 ```
 
-**Per-dose events** at `$SETLIST_VAULT/Supplements/Log/{date}--{id}--01.md`, same shape as Habits events (minus `bucket`). See [`examples/vault/optional/Supplements/SKILL.md`](../../examples/vault/optional/Supplements/SKILL.md).
+**Per-dose events** at `$SEPTENA_DATA_DIR/Supplements/Log/{date}--{id}--01.md`, same shape as Habits events (minus `bucket`). See [`examples/vault/optional/Supplements/SKILL.md`](../../examples/vault/optional/Supplements/SKILL.md).
 
 ## Endpoints
 

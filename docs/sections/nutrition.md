@@ -15,7 +15,7 @@ your fasting/eating window in real time.
 
 ## Data shape
 
-One file per eating event at `$SETLIST_VAULT/Nutrition/Log/{date}--{HHMM}--NN.md`:
+One file per eating event at `$SEPTENA_DATA_DIR/Nutrition/Log/{date}--{HHMM}--NN.md`:
 
 ```yaml
 ---
@@ -43,4 +43,4 @@ First meal of the day
 
 ## Configuration
 
-Daily target ranges live in `$SETLIST_VAULT/Settings/settings.yaml` under `targets.*` (protein/fat/carbs/kcal min+max, fasting/eating window hours). Also editable from the Settings tab.
+Daily target ranges live in `$SEPTENA_DATA_DIR/Settings/settings.yaml` under `targets.*` (protein/fat/carbs/kcal min+max, fasting/eating window hours). Also editable from the Settings tab.

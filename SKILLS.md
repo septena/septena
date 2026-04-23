@@ -1,20 +1,20 @@
 ---
-name: setlist
-description: Work with a Setlist vault — a local-first personal health tracker whose data lives as plain-YAML Markdown files in a known folder structure. Lets agents log events, query totals, and modify configuration without the app running.
+name: septena
+description: Work with a Septena vault — a local-first personal week tracker whose data lives as plain-YAML Markdown files in a known folder structure. Lets agents log events, query totals, and modify configuration without the app running.
 ---
 
-# Setlist Skills — for AI agents
+# Septena Skills — for AI agents
 
-Setlist is a local-first personal health dashboard. Every event the user
+Septena is a local-first personal health dashboard. Every event the user
 logs — a meal, a set, a habit completion, a chore — is one Markdown file
 with YAML frontmatter in a known folder. Read those files; write new
-ones; the UI updates on the next request. The Setlist app doesn't have
+ones; the UI updates on the next request. The Septena app doesn't have
 to be running for agents to participate.
 
 ## When to use this skill
 
 - You're asked to log, query, or summarize anything health-related for a
-  user who already has a Setlist vault.
+  user who already has a Septena vault.
 - You're asked to edit a `*-config.yaml` (habits, supplements, macros,
   strains, settings).
 - You're asked to analyze patterns across sections (correlations,
@@ -27,14 +27,14 @@ the actual schema.
 
 ## Where the vault lives
 
-Default: `~/Documents/obsidian/Bases/`.
-Override: `$SETLIST_VAULT`. Always resolve through the env var when it's
+Default: `~/Documents/septena-data/`.
+Override: `$SEPTENA_DATA_DIR`. Always resolve through the env var when it's
 set — users may point it at any directory.
 
 Structure (a section exists iff its folder exists under the vault):
 
 ```
-$SETLIST_VAULT/
+$SEPTENA_DATA_DIR/
   Nutrition/    macros-config.yaml   Log/*.md
   Exercise/                          Log/*.md
   Habits/       habits-config.yaml   Log/*.md
@@ -119,7 +119,7 @@ anything) without breaking the UI.
 
 ## File access vs. HTTP API — which to use
 
-If the Setlist app is running (default `http://127.0.0.1:4445`):
+If the Septena app is running (default `http://127.0.0.1:4445`):
 
 - **Querying aggregates** — hit the HTTP API. It caches, handles edge
   cases, and gives you shapes the UI already uses. See
@@ -148,10 +148,10 @@ If the app is NOT running:
 User: *"Log breakfast — Greek yogurt with berries, coffee, around 22g
 protein and 340 kcal. Also I took my creatine."*
 
-1. Resolve `$SETLIST_VAULT` (default `~/Documents/obsidian/Bases/`).
+1. Resolve `$SEPTENA_DATA_DIR` (default `~/Documents/septena-data/`).
 2. Load `examples/vault/Bases/Nutrition/SKILL.md` and
    `examples/vault/optional/Supplements/SKILL.md` for the two schemas.
-3. Write `$SETLIST_VAULT/Nutrition/Log/{today}--{HHMM}--01.md`:
+3. Write `$SEPTENA_DATA_DIR/Nutrition/Log/{today}--{HHMM}--01.md`:
    ```yaml
    ---
    date: "{today}"
@@ -168,7 +168,7 @@ protein and 340 kcal. Also I took my creatine."*
    section: nutrition
    ---
    ```
-4. Write `$SETLIST_VAULT/Supplements/Log/{today}--creatine--01.md` with
+4. Write `$SEPTENA_DATA_DIR/Supplements/Log/{today}--creatine--01.md` with
    the supplements event schema (see `optional/Supplements/SKILL.md`).
 5. Confirm: *"Logged breakfast (22g protein, 340 kcal) and creatine."*
 

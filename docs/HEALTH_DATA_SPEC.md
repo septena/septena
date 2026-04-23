@@ -1,7 +1,7 @@
 # Health Data Sources — Integration Spec
 
 **Setup assumptions:** macOS host on the same LAN / Tailnet as an iOS
-device. Defaults shown assume Setlist's standard `SETLIST_INTEGRATIONS_DIR`
+device. Defaults shown assume Septena's standard `SEPTENA_INTEGRATIONS_DIR`
 location (`~/.config/openclaw/`); substitute your own if you've overridden
 that env var.
 
@@ -19,12 +19,12 @@ Use `hostname.local` (Bonjour), a LAN IP, or a Tailscale IP — whatever
 the iOS device can reach.
 
 **Receiver:** any HTTP server that writes the POST body to `latest.json`.
-A minimal FastAPI/Flask/aiohttp script (~20 lines) is enough — Setlist
+A minimal FastAPI/Flask/aiohttp script (~20 lines) is enough — Septena
 doesn't ship one opinionated helper.
 
 **Storage directory:**
 ```
-$SETLIST_INTEGRATIONS_DIR/health_auto_export/
+$SEPTENA_INTEGRATIONS_DIR/health_auto_export/
 ├── latest.json                  # Most recent full export (refreshed throughout day)
 ├── health_export_YYYY-MM-DD.json  # Optional timestamped snapshots (for history)
 ```
@@ -66,7 +66,7 @@ walking_double_support_percentage
 **How to read in code:**
 ```python
 import json
-with open("$SETLIST_INTEGRATIONS_DIR/health_auto_export/latest.json") as f:
+with open("$SEPTENA_INTEGRATIONS_DIR/health_auto_export/latest.json") as f:
     d = json.load(f)
 metrics = {m["name"]: m for m in d["data"]["data"]["metrics"]}
 
@@ -127,8 +127,8 @@ Authorization: Bearer {access_token}
 ```python
 import json, urllib.request, datetime, urllib.parse
 
-TOKEN = "$SETLIST_INTEGRATIONS_DIR/withings/token.json"
-CREDS = "$SETLIST_INTEGRATIONS_DIR/withings/credentials.json"
+TOKEN = "$SEPTENA_INTEGRATIONS_DIR/withings/token.json"
+CREDS = "$SEPTENA_INTEGRATIONS_DIR/withings/credentials.json"
 
 def get_withings_data(days=14):
     # Refresh token
@@ -178,7 +178,7 @@ Scripts: ~/.openclaw/workspace/skills/oura/  → skill scripts
 **How to read in code:**
 ```python
 import os
-token_path = os.path.expandvars("$SETLIST_INTEGRATIONS_DIR/oura/token.txt")
+token_path = os.path.expandvars("$SEPTENA_INTEGRATIONS_DIR/oura/token.txt")
 with open(token_path) as f:
     token = f.read().strip()
 import urllib.request
@@ -192,15 +192,15 @@ with urllib.request.urlopen(req, timeout=10) as r:
 
 ---
 
-## 4. Obsidian — Structured Health Data
+## 4. Septena Data Directory — Structured Health Data
 
-**Obsidian vault:** `~/Documents/obsidian/`
+**Data root:** `~/Documents/septena-data/`
 
 ### 4a. Training Sessions (Exercise — canonical)
 ```
-~/Documents/obsidian/Bases/Exercise/Log/*.md
-~/Documents/obsidian/Bases/Exercise/Exercise.base    ← Obsidian Bases view config
-~/Documents/obsidian/Bases/Exercise/Exercise.md      ← viewer note
+~/Documents/septena-data/Exercise/Log/*.md
+~/Documents/septena-data/Exercise/Exercise.base    ← optional Obsidian Bases view config
+~/Documents/septena-data/Exercise/Exercise.md      ← viewer note
 ```
 **Format:** One YAML file per exercise row (not per session).
 ```yaml
@@ -219,9 +219,9 @@ section: exercise
 
 ### 4b. Nutrition Sessions (Food — canonical)
 ```
-~/Documents/obsidian/Bases/Nutrition/Log/*.md
-~/Documents/obsidian/Bases/Nutrition/Nutrition.base
-~/Documents/obsidian/Bases/Nutrition/Nutrition.md
+~/Documents/septena-data/Nutrition/Log/*.md
+~/Documents/septena-data/Nutrition/Nutrition.base
+~/Documents/septena-data/Nutrition/Nutrition.md
 ```
 **Format:** One YAML file per eating occasion. Filename: `{date}--{HHMM}--NN.md`.
 ```yaml
@@ -242,30 +242,30 @@ section: nutrition
 
 ### 4c. Habit Tracking (planned)
 ```
-~/Documents/obsidian/Bases/Habits/Log/*.md             ← per-day logs
-~/Documents/obsidian/Bases/Habits/habits-config.yaml   ← habit set
-~/Documents/obsidian/Bases/Habits/Habits.base          ← Obsidian view config
-~/Documents/obsidian/Bases/Habits/Habits.md            ← viewer note
+~/Documents/septena-data/Habits/Log/*.md             ← per-day logs
+~/Documents/septena-data/Habits/habits-config.yaml   ← habit set
+~/Documents/septena-data/Habits/Habits.base          ← optional Obsidian view config
+~/Documents/septena-data/Habits/Habits.md            ← viewer note
 ```
 **Auto-logged metrics** (from Health Auto Export + Withings) will also flow here.
 
 ---
 
-## 5. Setlist App Backend (FastAPI — port 4445)
+## 5. Septena App Backend (FastAPI — port 4445)
 
-**Running at:** `http://127.0.0.1:4445` (configurable via `SETLIST_BACKEND_URL`)
+**Running at:** `http://127.0.0.1:4445` (configurable via `SEPTENA_BACKEND_URL`)
 **Frontend:** `http://127.0.0.1:4444` (Next.js)
 
-**Currently connected to Setlist:**
+**Currently connected to Septena:**
 - ✅ Exercise YAML → `Bases/Exercise/Log/` → backend reads → frontend charts
 
 **NOT yet connected:**
-- ❌ Withings → Setlist (weight + body fat)
-- ❌ Nutrition YAML → Setlist (protein tracking)
-- ❌ Health Auto Export → Setlist (auto metrics)
-- ❌ Oura → Setlist (sleep/readiness)
+- ❌ Withings → Septena (weight + body fat)
+- ❌ Nutrition YAML → Septena (protein tracking)
+- ❌ Health Auto Export → Septena (auto metrics)
+- ❌ Oura → Septena (sleep/readiness)
 
-**Target architecture for Setlist health page:**
+**Target architecture for Septena health page:**
 ```
 GET /api/weight              → Withings API → last 30 days weight + body fat
 GET /api/nutrition/entries   → Bases/Nutrition/Log/*.md → entries grouped by date
@@ -293,4 +293,4 @@ GET /api/sleep               → Oura API → sleep efficiency, deep sleep, HRV
 - **No hardcoded credentials** in scripts — always read from credential files listed above
 - **Token refresh** must happen automatically in scripts (3-hour expiry for Withings)
 - **YAML is canonical** for exercise, nutrition, and habits — no markdown files as source of truth
-- **Setlist = setlist repo** (renamed from `training-viz`, April 2026)
+- **Septena = septena repo** (renamed from `training-viz` → `setlist` → `septena`, April 2026)

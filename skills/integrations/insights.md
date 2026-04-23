@@ -1,9 +1,9 @@
 ---
-name: setlist-insights
-description: Derived cross-section patterns — Setlist's Insights section correlates multiple sections (sleep vs. nutrition, training volume vs. HRV, cannabis vs. sleep) using Pearson r + linear fits. There is no stored insights data; it's computed on the fly.
+name: septena-insights
+description: Derived cross-section patterns — Septena's Insights section correlates multiple sections (sleep vs. nutrition, training volume vs. HRV, cannabis vs. sleep) using Pearson r + linear fits. There is no stored insights data; it's computed on the fly.
 ---
 
-# Setlist · Insights (derived)
+# Septena · Insights (derived)
 
 The Insights section computes cross-section correlations live — nothing
 is stored. For agents, this means "running an insight" = fetching the

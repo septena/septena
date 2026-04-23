@@ -1,11 +1,11 @@
 name: Bug report
-description: Something's broken in Setlist
+description: Something's broken in Septena
 labels: [bug]
 body:
   - type: markdown
     attributes:
       value: |
-        Thanks for taking the time to file a bug. Setlist is single-user and
+        Thanks for taking the time to file a bug. Septena is single-user and
         local-first, so details about your setup help a lot.
   - type: textarea
     id: what-happened

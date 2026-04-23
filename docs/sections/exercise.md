@@ -15,7 +15,7 @@ progression charts and PR tracking.
 
 ## Data shape
 
-One file per set at `$SETLIST_VAULT/Exercise/Log/{date}--{exercise-slug}--NN.md`:
+One file per set at `$SEPTENA_DATA_DIR/Exercise/Log/{date}--{exercise-slug}--NN.md`:
 
 ```yaml
 ---

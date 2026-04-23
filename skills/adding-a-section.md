@@ -1,11 +1,11 @@
 ---
-name: setlist-adding-a-section
-description: End-to-end guide to add a brand-new section to Setlist (e.g. Groceries, Mood, Water, Reading). Covers vault layout, backend router, frontend dashboard, registry wiring, settings UI, and the section's own SKILL.md so it's agent-legible from day one.
+name: septena-adding-a-section
+description: End-to-end guide to add a brand-new section to Septena (e.g. Groceries, Mood, Water, Reading). Covers vault layout, backend router, frontend dashboard, registry wiring, settings UI, and the section's own SKILL.md so it's agent-legible from day one.
 ---
 
 # Adding a new section
 
-Sections are the main unit of extension in Setlist. Adding one means
+Sections are the main unit of extension in Septena. Adding one means
 teaching the backend to read a new folder of YAML files, wiring a React
 dashboard to visualize them, registering the section so it appears in
 nav + settings, and — critically — writing a `SKILL.md` so agents can
@@ -13,7 +13,7 @@ log into it alongside the core sections.
 
 ## When to use this skill
 
-- User wants to track something Setlist doesn't currently support
+- User wants to track something Septena doesn't currently support
   (groceries, water intake, mood, reading, meditation, expenses…).
 - User wants to fork a section (e.g. "Workouts" separate from "Exercise"
   for a different framing).
@@ -32,7 +32,7 @@ Copy the one that matches the data shape you need:
 
 ## Filesystem layout
 
-Vault-backed sections live under `$SETLIST_VAULT/<Section>/`:
+Vault-backed sections live under `$SEPTENA_DATA_DIR/<Section>/`:
 
 ```
 Bases/Groceries/
@@ -116,7 +116,7 @@ Two halves — code wiring (stable) and metadata (user-editable):
 `SECTION_IMMUTABLE`:
 
 ```python
-"mood": {"path": "/mood", "apiBase": "/api/mood", "obsidianDir": "Bases/Mood/Log"},
+"mood": {"path": "/mood", "apiBase": "/api/mood", "dataDir": "Bases/Mood/Log"},
 ```
 
 **Metadata defaults** — [`api/routers/settings.py`](../api/routers/settings.py)'s
@@ -182,11 +182,11 @@ items — see `api/routers/exercise.py` (`/api/exercise/config` +
 
 ```markdown
 ---
-name: setlist-mood
+name: septena-mood
 description: Log mood check-ins with valence, arousal, trigger.
 ---
 
-# Setlist · Mood
+# Septena · Mood
 
 ## Where it lives
 ## Filename convention
@@ -196,7 +196,7 @@ description: Log mood check-ins with valence, arousal, trigger.
 ```
 
 Mirror the shape of the existing SKILL.md files — an agent that's
-loaded one Setlist skill should recognize the shape of any other.
+loaded one Septena skill should recognize the shape of any other.
 
 Finally update the index tables in [`SKILLS.md`](../SKILLS.md) and the
 HTTP API reference in [`skills/http-api.md`](http-api.md).
@@ -220,7 +220,7 @@ If the data source is an external API or snapshot file (like Sleep
 from Oura), the pattern differs:
 
 - No vault folder — data comes from a token or file outside the vault,
-  typically under `$SETLIST_INTEGRATIONS_DIR` (default
+  typically under `$SEPTENA_INTEGRATIONS_DIR` (default
   `~/.config/openclaw/`).
 - Backend router reads + aggregates the external data (see
   `api/routers/health.py`).
@@ -239,7 +239,7 @@ worked example.
 
 Before declaring the section done, verify:
 
-- [ ] Folder exists at `$SETLIST_VAULT/<Section>/` with a `Log/` or
+- [ ] Folder exists at `$SEPTENA_DATA_DIR/<Section>/` with a `Log/` or
       `Definitions/` subfolder (if vault-backed)
 - [ ] Starter config YAML exists (if the section has config)
 - [ ] `api/paths.py`: path constants + `_VAULT_FOLDER_SECTIONS` entry

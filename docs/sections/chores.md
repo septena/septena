@@ -14,9 +14,9 @@ via a replayed event log.
 
 ## Data shape
 
-**Definitions** at `$SETLIST_VAULT/Chores/Definitions/*.md` — one note per chore with `cadence_days`.
+**Definitions** at `$SEPTENA_DATA_DIR/Chores/Definitions/*.md` — one note per chore with `cadence_days`.
 
-**Events** at `$SETLIST_VAULT/Chores/Log/*.md` — either `complete` (sets next due = date + cadence_days) or `defer` (sets next due explicitly).
+**Events** at `$SEPTENA_DATA_DIR/Chores/Log/*.md` — either `complete` (sets next due = date + cadence_days) or `defer` (sets next due explicitly).
 
 See [`examples/vault/optional/Chores/SKILL.md`](../../examples/vault/optional/Chores/SKILL.md).
 

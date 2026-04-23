@@ -11,11 +11,11 @@ Ambient environment monitoring — CO₂, temperature, humidity, pressure — fr
 
 ## Data source
 
-Readings are polled out-of-band by [`scripts/aranet_poller.py`](../../scripts/aranet_poller.py), scheduled via the launchd plist at [`scripts/com.setlist.aranet.plist`](../../scripts/com.setlist.aranet.plist). The poller runs under the user session because BLE needs Bluetooth TCC permission that a backend `uvicorn` process doesn't have.
+Readings are polled out-of-band by [`scripts/aranet_poller.py`](../../scripts/aranet_poller.py), scheduled via the launchd plist at [`scripts/com.septena.aranet.plist`](../../scripts/com.septena.aranet.plist). The poller runs under the user session because BLE needs Bluetooth TCC permission that a backend `uvicorn` process doesn't have.
 
 ## Storage
 
-One YAML file per **day** at `$SETLIST_VAULT/Air/Log/{date}.md`, with all readings of that day as a list under `readings:`. At ~2-minute cadence that's ~720 readings/day — per-event files would create ~250k files/year and choke Obsidian's index; the daily rollup keeps to ~365 files/year.
+One YAML file per **day** at `$SEPTENA_DATA_DIR/Air/Log/{date}.md`, with all readings of that day as a list under `readings:`. At ~2-minute cadence that's ~720 readings/day — per-event files would create ~250k files/year; the daily rollup keeps to ~365 files/year.
 
 ```yaml
 ---

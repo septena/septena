@@ -1,9 +1,9 @@
 ---
-name: setlist-sleep
-description: Read Setlist's Sleep section — per-night records from Oura Ring and/or Apple Health Auto Export, exposed via /api/health/oura and /api/health/apple. Read-only.
+name: septena-sleep
+description: Read Septena's Sleep section — per-night records from Oura Ring and/or Apple Health Auto Export, exposed via /api/health/oura and /api/health/apple. Read-only.
 ---
 
-# Setlist · Sleep (integration-backed)
+# Septena · Sleep (integration-backed)
 
 Sleep data is pulled live from **Oura** (primary, richer fields) and
 **Apple Health Auto Export** (fallback when Oura isn't set up). No vault
@@ -21,8 +21,8 @@ JSON snapshot.
 
 | Source | File | When it's available |
 |---|---|---|
-| Oura | token at `$SETLIST_INTEGRATIONS_DIR/oura/token.txt` | If the user has an Oura Ring + personal access token |
-| Apple Health | `$SETLIST_INTEGRATIONS_DIR/health_auto_export/latest.json` | If the user runs the Health Auto Export iOS app |
+| Oura | token at `$SEPTENA_INTEGRATIONS_DIR/oura/token.txt` | If the user has an Oura Ring + personal access token |
+| Apple Health | `$SEPTENA_INTEGRATIONS_DIR/health_auto_export/latest.json` | If the user runs the Health Auto Export iOS app |
 
 Check `/api/config` → `integrations.oura` / `integrations.apple_health`
 to know which are reachable before querying.
@@ -92,7 +92,7 @@ questions without fetching history.
 
 ## File-only fallback
 
-If the app isn't running, read `$SETLIST_INTEGRATIONS_DIR/health_auto_export/latest.json`
+If the app isn't running, read `$SEPTENA_INTEGRATIONS_DIR/health_auto_export/latest.json`
 directly for Apple Health data. Oura has no file cache — you need the
 live API with the token.
 

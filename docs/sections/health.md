@@ -16,7 +16,7 @@ Source priority and exact metric keys live in [`api/routers/health.py`](../../ap
 
 ## Data source
 
-- **Health Auto Export** iOS app → `$SETLIST_INTEGRATIONS_DIR/health_auto_export/latest.json`.
+- **Health Auto Export** iOS app → `$SEPTENA_INTEGRATIONS_DIR/health_auto_export/latest.json`.
 - **Oura** for HRV and readiness when the token is present.
 
 See [docs/HEALTH_DATA_SPEC.md](../HEALTH_DATA_SPEC.md).

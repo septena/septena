@@ -1,11 +1,11 @@
 ---
-name: setlist-http-api
-description: Full HTTP endpoint reference for a running Setlist backend. Use this when the app is up at http://127.0.0.1:4445 — faster than re-reading YAML files for aggregates, and handles edge cases the file-level skills don't spell out.
+name: septena-http-api
+description: Full HTTP endpoint reference for a running Septena backend. Use this when the app is up at http://127.0.0.1:4445 — faster than re-reading YAML files for aggregates, and handles edge cases the file-level skills don't spell out.
 ---
 
-# Setlist · HTTP API reference
+# Septena · HTTP API reference
 
-When the Setlist backend is running (default `http://127.0.0.1:4445`),
+When the Septena backend is running (default `http://127.0.0.1:4445`),
 prefer HTTP for queries — the server caches, handles malformed YAML
 gracefully, and returns the exact shapes the UI uses. For writing,
 either HTTP or direct file writes work; HTTP triggers UI invalidation
