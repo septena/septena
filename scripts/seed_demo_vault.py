@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Seed a Setlist vault with deterministic demo data.
+"""Seed a Septena vault with deterministic demo data.
 
 Generates ~30 days of realistic-looking but fake logs across Nutrition,
 Exercise, Habits, and Supplements. Used by the screenshot script and by
@@ -409,12 +409,12 @@ def main() -> int:
 
     # Guard: don't overwrite a real vault by accident. Drop a marker on
     # first seed; subsequent runs see the marker and skip the size check.
-    marker = cfg.vault / ".setlist-demo-vault"
+    marker = cfg.vault / ".septena-demo-vault"
     if not marker.exists():
         for log in cfg.vault.rglob("Log"):
             if log.is_dir() and sum(1 for _ in log.iterdir()) > 50:
                 print(
-                    f"ERROR: {log} has >50 files and no .setlist-demo-vault marker\n"
+                    f"ERROR: {log} has >50 files and no .septena-demo-vault marker\n"
                     f"— this looks like a real vault. If you're sure, delete {log}\n"
                     f"or pass --vault pointing at a dedicated demo directory.",
                     file=sys.stderr,

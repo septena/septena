@@ -3,7 +3,7 @@
 
 Used by the screenshot pipeline so the sleep/body/health pages render
 without needing real Oura tokens, Withings OAuth, or a device dropping
-HealthKit data. The backend reads this file when SETLIST_DEMO_HEALTH=1.
+HealthKit data. The backend reads this file when SEPTENA_DEMO_HEALTH=1.
 
 Shape mirrors what /api/health/combined returns:
 

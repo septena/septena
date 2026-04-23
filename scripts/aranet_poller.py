@@ -7,7 +7,7 @@ rejects every packet on Aranet4 firmware v1.4.14 (the first-byte param
 check fails), so we do the GATT protocol ourselves. ~80 lines of
 protocol, full reliability.
 
-State (last synced timestamp) lives at ~/.config/setlist/aranet-state.json.
+State (last synced timestamp) lives at ~/.config/septena/aranet-state.json.
 Dedup is keyed on HH:MM, so re-runs are idempotent.
 """
 from __future__ import annotations
@@ -24,9 +24,9 @@ import yaml
 from bleak import BleakClient
 
 
-VAULT_ROOT = Path.home() / "Documents/obsidian/Bases"
+VAULT_ROOT = Path.home() / "Documents/septena-data"
 AIR_DIR = VAULT_ROOT / "Air" / "Log"
-STATE_PATH = Path.home() / ".config/setlist/aranet-state.json"
+STATE_PATH = Path.home() / ".config/septena/aranet-state.json"
 DEFAULT_DEVICE = "518BB646-2E6C-7616-E6EC-2073CDBAC613"
 
 CHAR_CMD       = "f0cd1402-95da-4f4b-9ac8-aa55d312af0c"
@@ -81,7 +81,6 @@ def _write_day(day: str, readings_by_time: dict) -> None:
     fm = {
         "date": day,
         "section": "air",
-        "reading_count": len(sorted_readings),
         "readings": sorted_readings,
     }
     body = (
@@ -234,7 +233,7 @@ async def main_async(device: str, full: bool) -> int:
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description="Aranet4 → Setlist Air log poller (raw bleak)")
+    ap = argparse.ArgumentParser(description="Aranet4 → Septena Air log poller (raw bleak)")
     ap.add_argument("--device", default=DEFAULT_DEVICE, help="BLE address / macOS UUID")
     ap.add_argument("--full", action="store_true", help="Ignore last_synced_at and pull everything on-device")
     args = ap.parse_args()

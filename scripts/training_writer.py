@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Writer: append a structured training-session file from free-text input lines.
-Free-text input → $SETLIST_VAULT/Exercise/Log/YYYY-MM-DD--{exercise}--NN.md
+Free-text input → $SEPTENA_DATA_DIR/Exercise/Log/YYYY-MM-DD--{exercise}--NN.md
 
 Usage:
     python3 training_writer.py "2026-04-09"
@@ -23,7 +23,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional, Tuple
 
-TRAINING_DIR = Path.home() / "Documents" / "obsidian" / "Bases" / "Exercise" / "Log"
+TRAINING_DIR = Path.home() / "Documents" / "septena-data" / "Exercise" / "Log"
 
 # ─── Patterns ────────────────────────────────────────────────────────────────
 

@@ -28,7 +28,7 @@ import re
 import sys
 from pathlib import Path
 
-NUTRITION_DIR = Path.home() / "Documents/obsidian/Bases/Nutrition/Log"
+NUTRITION_DIR = Path.home() / "Documents/septena-data/Nutrition/Log"
 
 NUM_RE = re.compile(r"^(\w+):\s*([\d.]+)\s*$", re.MULTILINE)
 CARBS_RE = re.compile(r"^carbs_g:", re.MULTILINE)

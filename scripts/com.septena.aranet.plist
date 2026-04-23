@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
     <key>Label</key>
-    <string>com.setlist.aranet</string>
+    <string>com.septena.aranet</string>
 
     <key>ProgramArguments</key>
     <array>
@@ -20,9 +20,9 @@
     <true/>
 
     <key>StandardOutPath</key>
-    <string>/Users/botbot/.config/setlist/aranet.log</string>
+    <string>/Users/botbot/.config/septena/aranet.log</string>
     <key>StandardErrorPath</key>
-    <string>/Users/botbot/.config/setlist/aranet.err</string>
+    <string>/Users/botbot/.config/septena/aranet.err</string>
 
     <key>EnvironmentVariables</key>
     <dict>

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
 Port rowing & elliptical entries from training-log.md to structured frontmatter files.
-Reads: ~/Documents/obsidian/Health/training-log.md
-Writes: ~/Documents/obsidian/Bases/Exercise/Log/YYYY-MM-DD--{row,elliptical}--NN.md
+Reads: ~/Documents/septena-data/Health/training-log.md
+Writes: ~/Documents/septena-data/Exercise/Log/YYYY-MM-DD--{row,elliptical}--NN.md
 """
 
 import re
@@ -10,8 +10,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
-LOG = Path.home() / "Documents" / "obsidian" / "Health" / "training-log.md"
-OUT_DIR = Path.home() / "Documents" / "obsidian" / "Bases" / "Exercise" / "Log"
+LOG = Path.home() / "Documents" / "septena-data" / "Health" / "training-log.md"
+OUT_DIR = Path.home() / "Documents" / "septena-data" / "Exercise" / "Log"
 
 MONTH_MAP = {
     "Jan": 1, "Feb": 2, "Mar": 3, "Apr": 4,

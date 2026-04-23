@@ -31,7 +31,7 @@ from typing import Any, Dict, List, Tuple
 
 import yaml
 
-BASES = Path.home() / "Documents/obsidian/Bases"
+BASES = Path.home() / "Documents/septena-data"
 
 FRONTMATTER_RE = re.compile(r"^---\s*\n(.*?)\n---\s*", re.DOTALL)
 DATE_FILE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}\.md$")

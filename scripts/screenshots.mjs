@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Screenshot automation — spins up a full ephemeral Setlist instance
+ * Screenshot automation — spins up a full ephemeral Septena instance
  * (FastAPI backend + Next.js frontend) pointed at a seeded demo vault,
  * visits each section, saves screenshots to docs/screenshots/.
  *
@@ -11,7 +11,7 @@
  *   node scripts/screenshots.mjs --out dir/       # custom output directory
  *
  * Requires: `npm install -D playwright` and a seeded demo vault at
- * /tmp/setlist-demo-vault (auto-seeded if missing).
+ * /tmp/septena-demo-vault (auto-seeded if missing).
  */
 
 import { chromium } from "playwright";
@@ -30,12 +30,12 @@ const has = (flag) => argv.includes(flag);
 const get = (flag) => { const i = argv.indexOf(flag); return i !== -1 ? argv[i + 1] : null; };
 
 const OUT_DIR = get("--out") ?? join(ROOT, "docs", "screenshots");
-const DEMO_VAULT = join(tmpdir(), "setlist-demo-vault");
+const DEMO_VAULT = join(tmpdir(), "septena-demo-vault");
 const BACKEND_PORT = 14445;
 const FRONTEND_PORT = 14444;
 const VIEWPORT = { width: 1440, height: 900 };
 const KEEP_SERVERS = has("--keep");
-const CACHE_DIR = join(tmpdir(), "setlist-demo-cache");
+const CACHE_DIR = join(tmpdir(), "septena-demo-cache");
 const HEALTH_CACHE_PATH = join(CACHE_DIR, "health-cache.json");
 
 const DEFAULT_SECTIONS = [
@@ -100,13 +100,13 @@ async function startBackend() {
     cwd: ROOT,
     env: {
       ...process.env,
-      SETLIST_VAULT: DEMO_VAULT,
+      SEPTENA_DATA_DIR: DEMO_VAULT,
       // Integrations dir that doesn't exist → Oura/Withings/HAE all fail
       // fast. In demo mode the health router serves the pre-seeded cache
-      // (see SETLIST_DEMO_HEALTH + seed_demo_health.py).
-      SETLIST_INTEGRATIONS_DIR: "/tmp/setlist-nonexistent-integrations",
-      SETLIST_CACHE_DIR: CACHE_DIR,
-      SETLIST_DEMO_HEALTH: "1",
+      // (see SEPTENA_DEMO_HEALTH + seed_demo_health.py).
+      SEPTENA_INTEGRATIONS_DIR: "/tmp/septena-nonexistent-integrations",
+      SEPTENA_CACHE_DIR: CACHE_DIR,
+      SEPTENA_DEMO_HEALTH: "1",
     },
     stdio: ["ignore", "pipe", "pipe"],
   });
@@ -132,7 +132,7 @@ async function buildFrontend() {
       cwd: ROOT,
       env: {
         ...process.env,
-        SETLIST_BACKEND_URL: `http://127.0.0.1:${BACKEND_PORT}`,
+        SEPTENA_BACKEND_URL: `http://127.0.0.1:${BACKEND_PORT}`,
         NEXT_DIST_DIR: ".next-screenshots",
         NEXT_TELEMETRY_DISABLED: "1",
       },
@@ -156,7 +156,7 @@ async function startFrontend() {
     cwd: ROOT,
     env: {
       ...process.env,
-      SETLIST_BACKEND_URL: `http://127.0.0.1:${BACKEND_PORT}`,
+      SEPTENA_BACKEND_URL: `http://127.0.0.1:${BACKEND_PORT}`,
       NEXT_DIST_DIR: ".next-screenshots",
       NEXT_TELEMETRY_DISABLED: "1",
     },

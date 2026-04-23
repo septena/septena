@@ -3,7 +3,7 @@
 Shared reader for structured training-session files.
 Replaces free-text parsing in exercise-tracker.py and gym bot.
 
-Reads: ~/Documents/obsidian/Bases/Exercise/Log/YYYY-MM-DD--{exercise}--NN.md
+Reads: ~/Documents/septena-data/Exercise/Log/YYYY-MM-DD--{exercise}--NN.md
 Returns: structured data ready for emoji grid, API, or dashboard.
 """
 
@@ -11,7 +11,7 @@ from datetime import date, timedelta
 from pathlib import Path
 from typing import Dict, List, NamedTuple, Optional, Tuple
 
-TRAINING_DIR = Path.home() / "Documents" / "obsidian" / "Bases" / "Exercise" / "Log"
+TRAINING_DIR = Path.home() / "Documents" / "septena-data" / "Exercise" / "Log"
 
 EXERCISE_TYPES = {
     "row": "cardio",

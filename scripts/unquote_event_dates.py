@@ -19,7 +19,7 @@ from pathlib import Path
 
 import yaml
 
-BASES = Path.home() / "Documents/obsidian/Bases"
+BASES = Path.home() / "Documents/septena-data"
 SECTIONS = ("Exercise", "Nutrition", "Habits", "Supplements", "Cannabis", "Caffeine")
 
 FRONTMATTER_RE = re.compile(r"^---\s*\n(.*?)\n---\s*", re.DOTALL)

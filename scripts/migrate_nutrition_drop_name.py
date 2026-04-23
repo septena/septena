@@ -24,7 +24,7 @@ from typing import Any
 
 import yaml
 
-NUTRITION_DIR = Path.home() / "Documents/obsidian/Bases/Nutrition/Log"
+NUTRITION_DIR = Path.home() / "Documents/septena-data/Nutrition/Log"
 
 GENERIC_NAMES = {"breakfast", "lunch", "dinner", "snack", "meal"}
 

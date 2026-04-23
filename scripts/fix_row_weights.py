@@ -8,7 +8,7 @@ producing values like 200500 instead of 200.5.
 import re
 from pathlib import Path
 
-TRAINING_DIR = Path.home() / "Documents" / "obsidian" / "Bases" / "Exercise" / "Log"
+TRAINING_DIR = Path.home() / "Documents" / "septena-data" / "Exercise" / "Log"
 
 fixed = 0
 for fyle in sorted(TRAINING_DIR.glob("*--row--*.md")):
