@@ -16,6 +16,7 @@ from typing import Any, Dict, Optional
 from fastapi import APIRouter, HTTPException
 
 from api import logger
+from api.io import atomic_write_text
 from api.paths import CACHE_DIR
 from api.routers.settings import _load_settings
 
@@ -57,7 +58,7 @@ def _load_geocode_cache() -> Dict[str, Dict[str, Any]]:
 
 def _save_geocode_cache(cache: Dict[str, Dict[str, Any]]) -> None:
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
-    GEOCODE_CACHE_PATH.write_text(json.dumps(cache), encoding="utf-8")
+    atomic_write_text(GEOCODE_CACHE_PATH, json.dumps(cache))
 
 
 def _geocode(name: str) -> Optional[Dict[str, Any]]:

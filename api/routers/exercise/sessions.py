@@ -10,6 +10,7 @@ import yaml
 from fastapi import APIRouter, Depends
 from starlette.requests import Request
 
+from api.io import atomic_write_text
 from api.parsing import _slugify
 from api.paths import DATA_DIR
 
@@ -82,7 +83,7 @@ async def post_sessions(request: Request) -> Dict[str, Any]:
         content = f"---\n{fm_block}\n---\n"
         if (note := entry.get("note", "")):
             content += f"\n{note}\n"
-        path.write_text(content)
+        atomic_write_text(path, content)
         written.append(file_name)
 
     load_cache()

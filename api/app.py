@@ -16,6 +16,7 @@ from api.routers import (
     chores,
     groceries,
     exercise,
+    gut,
     habits,
     health,
     meta,
@@ -33,7 +34,7 @@ async def lifespan(_: FastAPI):
     yield
 
 
-app = FastAPI(title="Setlist API", lifespan=lifespan)
+app = FastAPI(title="Septena API", lifespan=lifespan)
 
 # Local-only app; credentials not needed, so wildcard origins are fine.
 app.add_middleware(
@@ -58,15 +59,8 @@ app.include_router(groceries.router)
 app.include_router(weather.router)
 app.include_router(calendar.router)
 app.include_router(air.router)
+app.include_router(gut.router)
 app.include_router(settings.router)
 app.include_router(sections.router)
 # Meta endpoints (/api/config, /api/meta) cross every section's paths.
 app.include_router(meta.router)
-
-# Optional local-only extensions. When `api/routers/_local.py` is present
-# it gets a chance to register additional routers; it's a no-op when absent.
-try:
-    from api.routers import _local as _local_plugin  # type: ignore[import-not-found]
-    _local_plugin.register(app)
-except ImportError:
-    pass

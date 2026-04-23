@@ -12,6 +12,7 @@ from fastapi import APIRouter, HTTPException
 from starlette.requests import Request
 
 from api import logger
+from api.io import atomic_write_text
 from api.parsing import _slugify
 from api.paths import EXERCISE_CONFIG_PATH
 
@@ -75,7 +76,7 @@ def _load_config() -> Dict[str, Any]:
 def _save_config(data: Dict[str, Any]) -> None:
     EXERCISE_CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
     body = yaml.safe_dump(data, sort_keys=False, allow_unicode=True)
-    EXERCISE_CONFIG_PATH.write_text(body, encoding="utf-8")
+    atomic_write_text(EXERCISE_CONFIG_PATH, body)
 
 
 def _config_lookup() -> Dict[str, str]:

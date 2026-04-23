@@ -14,6 +14,8 @@ from fastapi import APIRouter, HTTPException
 from starlette.requests import Request
 
 from api import logger
+from api.cache import parse_dir_cached
+from api.io import atomic_write_text
 from api.parsing import _extract_frontmatter, _normalize_date, _normalize_number
 from api.paths import MACROS_CONFIG_PATH, NUTRITION_DIR
 
@@ -87,13 +89,9 @@ def _parse_nutrition_entry(path: Path) -> Dict[str, Any] | None:
 
 
 def _load_nutrition_entries() -> List[Dict[str, Any]]:
-    if not NUTRITION_DIR.exists():
-        return []
-    out: List[Dict[str, Any]] = []
-    for path in sorted(NUTRITION_DIR.glob("*.md")):
-        entry = _parse_nutrition_entry(path)
-        if entry:
-            out.append(entry)
+    """Chronological list of meals. Cached per-file by mtime so repeat
+    calls (stats + entries) don't re-parse unchanged YAML."""
+    out = parse_dir_cached(NUTRITION_DIR, "*.md", _parse_nutrition_entry)
     # Chronological: date asc, then time asc. Frontend reverses for display.
     out.sort(key=lambda e: (e["date"], e["time"]))
     return out
@@ -112,6 +110,27 @@ def nutrition_entries(since: Optional[str] = None) -> List[Dict[str, Any]]:
     if since:
         entries = [e for e in entries if e["date"] >= since]
     return entries
+
+
+@router.get("/events")
+def nutrition_events(date: str) -> Dict[str, List[Dict[str, Any]]]:
+    """Universal event contract — see api/events.py:SectionEvent."""
+    entries = [e for e in _load_nutrition_entries() if e["date"] == date]
+    events: List[Dict[str, Any]] = []
+    for e in entries:
+        foods = e.get("foods") or []
+        label = foods[0] if foods else "meal"
+        sublabel = ", ".join(foods[1:3]) if len(foods) > 1 else None
+        events.append({
+            "section": "nutrition",
+            "date": e["date"],
+            "time": e.get("time") or None,
+            "label": label,
+            "sublabel": sublabel,
+            "icon": e.get("emoji") or None,
+            "id": e.get("file"),
+        })
+    return {"events": events}
 
 
 def _time_to_hours(t: str) -> float | None:
@@ -352,7 +371,7 @@ async def nutrition_post(request: Request) -> Dict[str, Any]:
         "section": "nutrition",
     }
     body = "---\n" + yaml.safe_dump(fm, sort_keys=False, allow_unicode=True) + "---\n"
-    fpath.write_text(body, encoding="utf-8")
+    atomic_write_text(fpath, body)
     logger.info("Wrote nutrition entry %s", fname)
     return {"ok": True, "file": fname}
 
@@ -394,7 +413,7 @@ async def nutrition_put(request: Request) -> Dict[str, Any]:
         fm[k] = int(v) if v == int(v) else v
 
     body = "---\n" + yaml.safe_dump(fm, sort_keys=False, allow_unicode=True) + "---\n"
-    fpath.write_text(body, encoding="utf-8")
+    atomic_write_text(fpath, body)
     logger.info("Updated nutrition entry %s", file_name)
     return {"ok": True, "file": file_name}
 

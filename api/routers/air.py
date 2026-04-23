@@ -7,9 +7,8 @@ doesn't have).
 
 **Storage:** one YAML per **day** at `Bases/Air/Log/{date}.md`, with all
 readings as a list under `readings:`. At 2-min cadence that's ~720
-readings/day — per-file would create ~250k files/year, which chokes
-Obsidian's index. Daily rollup keeps to ~365 files/year and Obsidian
-Bases handles nested lists fine. This is the same tradeoff we made for
+readings/day — per-file would create ~250k files/year. Daily rollup
+keeps to ~365 files/year. This is the same tradeoff we made for
 Health/Sleep/Body (external snapshots, not per-event).
 """
 from __future__ import annotations

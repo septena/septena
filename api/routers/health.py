@@ -17,6 +17,7 @@ from typing import Any, Dict, List
 
 from fastapi import APIRouter
 
+from api.io import atomic_write_text
 from api.paths import (
     APPLE_HEALTH_PATH,
     HEALTH_CACHE_PATH,
@@ -107,7 +108,7 @@ def _withings_refresh() -> bool:
             res = json.loads(r.read())
         if res.get("status") == 0:
             res["expires_at"] = int(datetime.now().timestamp()) + res.get("expires_in", 10800)
-            WITHINGS_TOKEN_PATH.write_text(json.dumps(res))
+            atomic_write_text(WITHINGS_TOKEN_PATH, json.dumps(res))
             return True
     except Exception:
         pass
@@ -387,7 +388,7 @@ def health_combined(days: int = 7, end: str | None = None) -> Dict[str, Any]:
     so the cache remains a live "now" snapshot rather than a time-travelled view."""
     # Demo mode: return the pre-seeded cache so screenshots render without
     # needing live Oura/Withings/HAE credentials.
-    if os.environ.get("SETLIST_DEMO_HEALTH") == "1" and HEALTH_CACHE_PATH.exists():
+    if (os.environ.get("SEPTENA_DEMO_HEALTH") or os.environ.get("SETLIST_DEMO_HEALTH")) == "1" and HEALTH_CACHE_PATH.exists():
         try:
             return json.loads(HEALTH_CACHE_PATH.read_text())
         except Exception:
@@ -398,8 +399,7 @@ def health_combined(days: int = 7, end: str | None = None) -> Dict[str, Any]:
     result = {"apple": apple, "oura": oura, "withings": withings}
     if end is None:
         try:
-            HEALTH_CACHE_PATH.parent.mkdir(parents=True, exist_ok=True)
-            HEALTH_CACHE_PATH.write_text(json.dumps(result))
+            atomic_write_text(HEALTH_CACHE_PATH, json.dumps(result))
         except Exception:
             pass
     return result

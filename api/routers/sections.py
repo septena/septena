@@ -1,10 +1,9 @@
-"""Sections registry — nav-ready merged list of code wiring + user settings.
+"""Sections registry — nav-ready merged list of manifest defaults + settings.
 
-Wiring (path, apiBase, obsidianDir) is code because changing it means
-shipping a new frontend route; metadata (label, emoji, color, tagline,
-enabled) is settings so users can tweak theming without touching source.
-GET /api/sections merges the two and returns the ordered list. The
-`section_order` setting is the single source of truth for ordering.
+The shared manifest defines each section's default wiring and presentation.
+`settings.yaml` can override presentation metadata and enablement without
+touching source. GET /api/sections merges the two and returns the ordered
+list. The `section_order` setting is the single source of truth for ordering.
 """
 from __future__ import annotations
 
@@ -20,31 +19,9 @@ from api.paths import (
     available_sections,
 )
 from api.routers.settings import _load_settings
+from api.section_manifest import section_defaults
 
-SECTION_IMMUTABLE: Dict[str, Dict[str, str]] = {
-    "exercise":     {"path": "/exercise",     "apiBase": "/api",             "obsidianDir": "Bases/Exercise/Log"},
-    "nutrition":    {"path": "/nutrition",    "apiBase": "/api/nutrition",   "obsidianDir": "Bases/Nutrition/Log"},
-    "habits":       {"path": "/habits",       "apiBase": "/api/habits",      "obsidianDir": "Bases/Habits/Log"},
-    "chores":       {"path": "/chores",       "apiBase": "/api/chores",      "obsidianDir": "Bases/Chores/Log"},
-    "groceries":    {"path": "/groceries",    "apiBase": "/api/groceries",   "obsidianDir": "Bases/Groceries"},
-    "supplements":  {"path": "/supplements",  "apiBase": "/api/supplements", "obsidianDir": "Bases/Supplements/Log"},
-    "cannabis":     {"path": "/cannabis",     "apiBase": "/api/cannabis",    "obsidianDir": "Bases/Cannabis/Log"},
-    "caffeine":     {"path": "/caffeine",     "apiBase": "/api/caffeine",    "obsidianDir": "Bases/Caffeine/Log"},
-    "health":       {"path": "/health",       "apiBase": "/api/health",      "obsidianDir": ""},
-    "sleep":        {"path": "/sleep",        "apiBase": "/api/health",      "obsidianDir": ""},
-    "body":         {"path": "/body",         "apiBase": "/api/health",      "obsidianDir": ""},
-    "weather":      {"path": "/weather",      "apiBase": "/api/weather",     "obsidianDir": ""},
-    "calendar":     {"path": "/calendar",     "apiBase": "/api/calendar",    "obsidianDir": ""},
-    "air":          {"path": "/air",          "apiBase": "/api/air",         "obsidianDir": "Bases/Air/Log"},
-    "correlations": {"path": "/insights",     "apiBase": "",                 "obsidianDir": ""},
-}
-
-# Optional local-only extensions extend the registry.
-try:
-    from api.routers import _local as _local_plugin  # type: ignore[import-not-found]
-    SECTION_IMMUTABLE.update(getattr(_local_plugin, "SECTION_IMMUTABLE_EXTRA", {}))
-except ImportError:
-    pass
+SECTION_DEFAULTS: Dict[str, Dict[str, str]] = section_defaults()
 
 
 router = APIRouter(prefix="/api/sections", tags=["sections"])
@@ -66,8 +43,8 @@ def sections_list() -> List[Dict[str, Any]]:
     order = settings.get("section_order") or []
     meta = settings.get("sections") if isinstance(settings.get("sections"), dict) else {}
 
-    ordered_keys: List[str] = [k for k in order if k in SECTION_IMMUTABLE]
-    for k in SECTION_IMMUTABLE:
+    ordered_keys: List[str] = [k for k in order if k in SECTION_DEFAULTS]
+    for k in SECTION_DEFAULTS:
         if k not in ordered_keys:
             ordered_keys.append(k)
 
@@ -79,7 +56,7 @@ def sections_list() -> List[Dict[str, Any]]:
 
     out: List[Dict[str, Any]] = []
     for idx, key in enumerate(ordered_keys):
-        wiring = SECTION_IMMUTABLE[key]
+        defaults = SECTION_DEFAULTS[key]
         m = meta.get(key, {}) if isinstance(meta, dict) else {}
         if not isinstance(m, dict):
             m = {}
@@ -88,14 +65,14 @@ def sections_list() -> List[Dict[str, Any]]:
         enabled = bool(explicit) if explicit is not None else key in auto_enabled
         out.append({
             "key": key,
-            "label": m.get("label") or key.capitalize(),
-            "emoji": m.get("emoji") or "",
-            "color": m.get("color") or "hsl(0,0%,50%)",
-            "tagline": m.get("tagline") or "",
+            "label": m.get("label") or defaults["label"],
+            "emoji": m.get("emoji") or defaults["emoji"],
+            "color": m.get("color") or defaults["color"],
+            "tagline": m.get("tagline") or defaults["tagline"],
             "enabled": enabled,
             "order": idx,
-            "path": wiring["path"],
-            "apiBase": wiring["apiBase"],
-            "obsidianDir": wiring["obsidianDir"],
+            "path": defaults["path"],
+            "apiBase": defaults["apiBase"],
+            "dataDir": defaults["dataDir"],
         })
     return out

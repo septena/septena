@@ -1,4 +1,4 @@
 import logging
 
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("setlist")
+logger = logging.getLogger("septena")

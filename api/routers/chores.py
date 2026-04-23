@@ -20,59 +20,59 @@ from fastapi import APIRouter, HTTPException
 from starlette.requests import Request
 
 from api import logger
+from api.cache import parse_dir_cached
+from api.io import atomic_write_text
 from api.parsing import FRONTMATTER_RE, _extract_frontmatter, _normalize_date, _slugify
 from api.paths import CHORES_DEFS_DIR, CHORES_LOG_DIR
 
 router = APIRouter(prefix="/api/chores", tags=["chores"])
 
 
+def _parse_chore_definition(p: Path) -> Dict[str, Any] | None:
+    try:
+        raw = p.read_text(encoding="utf-8")
+        fm = _extract_frontmatter(raw)
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("chore definition %s failed to parse: %s", p.name, exc)
+        return None
+    cid = str(fm.get("id") or "").strip()
+    name = str(fm.get("name") or "").strip()
+    try:
+        cadence = int(fm.get("cadence_days") or 0)
+    except (TypeError, ValueError):
+        cadence = 0
+    if not cid or not name or cadence <= 0:
+        logger.warning("chore definition %s missing id/name/cadence_days", p.name)
+        return None
+    return {
+        "id": cid,
+        "name": name,
+        "cadence_days": cadence,
+        "emoji": str(fm.get("emoji") or "").strip() or "🧽",
+    }
+
+
 def _load_chore_definitions() -> List[Dict[str, Any]]:
-    """Return all chore definitions from Definitions/*.md with their body text."""
-    if not CHORES_DEFS_DIR.exists():
-        return []
-    out: List[Dict[str, Any]] = []
-    for p in sorted(CHORES_DEFS_DIR.glob("*.md")):
-        try:
-            raw = p.read_text(encoding="utf-8")
-            fm = _extract_frontmatter(raw)
-        except Exception as exc:  # noqa: BLE001
-            logger.warning("chore definition %s failed to parse: %s", p.name, exc)
-            continue
-        cid = str(fm.get("id") or "").strip()
-        name = str(fm.get("name") or "").strip()
-        try:
-            cadence = int(fm.get("cadence_days") or 0)
-        except (TypeError, ValueError):
-            cadence = 0
-        if not cid or not name or cadence <= 0:
-            logger.warning("chore definition %s missing id/name/cadence_days", p.name)
-            continue
-        out.append({
-            "id": cid,
-            "name": name,
-            "cadence_days": cadence,
-            "emoji": str(fm.get("emoji") or "").strip() or "🧽",
-        })
-    return out
+    """Return all chore definitions from Definitions/*.md. Cached by mtime."""
+    return parse_dir_cached(CHORES_DEFS_DIR, "*.md", _parse_chore_definition)
+
+
+def _parse_chore_event(p: Path) -> Dict[str, Any] | None:
+    try:
+        fm = _extract_frontmatter(p.read_text(encoding="utf-8"))
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("chore event %s failed to parse: %s", p.name, exc)
+        return None
+    fm["date"] = _normalize_date(fm.get("date"))
+    if fm.get("new_due_date"):
+        fm["new_due_date"] = _normalize_date(fm.get("new_due_date"))
+    fm["_file"] = p.name
+    return fm
 
 
 def _load_chore_events() -> List[Dict[str, Any]]:
-    """Load every event in Log/ with its date/new_due_date normalised."""
-    if not CHORES_LOG_DIR.exists():
-        return []
-    out: List[Dict[str, Any]] = []
-    for p in sorted(CHORES_LOG_DIR.glob("*.md")):
-        try:
-            fm = _extract_frontmatter(p.read_text(encoding="utf-8"))
-        except Exception as exc:  # noqa: BLE001
-            logger.warning("chore event %s failed to parse: %s", p.name, exc)
-            continue
-        fm["date"] = _normalize_date(fm.get("date"))
-        if fm.get("new_due_date"):
-            fm["new_due_date"] = _normalize_date(fm.get("new_due_date"))
-        fm["_file"] = p.name
-        out.append(fm)
-    return out
+    """Load every event in Log/ with date/new_due_date normalised. Cached by mtime."""
+    return parse_dir_cached(CHORES_LOG_DIR, "*.md", _parse_chore_event)
 
 
 def _derive_chore_state(chore: Dict[str, Any], events: List[Dict[str, Any]]) -> Dict[str, Any]:
@@ -174,7 +174,7 @@ def _write_chore_event(
         except Exception:  # noqa: BLE001
             pass
     body = "---\n" + yaml.safe_dump(event, sort_keys=False, allow_unicode=True) + "---\n"
-    path.write_text(body, encoding="utf-8")
+    atomic_write_text(path, body)
     return path
 
 
@@ -320,7 +320,7 @@ async def chores_update_definition(chore_id: str, request: Request) -> Dict[str,
     out = "---\n" + yaml.safe_dump(ordered, sort_keys=False, allow_unicode=True) + "---\n"
     if existing_body:
         out += "\n" + existing_body + "\n"
-    path.write_text(out, encoding="utf-8")
+    atomic_write_text(path, out)
     return {"ok": True, **ordered}
 
 
@@ -360,7 +360,7 @@ async def chores_create_definition(request: Request) -> Dict[str, Any]:
         "section": "chores",
     }
     body = "---\n" + yaml.safe_dump(frontmatter, sort_keys=False, allow_unicode=True) + "---\n"
-    path.write_text(body, encoding="utf-8")
+    atomic_write_text(path, body)
 
     return {"ok": True, "id": chore_id, "name": name, "cadence_days": cadence}
 

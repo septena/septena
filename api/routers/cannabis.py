@@ -17,6 +17,8 @@ from fastapi import APIRouter, HTTPException
 from starlette.requests import Request
 
 from api import logger
+from api.cache import parse_dir_cached
+from api.io import atomic_write_text
 from api.parsing import _extract_frontmatter, _normalize_date, _normalize_number
 from api.paths import (
     CANNABIS_CAPSULE_STATE_PATH,
@@ -86,28 +88,32 @@ def _load_capsule_state() -> Dict[str, Any]:
 def _save_capsule_state(state: Dict[str, Any]) -> None:
     CANNABIS_DIR.mkdir(parents=True, exist_ok=True)
     body = yaml.safe_dump(state, sort_keys=False, allow_unicode=True)
-    CANNABIS_CAPSULE_STATE_PATH.write_text(body, encoding="utf-8")
+    atomic_write_text(CANNABIS_CAPSULE_STATE_PATH, body)
 
 
 def _cannabis_event_file(day: str, method: str, nn: int) -> Path:
     return CANNABIS_DIR / f"{day}--{method}--{nn:02d}.md"
 
 
+def _parse_cannabis_event(p: Path) -> Dict[str, Any] | None:
+    try:
+        fm = _extract_frontmatter(p.read_text(encoding="utf-8"))
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("cannabis event %s failed to parse: %s", p.name, exc)
+        return None
+    if not fm:
+        return None
+    fm["_day"] = p.name.split("--", 1)[0]
+    return fm
+
+
 def _load_cannabis_events(day: str) -> List[Dict[str, Any]]:
-    """Glob every per-event file for the given day. `_capsules.yaml` is a
-    state file (not an event) and has a non-matching extension/prefix."""
-    if not CANNABIS_DIR.exists():
-        return []
-    out: List[Dict[str, Any]] = []
-    for p in sorted(CANNABIS_DIR.glob(f"{day}--*.md")):
-        try:
-            fm = _extract_frontmatter(p.read_text(encoding="utf-8"))
-        except Exception as exc:  # noqa: BLE001
-            logger.warning("cannabis event %s failed to parse: %s", p.name, exc)
-            continue
-        if fm:
-            out.append(fm)
-    return out
+    """Per-event files for the given day, served from the mtime cache.
+    `_capsules.yaml` is skipped — its stem doesn't have the ``--`` prefix."""
+    return [
+        e for e in parse_dir_cached(CANNABIS_DIR, "*.md", _parse_cannabis_event)
+        if e.get("_day") == day
+    ]
 
 
 def _next_cannabis_nn(day: str, method: str) -> int:
@@ -133,7 +139,7 @@ def _write_cannabis_event(path: Path, event: Dict[str, Any]) -> None:
         except ValueError:
             pass
     body = "---\n" + yaml.safe_dump(event, sort_keys=False, allow_unicode=True) + "---\n"
-    path.write_text(body, encoding="utf-8")
+    atomic_write_text(path, body)
 
 
 def _delete_cannabis_event_by_id(entry_id: str, day: Optional[str] = None) -> bool:

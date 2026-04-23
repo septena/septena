@@ -5,7 +5,7 @@ Reads macOS Calendar via the bundled CalendarHelper.app (see
 embedded Info.plist declaring NSCalendarsFullAccessUsageDescription, so
 macOS 14+ can show a proper Calendar-access prompt the first time it
 runs and persist the grant in TCC. The helper writes its JSON output to
-a temp file we pass via `SETLIST_CAL_OUT`.
+a temp file we pass via `SEPTENA_CAL_OUT`.
 
 If the helper is missing or access is denied we return an empty event
 list with an `error` string — never fake data.
@@ -31,6 +31,12 @@ HELPER_TIMEOUT = 10.0
 REPO_ROOT = Path(__file__).resolve().parents[2]
 HELPER_APP = REPO_ROOT / "tools/calendar_helper/CalendarHelper.app"
 
+# Last-good cache. Calendar events rarely change minute-to-minute, so if the
+# helper transiently fails (the `kevent() failed: No such process` race in
+# `open -W`, or any other blip) we'd rather return the previous payload than
+# wipe the UI. Keyed by `days` since _macos_events accepts it.
+_last_good: Dict[int, Tuple[List[Dict[str, Any]], List[Dict[str, str]]]] = {}
+
 
 def _macos_events(days: int = 7) -> Tuple[List[Dict[str, Any]], List[Dict[str, str]], Optional[str]]:
     """Invoke CalendarHelper.app via `open -W` and read its JSON output.
@@ -38,23 +44,36 @@ def _macos_events(days: int = 7) -> Tuple[List[Dict[str, Any]], List[Dict[str, s
     if not HELPER_APP.exists():
         return [], [], f"CalendarHelper.app not built — run tools/calendar_helper/build.sh"
 
-    with tempfile.NamedTemporaryFile(prefix="setlist-cal-", suffix=".json", delete=False) as tmp:
+    with tempfile.NamedTemporaryFile(prefix="septena-cal-", suffix=".json", delete=False) as tmp:
         out_path = tmp.name
     try:
         env_args = [
-            "--env", f"SETLIST_CAL_OUT={out_path}",
-            "--env", f"SETLIST_CAL_DAYS={days}",
+            "--env", f"SEPTENA_CAL_OUT={out_path}",
+            "--env", f"SEPTENA_CAL_DAYS={days}",
         ]
-        result = subprocess.run(
-            ["/usr/bin/open", "-W", "-g", str(HELPER_APP), *env_args],
-            capture_output=True,
-            text=True,
-            timeout=HELPER_TIMEOUT,
-            check=False,
-        )
-        if result.returncode != 0:
-            msg = f"helper exited {result.returncode}: {result.stderr.strip() or 'no stderr'}"
+        # `open -W` occasionally loses the race when the helper exits before
+        # Launch Services can kevent() it ("kevent() failed: No such process").
+        # Retry once — the helper is idempotent and fast.
+        result = None
+        for attempt in range(2):
+            result = subprocess.run(
+                ["/usr/bin/open", "-W", "-g", str(HELPER_APP), *env_args],
+                capture_output=True,
+                text=True,
+                timeout=HELPER_TIMEOUT,
+                check=False,
+            )
+            if result.returncode == 0:
+                break
+            if "kevent()" not in (result.stderr or ""):
+                break
+        if result is None or result.returncode != 0:
+            stderr = (result.stderr or "").strip() if result else ""
+            msg = f"helper exited {result.returncode if result else '?'}: {stderr or 'no stderr'}"
             logger.info("calendar: %s", msg)
+            cached = _last_good.get(days)
+            if cached is not None:
+                return cached[0], cached[1], msg + " (served cached)"
             return [], [], msg
         if not os.path.exists(out_path) or os.path.getsize(out_path) == 0:
             return [], [], "Calendar access denied — grant access to CalendarHelper in System Settings › Privacy › Calendars"
@@ -62,13 +81,23 @@ def _macos_events(days: int = 7) -> Tuple[List[Dict[str, Any]], List[Dict[str, s
             payload = json.loads(fh.read() or "{}")
         # Back-compat: old helper returned a bare list of events.
         if isinstance(payload, list):
-            return payload, [], None
-        return payload.get("events") or [], payload.get("calendars") or [], None
+            events, calendars = payload, []
+        else:
+            events = payload.get("events") or []
+            calendars = payload.get("calendars") or []
+        _last_good[days] = (events, calendars)
+        return events, calendars, None
     except (FileNotFoundError, subprocess.TimeoutExpired) as exc:
         logger.warning("calendar: helper unavailable or timed out: %s", exc)
+        cached = _last_good.get(days)
+        if cached is not None:
+            return cached[0], cached[1], f"helper unavailable: {exc} (served cached)"
         return [], [], f"helper unavailable: {exc}"
     except json.JSONDecodeError as exc:
         logger.warning("calendar: helper output unparseable: %s", exc)
+        cached = _last_good.get(days)
+        if cached is not None:
+            return cached[0], cached[1], f"helper output unparseable: {exc} (served cached)"
         return [], [], f"helper output unparseable: {exc}"
     finally:
         try:
