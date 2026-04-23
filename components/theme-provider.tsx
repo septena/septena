@@ -2,8 +2,8 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 
-export type Theme = "system" | "light" | "dark";
-type Resolved = "light" | "dark";
+export type Theme = "system" | "light" | "dark" | "eink";
+type Resolved = "light" | "dark" | "eink";
 
 const STORAGE_KEY = "theme";
 
@@ -23,7 +23,8 @@ function systemPref(): Resolved {
 function apply(resolved: Resolved) {
   const el = document.documentElement;
   el.classList.toggle("dark", resolved === "dark");
-  el.style.colorScheme = resolved;
+  el.classList.toggle("eink", resolved === "eink");
+  el.style.colorScheme = resolved === "dark" ? "dark" : "light";
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {

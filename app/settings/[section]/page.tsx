@@ -75,7 +75,7 @@ export default function SectionSettingsPage() {
   }
 
   return (
-    <main className="mx-auto min-h-screen w-full max-w-3xl px-4 py-6 pb-24 sm:px-6 sm:pb-6">
+    <>
       <PageHeader
         title={label || section.key}
         subtitle={tagline || undefined}
@@ -144,7 +144,7 @@ export default function SectionSettingsPage() {
             <div className="border-t border-border pt-3 text-xs text-muted-foreground">
               <p>Path <code className="rounded bg-muted px-1">{section.path}</code></p>
               <p>API <code className="rounded bg-muted px-1">{section.apiBase || "—"}</code></p>
-              <p>Vault <code className="rounded bg-muted px-1">{section.obsidianDir || "—"}</code></p>
+              <p>Vault <code className="rounded bg-muted px-1">{section.dataDir || "—"}</code></p>
             </div>
           </CardContent>
         </Card>
@@ -157,7 +157,7 @@ export default function SectionSettingsPage() {
 
         <SaveRow saving={saving} saved={saved} color={color || undefined} onSave={onSave} />
       </div>
-    </main>
+    </>
   );
 }
 

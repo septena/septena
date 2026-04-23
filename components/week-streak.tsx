@@ -55,10 +55,17 @@ function lastSevenDays(): { iso: string; weekday: string; dayNum: number; isToda
   return out;
 }
 
+// Background + border colors come from --section-accent-shade-{1,2,3} so
+// they recolor automatically with the user's exercise section accent. Rest
+// stays neutral. The arbitrary `[color:var(--…)]` syntax is the Tailwind v4
+// way to pull a custom property into a utility class.
 const KIND_DOT: Record<DayKind, string> = {
-  strength: "bg-orange-500 border-orange-500",
-  cardio: "bg-orange-400 border-orange-400",
-  mobility: "bg-orange-300 border-orange-300",
+  strength:
+    "bg-[color:var(--section-accent-shade-1)] border-[color:var(--section-accent-shade-1)]",
+  cardio:
+    "bg-[color:var(--section-accent-shade-2)] border-[color:var(--section-accent-shade-2)]",
+  mobility:
+    "bg-[color:var(--section-accent-shade-3)] border-[color:var(--section-accent-shade-3)]",
   rest: "bg-transparent border-muted-foreground/30",
 };
 
@@ -158,7 +165,17 @@ export function WeekStreak() {
           {perfect ? (
             <div
               aria-hidden
-              className="pointer-events-none absolute inset-x-2 top-1/2 -translate-y-[calc(50%+8px)] h-12 rounded-full bg-orange-500/15 ring-2 ring-orange-500/60 shadow-[0_0_20px_rgba(249,115,22,0.35)]"
+              className="pointer-events-none absolute inset-x-2 top-1/2 -translate-y-[calc(50%+8px)] h-12 rounded-full"
+              style={{
+                // Soft glow behind the dots on a perfect week. Section
+                // accent at three alpha levels — fill, ring, outer glow —
+                // all derived from the same accent so changing the user's
+                // exercise color recolours every layer in one shot.
+                backgroundColor:
+                  "color-mix(in oklab, var(--section-accent) 15%, transparent)",
+                boxShadow:
+                  "0 0 0 2px color-mix(in oklab, var(--section-accent) 60%, transparent), 0 0 20px color-mix(in oklab, var(--section-accent) 35%, transparent)",
+              }}
             />
           ) : null}
           <div className="relative grid grid-cols-7 gap-2">
@@ -188,12 +205,23 @@ export function WeekStreak() {
               <p className="text-sm text-muted-foreground">Target 150 min/week for mitochondrial biogenesis</p>
             </div>
             <p className="text-sm tabular-nums">
-              <span className={cn("font-semibold", z2Hit ? "text-orange-500" : "text-foreground")}>{Math.round(z2Minutes)}</span>
+              <span
+                className="font-semibold"
+                style={{ color: z2Hit ? "var(--section-accent-shade-1)" : "var(--foreground)" }}
+              >{Math.round(z2Minutes)}</span>
               <span className="text-muted-foreground"> / {Z2_TARGET} min</span>
             </p>
           </div>
           <div className="relative mt-2 h-2 w-full overflow-hidden rounded-full bg-muted">
-            <div className={cn("h-full rounded-full transition-all", z2Hit ? "bg-orange-400" : "bg-orange-300")} style={{ width: `${z2Pct}%` }} />
+            <div
+              className="h-full rounded-full transition-all"
+              style={{
+                width: `${z2Pct}%`,
+                backgroundColor: z2Hit
+                  ? "var(--section-accent-shade-2)"
+                  : "var(--section-accent-shade-3)",
+              }}
+            />
           </div>
         </div>
       </CardContent>
@@ -205,17 +233,17 @@ export function WeekStreak() {
 function Legend() {
   return (
     <div className="hidden gap-3 text-xs text-muted-foreground sm:flex">
-      <LegendDot className="bg-orange-500" label="Strength" />
-      <LegendDot className="bg-orange-400" label="Cardio" />
-      <LegendDot className="bg-orange-300" label="Mobility" />
+      <LegendDot shade="var(--section-accent-shade-1)" label="Strength" />
+      <LegendDot shade="var(--section-accent-shade-2)" label="Cardio" />
+      <LegendDot shade="var(--section-accent-shade-3)" label="Mobility" />
     </div>
   );
 }
 
-function LegendDot({ className, label }: { className: string; label: string }) {
+function LegendDot({ shade, label }: { shade: string; label: string }) {
   return (
     <span className="inline-flex items-center gap-1.5">
-      <span className={cn("h-2.5 w-2.5 rounded-full", className)} />
+      <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: shade }} />
       {label}
     </span>
   );

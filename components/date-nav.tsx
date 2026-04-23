@@ -15,7 +15,7 @@ export function DateNav() {
         type="button"
         onClick={goPrev}
         aria-label="Previous day"
-        className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-border text-foreground transition-colors hover:border-orange-500 hover:text-orange-500"
+        className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-border text-foreground transition-colors hover:border-[color:var(--section-accent)] hover:text-[color:var(--section-accent)]"
       >
         <ChevronLeft className="h-4 w-4" />
       </button>
@@ -25,7 +25,7 @@ export function DateNav() {
           className={`pointer-events-none inline-flex h-8 min-w-[6rem] items-center justify-center rounded-full border px-3 font-medium ${
             isToday
               ? "border-border text-foreground"
-              : "cursor-pointer border-orange-500 text-orange-500"
+              : "cursor-pointer border-[color:var(--section-accent)] text-[color:var(--section-accent)]"
           }`}
           title={!isToday ? "Jump to today" : undefined}
         >
@@ -47,7 +47,7 @@ export function DateNav() {
         onClick={goNext}
         disabled={!canGoNext}
         aria-label="Next day"
-        className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-border text-foreground transition-colors hover:border-orange-500 hover:text-orange-500 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-border disabled:hover:text-foreground"
+        className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-border text-foreground transition-colors hover:border-[color:var(--section-accent)] hover:text-[color:var(--section-accent)] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-border disabled:hover:text-foreground"
       >
         <ChevronRight className="h-4 w-4" />
       </button>

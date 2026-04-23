@@ -11,14 +11,13 @@ import {
   type GroceryItem,
 } from "@/lib/api";
 import { Card, CardContent } from "@/components/ui/card";
-import { SectionStatusBar } from "@/components/section-status-bar";
 import {
   SectionHeaderAction,
   SectionHeaderActionButton,
 } from "@/components/section-header-action";
 import { TaskGroup, TaskRow } from "@/components/tasks";
 import { StatCard } from "@/components/stat-card";
-import { useSectionColor } from "@/hooks/use-sections";
+import { revalidateAfterLog } from "@/components/quick-log-forms";
 
 const CATEGORIES = ["produce", "dairy", "grains", "meat", "frozen", "household", "other"] as const;
 type Category = typeof CATEGORIES[number];
@@ -46,7 +45,7 @@ function relativeDays(iso: string | null): string {
 }
 
 export function GroceriesDashboard() {
-  const GROCERIES_COLOR = useSectionColor("groceries");
+  const GROCERIES_COLOR = "var(--section-accent)";
   const { data, isLoading, mutate } = useSWR("groceries", getGroceries);
   const [pending, setPending] = useState<Set<string>>(new Set());
   const [shopperMode, setShopperMode] = useState(false);
@@ -89,17 +88,14 @@ export function GroceriesDashboard() {
     try {
       await patchGroceryItem(it.id, { low: !it.low });
       await mutate();
+      revalidateAfterLog("groceries");
     } finally {
       setPending((p) => { const n = new Set(p); n.delete(it.id); return n; });
     }
   }, [mutate]);
 
   return (
-    <div
-      data-section="groceries"
-      className="mx-auto min-h-screen max-w-6xl px-4 py-6 sm:px-6 lg:px-8"
-      style={{ overflowX: "hidden" }}
-    >
+    <>
       {!shopperMode && (
         <SectionHeaderAction>
           <SectionHeaderActionButton color={GROCERIES_COLOR} onClick={() => setShowAdd((v) => !v)}>
@@ -202,7 +198,6 @@ export function GroceriesDashboard() {
         </div>
       )}
 
-      <SectionStatusBar section="groceries" />
-    </div>
+    </>
   );
 }

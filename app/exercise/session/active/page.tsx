@@ -87,7 +87,7 @@ function StatTile({
       <p
         className={cn(
           "text-[10px] font-semibold uppercase tracking-wider",
-          accent === "blue" ? "text-blue-600" : "text-orange-600",
+          accent === "blue" ? "text-blue-600" : "text-[color:var(--section-accent-strong)]",
         )}
       >
         {label}
@@ -257,7 +257,7 @@ export default function ActiveSessionPage() {
 
   return (
     <div className="min-h-screen bg-muted/30 pb-24">
-      <main className="mx-auto max-w-2xl px-4 py-6 sm:px-6">
+      <>
         <div className="mb-4 flex items-center justify-between">
           <Link href="/exercise" className="text-sm text-muted-foreground hover:text-foreground">
             ← Dashboard
@@ -307,11 +307,14 @@ export default function ActiveSessionPage() {
         <button
           onClick={finishSession}
           disabled={finishing}
-          className="fixed bottom-6 left-1/2 w-[calc(100%-2rem)] max-w-2xl -translate-x-1/2 rounded-2xl bg-orange-500 py-4 text-lg font-semibold text-white shadow-lg transition-colors hover:bg-orange-600 disabled:opacity-60"
+          className="fixed bottom-6 left-1/2 w-[calc(100%-2rem)] max-w-2xl -translate-x-1/2 rounded-2xl py-4 text-lg font-semibold text-white shadow-lg transition-colors disabled:opacity-60"
+          style={{ backgroundColor: "var(--section-accent)" }}
+          onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "var(--section-accent-strong)"; }}
+          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "var(--section-accent)"; }}
         >
           {finishing ? "Finishing…" : "Finish session"}
         </button>
-      </main>
+      </>
     </div>
   );
 }
@@ -366,7 +369,7 @@ function EntryCard({
         done && "opacity-70",
         skipped && "opacity-40",
         failed && "border-red-400",
-        active && !done && !skipped && "border-orange-400 shadow-md",
+        active && !done && !skipped && "border-[color:var(--section-accent-shade-2)] shadow-md",
       )}
     >
       <button
@@ -458,8 +461,8 @@ function EntryCard({
                     className={cn(
                       "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
                       entry.difficulty === d
-                        ? "border-orange-500 bg-orange-500 text-white"
-                        : "border-border bg-background text-muted-foreground hover:border-orange-300",
+                        ? "border-[color:var(--section-accent)] bg-[color:var(--section-accent)] text-white"
+                        : "border-border bg-background text-muted-foreground hover:border-[color:var(--section-accent-shade-3)]",
                     )}
                   >
                     {d}
@@ -485,7 +488,10 @@ function EntryCard({
             <button
               onClick={onDone}
               disabled={saving}
-              className="flex-1 rounded-xl bg-orange-500 py-2.5 font-semibold text-white transition-colors hover:bg-orange-600 disabled:opacity-60"
+              className="flex-1 rounded-xl py-2.5 font-semibold text-white transition-colors disabled:opacity-60"
+              style={{ backgroundColor: "var(--section-accent)" }}
+              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "var(--section-accent-strong)"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "var(--section-accent)"; }}
             >
               {saving ? "Saving…" : failed ? "Retry" : isReedit ? "Update ✓" : "Done →"}
             </button>

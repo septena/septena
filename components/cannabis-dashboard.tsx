@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TimeInput } from "@/components/time-input";
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Scatter, ScatterChart, ZAxis, ReferenceLine } from "recharts";
 import { ChartContainer, type ChartConfig } from "@/components/ui/chart";
+import { CHART_GRID, CHART_GRID_FULL, X_AXIS_DATE, Y_AXIS } from "@/lib/chart-defaults";
 
 import {
   getCannabisConfig,
@@ -18,11 +19,9 @@ import {
   startCannabisCapsule,
   endCannabisCapsule,
 } from "@/lib/api";
-import { SectionStatusBar } from "@/components/section-status-bar";
 import { SectionHeaderAction, SectionHeaderActionButton } from "@/components/section-header-action";
 import { StatCard } from "@/components/stat-card";
 import { useBarAnimation } from "@/hooks/use-bar-animation";
-import { useSectionColor } from "@/hooks/use-sections";
 
 // 30-minute buckets → 48 slots covering the full day (matches caffeine).
 const BUCKET_MIN = 30;
@@ -43,7 +42,7 @@ import {
 import { useSelectedDate } from "@/hooks/use-selected-date";
 
 export function CannabisDashboard() {
-  const cannabisColor = useSectionColor("cannabis");
+  const cannabisColor = "var(--section-accent)";
   const chartConfig = {
     grams: { label: "Grams", color: cannabisColor },
     count: { label: "Sessions", color: cannabisColor },
@@ -209,7 +208,7 @@ export function CannabisDashboard() {
   }, [histogram]);
 
   return (
-    <main data-section="cannabis" className="mx-auto min-h-screen w-full min-w-0 max-w-6xl overflow-hidden px-4 py-6 sm:px-6 lg:px-8">
+    <>
       <SectionHeaderAction>
         <SectionHeaderActionButton
           color={cannabisColor}
@@ -389,9 +388,9 @@ export function CannabisDashboard() {
             <CardContent className="min-w-0 overflow-hidden px-4">
               <ChartContainer config={chartConfig} className="h-[200px] w-full">
                 <BarChart data={chartData} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
-                  <CartesianGrid vertical={false} strokeDasharray="3 3" />
-                  <XAxis dataKey="date" tickLine={false} axisLine={false} interval={3} />
-                  <YAxis tickLine={false} axisLine={false} width={32} />
+                  <CartesianGrid {...CHART_GRID} />
+                  <XAxis {...X_AXIS_DATE} interval={3} />
+                  <YAxis {...Y_AXIS} width={32} />
                   <Bar dataKey="grams" fill="var(--color-grams)" radius={[4, 4, 0, 0]} {...barAnim} />
                 </BarChart>
               </ChartContainer>
@@ -420,7 +419,7 @@ export function CannabisDashboard() {
           <CardContent className="min-w-0 overflow-hidden px-4">
             <ChartContainer config={chartConfig} className="h-[220px] w-full">
               <BarChart data={histogram} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-                <CartesianGrid vertical={false} strokeDasharray="3 3" />
+                <CartesianGrid {...CHART_GRID} />
                 <XAxis
                   dataKey="hourFrac"
                   type="number"
@@ -432,13 +431,7 @@ export function CannabisDashboard() {
                   axisLine={false}
                   tick={{ fontSize: 10 }}
                 />
-                <YAxis
-                  tickLine={false}
-                  axisLine={false}
-                  width={28}
-                  tick={{ fontSize: 11 }}
-                  allowDecimals={false}
-                />
+                <YAxis {...Y_AXIS} width={28} tick={{ fontSize: 11 }} allowDecimals={false} />
                 <Bar dataKey="count" fill="var(--color-count)" radius={[3, 3, 0, 0]} {...barAnim} />
               </BarChart>
             </ChartContainer>
@@ -467,7 +460,7 @@ export function CannabisDashboard() {
           <CardContent className="min-w-0 overflow-hidden px-4">
             <ChartContainer config={chartConfig} className="h-[260px] w-full">
               <ScatterChart margin={{ top: 8, right: 12, left: 0, bottom: 8 }}>
-                <CartesianGrid strokeDasharray="3 3" />
+                <CartesianGrid {...CHART_GRID_FULL} />
                 <XAxis
                   type="number"
                   dataKey="x"
@@ -519,7 +512,6 @@ export function CannabisDashboard() {
         </Card>
       )}
 
-      <SectionStatusBar section="cannabis" />
-    </main>
+    </>
   );
 }

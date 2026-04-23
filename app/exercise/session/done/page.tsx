@@ -15,11 +15,11 @@ import { computePRs, type ExercisePR } from "@/lib/pr";
 
 const CONFETTI_COUNT = 70;
 const COLORS = [
-  "#f97316", // orange-500
-  "#fb923c", // orange-400
-  "#fdba74", // orange-300
-  "#ea580c", // orange-600
-  "#ffedd5", // orange-100 (highlight)
+  "var(--section-accent-shade-1)",
+  "var(--section-accent-shade-2)",
+  "var(--section-accent-shade-3)",
+  "var(--section-accent-strong)",
+  "var(--section-accent-soft)",
 ];
 
 type Particle = {
@@ -257,9 +257,9 @@ export default function SessionDonePage() {
   return (
     <div className="relative min-h-screen bg-muted/30">
       {confettiEnabled && <Confetti />}
-      <main className="mx-auto max-w-2xl px-4 py-10 sm:px-6">
+      <>
         <div className="text-center">
-          <p className="text-sm font-medium uppercase tracking-[0.3em] text-orange-600">
+          <p className="text-sm font-medium uppercase tracking-[0.3em] text-[color:var(--section-accent-strong)]">
             Session complete
           </p>
           <h1 className="mt-2 text-5xl font-bold tracking-tight sm:text-6xl">
@@ -331,7 +331,8 @@ export default function SessionDonePage() {
                     {pr?.weightPR && (
                       <span
                         title="New all-time weight PR"
-                        className="rounded-full bg-orange-500 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white"
+                        className="rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white"
+                        style={{ backgroundColor: "var(--section-accent)" }}
                       >
                         PR kg
                       </span>
@@ -370,11 +371,14 @@ export default function SessionDonePage() {
 
         <button
           onClick={goHome}
-          className="mt-8 w-full rounded-2xl bg-orange-500 py-4 text-lg font-semibold text-white shadow-lg transition-colors hover:bg-orange-600"
+          className="mt-8 w-full rounded-2xl py-4 text-lg font-semibold text-white shadow-lg transition-colors"
+          style={{ backgroundColor: "var(--section-accent)" }}
+          onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "var(--section-accent-strong)"; }}
+          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "var(--section-accent)"; }}
         >
           Back to dashboard →
         </button>
-      </main>
+      </>
     </div>
   );
 }
@@ -394,11 +398,11 @@ function StatTile({
     <div
       className={
         "rounded-2xl border bg-background p-4 shadow-sm " +
-        (accent ? "border-orange-400 bg-orange-50" : "")
+        (accent ? "border-[color:var(--section-accent-shade-2)] bg-[color:var(--section-accent-soft)]" : "")
       }
     >
       <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{label}</p>
-      <p className={"mt-1 text-xl font-semibold " + (accent ? "text-orange-700" : "")}>{value}</p>
+      <p className={"mt-1 text-xl font-semibold " + (accent ? "text-[color:var(--section-accent-strong)]" : "")}>{value}</p>
       {sub && <p className="mt-0.5 text-[10px] text-muted-foreground">{sub}</p>}
     </div>
   );

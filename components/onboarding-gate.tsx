@@ -25,7 +25,7 @@ function OnboardingScreen({ vaultPath, exists }: { vaultPath: string; exists: bo
   return (
     <main className="mx-auto min-h-screen max-w-3xl px-4 py-10 sm:px-6 lg:px-8">
       <section className="mb-8">
-        <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Welcome to Setlist</h1>
+        <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Welcome to Septena</h1>
         <p className="mt-2 text-muted-foreground">
           {exists
             ? "Your vault directory exists but has no section folders yet. Pick one of the two paths below to get started."
@@ -36,7 +36,7 @@ function OnboardingScreen({ vaultPath, exists }: { vaultPath: string; exists: bo
       <Card className="mb-4">
         <CardHeader>
           <CardTitle>Current vault path</CardTitle>
-          <CardDescription>Set by <code>SETLIST_VAULT</code>, or defaults to <code>~/Documents/obsidian/Bases</code>.</CardDescription>
+          <CardDescription>Set by <code>SEPTENA_DATA_DIR</code>, or defaults to <code>~/Documents/septena-data</code>.</CardDescription>
         </CardHeader>
         <CardContent>
           <code className="block rounded bg-muted px-3 py-2 text-sm">{vaultPath}</code>
@@ -66,11 +66,11 @@ function OnboardingScreen({ vaultPath, exists }: { vaultPath: string; exists: bo
         <CardContent>
           <pre className="rounded bg-muted px-3 py-2 text-xs overflow-x-auto">{`npm run seed-demo
 # then restart the backend with:
-SETLIST_VAULT=/tmp/setlist-demo-vault \\
-  SETLIST_INTEGRATIONS_DIR=/tmp/none \\
+SEPTENA_DATA_DIR=/tmp/septena-demo-vault \\
+  SEPTENA_INTEGRATIONS_DIR=/tmp/none \\
   uvicorn main:app --port 4445 --reload`}</pre>
           <p className="mt-3 text-sm text-muted-foreground">
-            Everything under <code>/tmp/setlist-demo-vault</code> — delete the folder when you're done.
+            Everything under <code>/tmp/septena-demo-vault</code> — delete the folder when you're done.
           </p>
         </CardContent>
       </Card>
@@ -78,7 +78,7 @@ SETLIST_VAULT=/tmp/setlist-demo-vault \\
       <div className="flex items-center gap-3">
         <Button onClick={recheck}>Check again</Button>
         <a
-          href="https://github.com/michellzappa/setlist#quickstart"
+          href="https://github.com/septena/septena#quickstart"
           target="_blank"
           rel="noreferrer"
           className="text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"

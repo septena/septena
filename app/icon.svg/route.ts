@@ -2,7 +2,10 @@
 // so users can re-theme the browser tab icon and iOS home-screen icon from
 // the settings page without editing files.
 
-const BACKEND = process.env.SETLIST_BACKEND_URL ?? "http://127.0.0.1:4445";
+const BACKEND =
+  process.env.SEPTENA_BACKEND_URL ??
+  process.env.SETLIST_BACKEND_URL ??
+  "http://127.0.0.1:4445";
 const FALLBACK = "#ff6600";
 
 export const dynamic = "force-dynamic";
@@ -37,15 +40,13 @@ export async function GET() {
   </style>
   <rect class="bg" width="512" height="512" rx="108"/>
   <g fill="${color}">
-    <circle cx="141" cy="141" r="34"/>
     <circle cx="256" cy="141" r="34"/>
-    <circle cx="371" cy="141" r="34"/>
-    <circle cx="141" cy="256" r="34"/>
-    <circle cx="256" cy="256" r="34"/>
-    <circle cx="371" cy="256" r="34"/>
-    <circle cx="141" cy="371" r="34"/>
-    <circle cx="256" cy="371" r="34"/>
-    <circle cx="371" cy="371" r="34"/>
+    <circle cx="346" cy="184" r="34"/>
+    <circle cx="368" cy="282" r="34"/>
+    <circle cx="306" cy="360" r="34"/>
+    <circle cx="206" cy="360" r="34"/>
+    <circle cx="144" cy="282" r="34"/>
+    <circle cx="166" cy="184" r="34"/>
   </g>
 </svg>`;
   return new Response(svg, {

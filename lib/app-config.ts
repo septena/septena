@@ -6,10 +6,10 @@ import { SECTION_LIST } from "@/lib/sections";
 
 const FALLBACK: AppConfig = {
   paths: {
-    vault: "~/Documents/obsidian/Bases",
-    health: "~/Documents/obsidian/Health",
+    vault: "~/Documents/septena-data",
+    health: "~/Documents/septena-data/Health",
     integrations: "~/.config/openclaw",
-    cache: "~/.config/setlist",
+    cache: "~/.config/septena",
   },
   // Optimistic — avoids flashing onboarding while the config is loading.
   // If the vault really is missing, the real response corrects this.

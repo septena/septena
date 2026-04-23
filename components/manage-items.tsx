@@ -34,6 +34,7 @@ import {
   type HabitBucket,
   type HabitConfigItem,
 } from "@/lib/api";
+import { SECTIONS } from "@/lib/sections";
 import { useSectionColor } from "@/hooks/use-sections";
 import { DEFAULT_DAY_PHASES } from "@/lib/day-phases";
 
@@ -254,6 +255,8 @@ function ShellCard({ title, children }: { title: string; children: React.ReactNo
 // ── Habits ───────────────────────────────────────────────────────────────────
 
 export function ManageHabitsCard() {
+  // Live color from /api/sections, not the static SECTIONS fallback —
+  // honors user customisation in settings.yaml.
   const accent = useSectionColor("habits");
   const { data, mutate, isLoading } = useSWR("habits-config", getHabitConfig);
   const phases = useDayPhases();

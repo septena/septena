@@ -2,7 +2,10 @@
 // manifest's `theme_color` so the iOS home-screen icon and status bar tint
 // match the favicon without a rebuild.
 
-const BACKEND = process.env.SETLIST_BACKEND_URL ?? "http://127.0.0.1:4445";
+const BACKEND =
+  process.env.SEPTENA_BACKEND_URL ??
+  process.env.SETLIST_BACKEND_URL ??
+  "http://127.0.0.1:4445";
 const FALLBACK = "#ff6600";
 
 export const dynamic = "force-dynamic";
@@ -22,9 +25,9 @@ async function loadColor(): Promise<string> {
 export async function GET() {
   const color = await loadColor();
   const manifest = {
-    name: "Setlist",
-    short_name: "Setlist",
-    description: "Personal health command center",
+    name: "Septena",
+    short_name: "Septena",
+    description: "Personal week tracker",
     start_url: "/",
     display: "standalone",
     orientation: "portrait",

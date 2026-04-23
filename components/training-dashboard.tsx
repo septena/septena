@@ -29,11 +29,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { WeekStreak } from "@/components/week-streak";
-import { SectionStatusBar } from "@/components/section-status-bar";
 import { SectionHeaderAction, SectionHeaderActionButton } from "@/components/section-header-action";
-import { EXERCISE_SHADES } from "@/lib/sections";
-import { useSectionColor } from "@/hooks/use-sections";
-import { relativeTime, formatDateLong as formatDate, addDaysISO, formatWeekdayTick } from "@/lib/date-utils";
+import { useExerciseTaxonomy, type ExerciseKind } from "@/hooks/use-exercise-taxonomy";
+import { relativeTime, formatDateLong as formatDate, addDaysISO } from "@/lib/date-utils";
+import { CHART_GRID, WEEKDAY_X_AXIS, Y_AXIS } from "@/lib/chart-defaults";
 import { useSelectedDate } from "@/hooks/use-selected-date";
 import { StatCard } from "@/components/stat-card";
 import { DashboardSkeleton } from "@/components/dashboard-skeleton";
@@ -60,22 +59,17 @@ const META_LABEL: Record<string, string> = {
   [META_STRENGTH]: "All strength",
   [META_CARDIO]: "All cardio",
 };
-const CORE_EXERCISES = new Set(["ab crunch", "abdominal"]);
-
 function isMeta(name: string): name is typeof META_STRENGTH | typeof META_CARDIO {
   return name === META_STRENGTH || name === META_CARDIO;
 }
 
-function isStrengthExercise(name: string | undefined): boolean {
-  if (!name) return false;
-  if (CORE_EXERCISES.has(name)) return false;
-  return !CARDIO_EXERCISES.has(name) && !MOBILITY_EXERCISES.has(name);
-}
-
+// Color flows from --section-accent (set by <SectionThemeRoot> in the root
+// layout based on pathname). Strength is the headline shade; cardio &
+// mobility derive from it via color-mix() in globals.css.
 const chartConfig = {
   metric: {
     label: "Metric",
-    color: EXERCISE_SHADES.strength,
+    color: "var(--section-accent-shade-1)",
   },
 } satisfies ChartConfig;
 
@@ -84,28 +78,30 @@ const DEFAULT_WINDOW_DAYS = 30;
 const WINDOW_OPTIONS = [30, 60, 90] as const;
 type WindowDays = (typeof WINDOW_OPTIONS)[number];
 
-// Canonical exercise sets for the new schema. Anything not listed is treated
-// as strength (weight in kg). Legacy `row` entries from the old schema lack
-// duration_min and will fall through to the strength path until sync removes
-// them.
-const CARDIO_EXERCISES = new Set(["rowing", "elliptical", "stairs"]);
-const MOBILITY_EXERCISES = new Set(["surya namaskar", "pull up"]);
-
 type MetricKind = "pace" | "duration" | "weight" | "binary" | "volume" | "cardioTotal";
 
-function metricKind(exercise: string): MetricKind {
+/** Translate an exercise name + its taxonomy classification into the chart
+ *  metric kind used for rendering. The classification comes from
+ *  `useExerciseTaxonomy()` so there's no hardcoded cardio/mobility Set —
+ *  config edits in Bases/Exercise/exercise-config.yaml take effect
+ *  automatically. A few exercise names still hardcode their metric shape
+ *  (rowing/elliptical → pace, stairs → duration, surya namaskar → binary)
+ *  because those are display choices not type choices. Anything we don't
+ *  recognise falls through to the strength path — same behaviour as the
+ *  backend's `exercise_group` default. */
+function metricKind(exercise: string, kind: ExerciseKind): MetricKind {
   if (exercise === META_STRENGTH) return "volume";
   if (exercise === META_CARDIO) return "cardioTotal";
   if (exercise === "rowing" || exercise === "elliptical") return "pace";
   if (exercise === "stairs") return "duration";
   // Binary: duration is irrelevant, only "did it / didn't" matters.
   if (exercise === "surya namaskar") return "binary";
-  if (MOBILITY_EXERCISES.has(exercise)) return "duration";
+  if (kind === "mobility") return "duration";
   return "weight";
 }
 
-function metricUnit(exercise: string): string {
-  const k = metricKind(exercise);
+function metricUnit(exercise: string, kind: ExerciseKind): string {
+  const k = metricKind(exercise, kind);
   if (k === "pace") return "m/min";
   if (k === "duration") return "min";
   if (k === "binary") return "";
@@ -114,37 +110,37 @@ function metricUnit(exercise: string): string {
   return "kg";
 }
 
-function metricValue(exercise: string, point: ProgressionPoint): number | null {
-  const kind = metricKind(exercise);
-  if (kind === "pace") {
+function metricValue(exercise: string, kind: ExerciseKind, point: ProgressionPoint): number | null {
+  const mk = metricKind(exercise, kind);
+  if (mk === "pace") {
     if (point.distance_m != null && point.duration_min != null && point.duration_min > 0) {
       return Math.round((point.distance_m / point.duration_min) * 10) / 10;
     }
     return null;
   }
-  if (kind === "duration") return point.duration_min ?? null;
-  if (kind === "binary") return 1; // presence; nulls = "not done that day"
+  if (mk === "duration") return point.duration_min ?? null;
+  if (mk === "binary") return 1; // presence; nulls = "not done that day"
   return point.weight ?? null;
 }
 
-function formatValue(value: number | null | undefined, exercise: string): string {
+function formatValue(value: number | null | undefined, exercise: string, kind: ExerciseKind): string {
   if (typeof value !== "number") return "—";
-  const kind = metricKind(exercise);
-  if (kind === "binary") return "✓ done";
-  if (kind === "volume") return `${Math.round(value).toLocaleString("en-GB")} kg`;
-  if (kind === "cardioTotal") return `${Math.round(value).toLocaleString("en-GB")} min`;
-  const unit = metricUnit(exercise);
+  const mk = metricKind(exercise, kind);
+  if (mk === "binary") return "✓ done";
+  if (mk === "volume") return `${Math.round(value).toLocaleString("en-GB")} kg`;
+  if (mk === "cardioTotal") return `${Math.round(value).toLocaleString("en-GB")} min`;
+  const unit = metricUnit(exercise, kind);
   if (unit === "kg") return `${value.toLocaleString("en-GB", { maximumFractionDigits: 1 })} kg`;
   return `${value.toLocaleString("en-GB", { maximumFractionDigits: 1 })} ${unit}`;
 }
 
-function chartSubtitle(exercise: string): string {
-  const kind = metricKind(exercise);
-  if (kind === "pace") return "Pace (m/min) per session";
-  if (kind === "duration") return "Duration (min) per session";
-  if (kind === "binary") return "Days logged";
-  if (kind === "volume") return "Total volume per session — sum of weight × sets × reps";
-  if (kind === "cardioTotal") return "Total cardio minutes per session";
+function chartSubtitle(exercise: string, kind: ExerciseKind): string {
+  const mk = metricKind(exercise, kind);
+  if (mk === "pace") return "Pace (m/min) per session";
+  if (mk === "duration") return "Duration (min) per session";
+  if (mk === "binary") return "Days logged";
+  if (mk === "volume") return "Total volume per session — sum of weight × sets × reps";
+  if (mk === "cardioTotal") return "Total cardio minutes per session";
   return "Weight (kg) over time";
 }
 
@@ -160,7 +156,7 @@ function repsAsNumber(reps: number | string | null | undefined): number | null {
 }
 
 export function TrainingDashboard() {
-  const EXERCISE_COLOR = useSectionColor("exercise");
+  const { classify } = useExerciseTaxonomy();
   const [windowDays, setWindowDays] = useState<WindowDays>(DEFAULT_WINDOW_DAYS);
   const barAnim = useBarAnimation();
   const { date: selectedDate } = useSelectedDate();
@@ -273,7 +269,12 @@ export function TrainingDashboard() {
       for (const e of state.allEntries) {
         if (!e.date || e.date < cutoff || e.date > today) continue;
         if (exercise === META_STRENGTH) {
-          if (!isStrengthExercise(e.exercise)) continue;
+          // Strength = anything classified `strength`. Unknown exercises
+          // (not yet in config) fall through to the strength path too,
+          // matching the backend's `exercise_group` default — prevents
+          // brand-new entries from vanishing before config is updated.
+          const k = classify(e.exercise);
+          if (k !== "strength" && k !== "unknown") continue;
           const w = e.weight;
           const s = typeof e.sets === "number" ? e.sets : Number(e.sets ?? 0);
           const r = repsAsNumber(e.reps);
@@ -283,8 +284,9 @@ export function TrainingDashboard() {
           bucket.push(vol);
           byDate.set(e.date, bucket);
         } else {
-          // META_CARDIO
-          if (!e.exercise || !(CARDIO_EXERCISES.has(e.exercise) || MOBILITY_EXERCISES.has(e.exercise))) continue;
+          // META_CARDIO — includes mobility, matching the original behaviour.
+          const k = classify(e.exercise);
+          if (k !== "cardio" && k !== "mobility") continue;
           const dur = e.duration_min;
           if (typeof dur !== "number") continue;
           const bucket = byDate.get(e.date) ?? [];
@@ -296,7 +298,7 @@ export function TrainingDashboard() {
       // One dot per date — aggregate multiple entries on the same day to their average.
       for (const item of state.progression) {
         if (item.date < cutoff || item.date > today) continue;
-        const v = metricValue(exercise, item);
+        const v = metricValue(exercise, classify(exercise), item);
         const bucket = byDate.get(item.date) ?? [];
         if (typeof v === "number") bucket.push(v);
         byDate.set(item.date, bucket);
@@ -325,14 +327,15 @@ export function TrainingDashboard() {
       });
     }
     return result;
-  }, [state.progression, state.selectedExercise, state.allEntries, windowDays, selectedDate]);
+  }, [state.progression, state.selectedExercise, state.allEntries, windowDays, selectedDate, classify]);
 
   /** All-time PRs for the currently-selected strength exercise. Used to
    *  draw a larger accent dot at the PR date. Skipped entirely for meta,
    *  cardio, mobility, and binary views. */
   const prDates = useMemo(() => {
     const ex = state.selectedExercise;
-    if (isMeta(ex) || CARDIO_EXERCISES.has(ex) || MOBILITY_EXERCISES.has(ex)) {
+    const k = classify(ex);
+    if (isMeta(ex) || k === "cardio" || k === "mobility") {
       return { weightDate: null as string | null, volumeDate: null as string | null };
     }
     const relevant = state.allEntries.filter((e) => e.exercise === ex);
@@ -342,7 +345,7 @@ export function TrainingDashboard() {
       weightDate: pr?.maxWeightEntry?.date ?? null,
       volumeDate: pr?.maxVolumeEntry?.date ?? null,
     };
-  }, [state.selectedExercise, state.allEntries]);
+  }, [state.selectedExercise, state.allEntries, classify]);
 
   /** Daily and weekly vertical gridlines for the chart. Daily lines are
    *  the sub-grid (very faint). Weekly lines (Mondays) are drawn on top at
@@ -381,42 +384,45 @@ export function TrainingDashboard() {
       .map((p) => ({ date: p.date, total: p.metric as number }));
   }, [chartData, state.selectedExercise]);
 
+  const selectedKind = classify(state.selectedExercise);
+
   const yAxisFormatter = useMemo(() => {
-    const kind = metricKind(state.selectedExercise);
-    if (kind === "binary") {
+    const mk = metricKind(state.selectedExercise, selectedKind);
+    if (mk === "binary") {
       return (value: number) => (value === 1 ? "✓" : "");
     }
-    const unit = metricUnit(state.selectedExercise);
+    const unit = metricUnit(state.selectedExercise, selectedKind);
     // Locale-formatted with thousand separators. Decimals stay for kg/min so
     // small values like "5.5 kg" survive, but volumes like "12,000 kg total"
     // become readable instead of a 5-digit blob.
     const fmt = new Intl.NumberFormat("en-GB", { maximumFractionDigits: 1 });
     return (value: number) => `${fmt.format(value)} ${unit}`;
-  }, [state.selectedExercise]);
+  }, [state.selectedExercise, selectedKind]);
 
-  const isBinaryView = metricKind(state.selectedExercise) === "binary";
+  const isBinaryView = metricKind(state.selectedExercise, selectedKind) === "binary";
 
-  const isCardioView =
-    CARDIO_EXERCISES.has(state.selectedExercise) || MOBILITY_EXERCISES.has(state.selectedExercise);
+  const isCardioView = selectedKind === "cardio" || selectedKind === "mobility";
 
-  /** Stroke color for the chart line — sourced from the shared
-   *  EXERCISE_SHADES palette so the line matches the week-streak dots,
-   *  pills, and homepage week strip pixel-for-pixel. */
+  /** Stroke color for the chart line — pulled from the three section
+   *  accent shades declared in globals.css. Shade-1 is the full section
+   *  accent (strength); shade-2 and shade-3 are progressively lighter
+   *  derivations for cardio and mobility. Changing the section color in
+   *  settings.yaml cascades through all three shades automatically. */
   const lineColor = useMemo(() => {
     const ex = state.selectedExercise;
-    if (ex === META_CARDIO) return EXERCISE_SHADES.cardio;
-    if (ex === META_STRENGTH) return EXERCISE_SHADES.strength;
-    if (MOBILITY_EXERCISES.has(ex)) return EXERCISE_SHADES.mobility;
-    if (CARDIO_EXERCISES.has(ex)) return EXERCISE_SHADES.cardio;
-    return EXERCISE_SHADES.strength;
-  }, [state.selectedExercise]);
+    if (ex === META_CARDIO) return "var(--section-accent-shade-2)";
+    if (ex === META_STRENGTH) return "var(--section-accent-shade-1)";
+    if (selectedKind === "mobility") return "var(--section-accent-shade-3)";
+    if (selectedKind === "cardio") return "var(--section-accent-shade-2)";
+    return "var(--section-accent-shade-1)";
+  }, [state.selectedExercise, selectedKind]);
 
   if (isLoading && !bulk) return <DashboardSkeleton title="Exercise" />;
 
   return (
-    <main className="mx-auto min-h-screen max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
+    <>
       <SectionHeaderAction>
-        <SectionHeaderActionButton color={EXERCISE_COLOR} href="/exercise/session/start">
+        <SectionHeaderActionButton href="/exercise/session/start">
           + Log
         </SectionHeaderActionButton>
       </SectionHeaderAction>
@@ -444,10 +450,17 @@ export function TrainingDashboard() {
                   if (!latest) return null;
                   const pct = Math.round((latest.rolling_7d / cardioData.target_weekly_min) * 100);
                   return (
-                    <span className={cn(
-                      "text-2xl font-bold tabular-nums",
-                      pct >= 100 ? "text-orange-500" : pct >= 60 ? "text-orange-400" : "text-red-400",
-                    )}>
+                    <span
+                      className="text-2xl font-bold tabular-nums"
+                      style={{
+                        color:
+                          pct >= 100
+                            ? "var(--section-accent-shade-1)"
+                            : pct >= 60
+                              ? "var(--section-accent-shade-2)"
+                              : "var(--destructive)",
+                      }}
+                    >
                       {Math.round(latest.rolling_7d)}m
                     </span>
                   );
@@ -456,8 +469,8 @@ export function TrainingDashboard() {
             </CardHeader>
             <CardContent className="min-w-0 px-4">
               <ChartContainer config={{
-                z2_today: { label: "Z2 cardio", color: EXERCISE_SHADES.cardio },
-                rolling_7d: { label: "7-day sum", color: EXERCISE_SHADES.mobility },
+                z2_today: { label: "Z2 cardio", color: "var(--section-accent-shade-2)" },
+                rolling_7d: { label: "7-day sum", color: "var(--section-accent-shade-3)" },
               }} className="h-[200px] w-full">
                 <BarChart
                   data={cardioData.daily.slice(-7).map((d) => ({
@@ -467,14 +480,13 @@ export function TrainingDashboard() {
                   }))}
                   margin={{ top: 4, right: 4, left: 0, bottom: 0 }}
                 >
-                  <CartesianGrid vertical={false} strokeDasharray="3 3" />
-                  <XAxis dataKey="date" tickLine={false} axisLine={false} interval={0}
-                    tickFormatter={(v) => formatWeekdayTick(v as string)} tick={{ fontSize: 10 }} />
-                  <YAxis tickLine={false} axisLine={false} width={36}
+                  <CartesianGrid {...CHART_GRID} />
+                  <XAxis {...WEEKDAY_X_AXIS} interval={0} />
+                  <YAxis {...Y_AXIS}
                     domain={[0, (max: number) => Math.max(max, Math.ceil(cardioData.target_weekly_min / 0.9))]}
                     tickFormatter={(v: number) => `${v}m`} />
-                  <ReferenceLine y={cardioData.target_weekly_min} stroke={EXERCISE_SHADES.strength} strokeDasharray="6 3"
-                    label={{ value: `${cardioData.target_weekly_min}m target`, position: "right", fontSize: 10, fill: EXERCISE_SHADES.strength }} />
+                  <ReferenceLine y={cardioData.target_weekly_min} stroke="var(--section-accent-shade-1)" strokeDasharray="6 3"
+                    label={{ value: `${cardioData.target_weekly_min}m target`, position: "right", fontSize: 10, fill: "var(--section-accent-shade-1)" }} />
                   <ChartTooltip cursor={false} content={<ChartTooltipContent indicator="dot" />} />
                   <ChartLegend content={<ChartLegendContent />} />
                   <Bar dataKey="z2_today" stackId="a" fill="var(--color-z2_today)" {...barAnim} />
@@ -491,12 +503,12 @@ export function TrainingDashboard() {
             <CardHeader className="flex flex-row items-start justify-between gap-4">
               <div>
                 <CardTitle className="text-base">{META_LABEL[state.selectedExercise] ?? state.selectedExercise ?? "Select an exercise"}</CardTitle>
-                <CardDescription>{chartSubtitle(state.selectedExercise)}</CardDescription>
+                <CardDescription>{chartSubtitle(state.selectedExercise, selectedKind)}</CardDescription>
               </div>
               <select
                 value={windowDays}
                 onChange={(e) => setWindowDays(Number(e.target.value) as WindowDays)}
-                className="rounded-md border border-border bg-card px-2 py-1 text-sm font-medium text-foreground shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+                className="rounded-md border border-border bg-card px-2 py-1 text-sm font-medium text-foreground shadow-sm focus:outline-none focus:ring-2 focus:ring-[color:var(--section-accent)]"
                 aria-label="Time window"
               >
                 {WINDOW_OPTIONS.map((d) => (
@@ -514,41 +526,32 @@ export function TrainingDashboard() {
                     data={chartData}
                     margin={{ left: 12, right: 12, top: 12 }}
                   >
-                    <CartesianGrid vertical={false} />
+                    <CartesianGrid {...CHART_GRID} />
                     {dayGridlines.map((iso) => (
                       <ReferenceLine
                         key={`d-${iso}`}
                         x={iso}
-                        stroke="#94a3b8"
-                        strokeOpacity={0.1}
+                        stroke="var(--section-accent)"
+                        strokeOpacity={0.08}
                       />
                     ))}
                     {weekGridlines.map((iso) => (
                       <ReferenceLine
                         key={`w-${iso}`}
                         x={iso}
-                        stroke="#94a3b8"
-                        strokeOpacity={0.45}
+                        stroke="var(--section-accent)"
+                        strokeOpacity={0.35}
                       />
                     ))}
-                    <XAxis
-                      dataKey="date"
-                      tickLine={false}
-                      axisLine={false}
-                      minTickGap={24}
-                      tickMargin={8}
-                      tickFormatter={(val) => formatWeekdayTick(val as string)}
-                    />
-                    <YAxis
-                      tickLine={false}
-                      axisLine={false}
+                    <XAxis {...WEEKDAY_X_AXIS} minTickGap={24} tickMargin={8} />
+                    <YAxis {...Y_AXIS}
                       width={72}
                       domain={isBinaryView ? [0, 1.2] : [0, "auto"]}
                       ticks={isBinaryView ? [0, 1] : undefined}
                       tickFormatter={yAxisFormatter}
                     />
                     <Tooltip
-                      cursor={{ stroke: "#94a3b8", strokeOpacity: 0.35 }}
+                      cursor={{ stroke: "var(--section-accent)", strokeOpacity: 0.4 }}
                       isAnimationActive={false}
                       content={({ active, payload }) => {
                         if (!active || !payload || !payload[0]) return null;
@@ -560,12 +563,15 @@ export function TrainingDashboard() {
                           <div className="rounded-lg border bg-background px-3 py-2 text-xs shadow-md">
                             <p className="font-medium">{formatDate(p.date)}</p>
                             <p className="tabular-nums text-muted-foreground">
-                              {formatValue(p.metric, state.selectedExercise)}
+                              {formatValue(p.metric, state.selectedExercise, selectedKind)}
                             </p>
                             {(isWeightPR || isVolumePR) && (
                               <p className="mt-1 flex gap-1">
                                 {isWeightPR && (
-                                  <span className="rounded-full bg-orange-500 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white">
+                                  <span
+                                    className="rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white"
+                                    style={{ backgroundColor: "var(--section-accent-shade-1)" }}
+                                  >
                                     PR kg
                                   </span>
                                 )}
@@ -632,8 +638,17 @@ export function TrainingDashboard() {
 
               <div className="mt-4 flex flex-col gap-4 border-t pt-4">
                 {(() => {
-                  const cardio = pillButtons.filter(({ name }) => CARDIO_EXERCISES.has(name) || MOBILITY_EXERCISES.has(name));
-                  const strength = pillButtons.filter(({ name }) => !CARDIO_EXERCISES.has(name) && !MOBILITY_EXERCISES.has(name));
+                  // Pill grouping mirrors the backend classification. Unknown
+                  // (not yet in config) falls into Strength, same as the
+                  // chart's strength path.
+                  const cardio = pillButtons.filter(({ name }) => {
+                    const k = classify(name);
+                    return k === "cardio" || k === "mobility";
+                  });
+                  const strength = pillButtons.filter(({ name }) => {
+                    const k = classify(name);
+                    return k !== "cardio" && k !== "mobility";
+                  });
                   // Prepend the meta "All …" pill at the head of each category.
                   // Count = number of distinct exercises that contribute to it,
                   // so the badge means "this aggregate covers N exercises".
@@ -650,6 +665,18 @@ export function TrainingDashboard() {
                         <div className="flex flex-wrap gap-2">
                           {items.map(({ name, count }) => {
                             const selected = state.selectedExercise === name;
+                            // Cardio category uses shade-2 (lighter), strength uses
+                            // shade-1 (full accent). Hover uses one shade lighter than
+                            // the selected state. Driven entirely off the section
+                            // accent so the user's exercise color cascades through.
+                            const fillVar =
+                              accent === "cardio"
+                                ? "var(--section-accent-shade-2)"
+                                : "var(--section-accent-shade-1)";
+                            const hoverVar =
+                              accent === "cardio"
+                                ? "var(--section-accent-shade-3)"
+                                : "var(--section-accent-shade-2)";
                             return (
                               <button
                                 key={name}
@@ -657,13 +684,20 @@ export function TrainingDashboard() {
                                 className={cn(
                                   "rounded-full border px-3 py-1.5 text-sm font-medium transition-colors",
                                   selected
-                                    ? accent === "cardio"
-                                      ? "border-orange-400 bg-orange-400 text-white"
-                                      : "border-orange-500 bg-orange-500 text-white"
-                                    : accent === "cardio"
-                                      ? "border-border bg-card text-muted-foreground hover:border-orange-300 hover:text-foreground"
-                                      : "border-border bg-card text-muted-foreground hover:border-orange-400 hover:text-foreground",
+                                    ? "text-white"
+                                    : "border-border bg-card text-muted-foreground hover:text-foreground",
                                 )}
+                                style={
+                                  selected
+                                    ? { borderColor: fillVar, backgroundColor: fillVar }
+                                    : undefined
+                                }
+                                onMouseEnter={(e) => {
+                                  if (!selected) e.currentTarget.style.borderColor = hoverVar;
+                                }}
+                                onMouseLeave={(e) => {
+                                  if (!selected) e.currentTarget.style.borderColor = "";
+                                }}
                               >
                                 {META_LABEL[name] ?? name}
                                 <span
@@ -716,7 +750,7 @@ export function TrainingDashboard() {
                         metaRows.map((row) => (
                           <TableRow key={row.date}>
                             <TableCell>{formatDate(row.date)}</TableCell>
-                            <TableCell>{formatValue(row.total, state.selectedExercise)}</TableCell>
+                            <TableCell>{formatValue(row.total, state.selectedExercise, selectedKind)}</TableCell>
                           </TableRow>
                         ))
                       ) : (
@@ -734,7 +768,7 @@ export function TrainingDashboard() {
                     {isCardioView ? (
                       <TableRow>
                         <TableHead>Date</TableHead>
-                        <TableHead>{metricKind(state.selectedExercise) === "pace" ? "Pace" : "Duration"}</TableHead>
+                        <TableHead>{metricKind(state.selectedExercise, selectedKind) === "pace" ? "Pace" : "Duration"}</TableHead>
                         <TableHead>Distance</TableHead>
                         <TableHead>Level</TableHead>
                       </TableRow>
@@ -751,12 +785,12 @@ export function TrainingDashboard() {
                   <TableBody>
                     {recentSessions.length > 0 ? (
                       recentSessions.map((item, i) => {
-                        const value = metricValue(state.selectedExercise, item);
+                        const value = metricValue(state.selectedExercise, selectedKind, item);
                         if (isCardioView) {
                           return (
                             <TableRow key={`${item.date}-${i}`}>
                               <TableCell>{formatDate(item.date)}</TableCell>
-                              <TableCell>{formatValue(value, state.selectedExercise)}</TableCell>
+                              <TableCell>{formatValue(value, state.selectedExercise, selectedKind)}</TableCell>
                               <TableCell>{item.distance_m != null ? `${item.distance_m} m` : "—"}</TableCell>
                               <TableCell>{item.level ?? "—"}</TableCell>
                             </TableRow>
@@ -765,7 +799,7 @@ export function TrainingDashboard() {
                         return (
                           <TableRow key={`${item.date}-${item.weight}-${i}`}>
                             <TableCell>{formatDate(item.date)}</TableCell>
-                            <TableCell>{formatValue(value, state.selectedExercise)}</TableCell>
+                            <TableCell>{formatValue(value, state.selectedExercise, selectedKind)}</TableCell>
                             <TableCell>{item.sets ?? "—"}</TableCell>
                             <TableCell>{item.reps ?? "—"}</TableCell>
                             <TableCell>{item.difficulty || "medium"}</TableCell>
@@ -786,7 +820,6 @@ export function TrainingDashboard() {
             </CardContent>
           </Card>
         </div>
-        <SectionStatusBar section="exercise" />
-      </main>
+      </>
     );
   }

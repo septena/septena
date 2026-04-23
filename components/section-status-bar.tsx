@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { getCaffeineHistory, getCalendar, getCannabisHistory, getChores, getEntries, getGroceries, getHabitHistory, getHealthApple, getHealthOura, getHealthWithings, getNutritionEntries, getNutritionStats, getStats, getSupplementHistory, getWeather, type Stats } from "@/lib/api";
 import { computeStreak } from "@/lib/date-utils";
 import { SECTIONS } from "@/lib/sections";
-import { useSectionColor, useSection } from "@/hooks/use-sections";
+import { useSection, useSections } from "@/hooks/use-sections";
 import { useAppConfig } from "@/lib/app-config";
 import { StatusPill } from "@/components/ui/status-pill";
 import { useLoadTime } from "@/components/load-timer";
@@ -41,7 +42,7 @@ export function SectionStatusBar({ section }: { section: SectionKey }) {
   const { paths } = useAppConfig();
   const vault = paths.vault.replace(/\/$/, "");
   const loadTime = useLoadTime();
-  const color = useSectionColor(section);
+  const color = "var(--section-accent)";
   const sectionMeta = useSection(section);
   const sectionLabel = sectionMeta?.label ?? SECTIONS[section].label;
 
@@ -51,7 +52,7 @@ export function SectionStatusBar({ section }: { section: SectionKey }) {
         if (section === "exercise") {
           const stats = await getStats();
           const line1 = `${stats.total_sessions ?? 0} sessions · ${stats.exercises_count ?? 0} exercises`;
-          const line2 = `Last: ${relativeTime(stats.last_logged_at)} · Obsidian: ${vault}/Exercise/Log/`;
+          const line2 = `Last: ${relativeTime(stats.last_logged_at)} · Path: ${vault}/Exercise/Log/`;
           setData({ line1, line2, color });
         } else if (section === "health") {
           const [oura, withings, apple] = await Promise.all([
@@ -83,14 +84,14 @@ export function SectionStatusBar({ section }: { section: SectionKey }) {
             : 0;
           const streak = computeStreak(history.daily, { graceDays: 1 });
           const line1 = `${total} habits · ${streak}d streak · ${avg}% avg (30d)`;
-          const line2 = `Obsidian: ${vault}/Habits/Log/`;
+          const line2 = `Path: ${vault}/Habits/Log/`;
           setData({ line1, line2, color });
         } else if (section === "chores") {
           const list = await getChores();
           const overdue = list.chores.filter((c) => c.days_overdue > 0).length;
           const dueToday = list.chores.filter((c) => c.days_overdue === 0).length;
           const line1 = `${list.total} chores · ${overdue} overdue · ${dueToday} due today`;
-          const line2 = `Obsidian: ${vault}/Chores/Definitions/`;
+          const line2 = `Path: ${vault}/Chores/Definitions/`;
           setData({ line1, line2, color });
         } else if (section === "supplements") {
           const history = await getSupplementHistory(30);
@@ -100,7 +101,7 @@ export function SectionStatusBar({ section }: { section: SectionKey }) {
             : 0;
           const streak = computeStreak(history.daily, { graceDays: 1 });
           const line1 = `${total} supplements · ${streak}d streak · ${avg}% avg (30d)`;
-          const line2 = `Obsidian: ${vault}/Supplements/Log/`;
+          const line2 = `Path: ${vault}/Supplements/Log/`;
           setData({ line1, line2, color });
         } else if (section === "cannabis") {
           const history = await getCannabisHistory(7);
@@ -108,7 +109,7 @@ export function SectionStatusBar({ section }: { section: SectionKey }) {
           const lastDay = history.daily[history.daily.length - 1];
           const lastDate = lastDay ? relativeTime(lastDay.date) : "—";
           const line1 = `${total} sessions · ${history.daily.length}d tracked`;
-          const line2 = `Last session: ${lastDate} · Obsidian: ${vault}/Cannabis/Log/`;
+          const line2 = `Last session: ${lastDate} · Path: ${vault}/Cannabis/Log/`;
           setData({ line1, line2, color });
         } else if (section === "caffeine") {
           const history = await getCaffeineHistory(7);
@@ -116,7 +117,7 @@ export function SectionStatusBar({ section }: { section: SectionKey }) {
           const lastWithEntry = [...history.daily].reverse().find((d) => d.sessions > 0);
           const lastDate = lastWithEntry ? relativeTime(lastWithEntry.date) : "—";
           const line1 = `${total} sessions · ${history.daily.length}d tracked`;
-          const line2 = `Last: ${lastDate} · Obsidian: ${vault}/Caffeine/Log/`;
+          const line2 = `Last: ${lastDate} · Path: ${vault}/Caffeine/Log/`;
           setData({ line1, line2, color });
         } else if (section === "body") {
           const withings = await getHealthWithings(30).catch(() => null);
@@ -153,10 +154,10 @@ export function SectionStatusBar({ section }: { section: SectionKey }) {
         } else if (section === "groceries") {
           const g = await getGroceries();
           const total = g.items?.length ?? 0;
-          const low = g.items?.filter((i) => i.low && !i.bought).length ?? 0;
-          const cart = g.items?.filter((i) => i.bought).length ?? 0;
+          const low = g.items?.filter((i) => i.low && !i.last_bought).length ?? 0;
+          const cart = g.items?.filter((i) => !!i.last_bought).length ?? 0;
           const line1 = `${total} items · ${low} low · ${cart} in cart`;
-          const line2 = `Obsidian: ${vault}/Groceries/`;
+          const line2 = `Path: ${vault}/Groceries/`;
           setData({ line1, line2, color });
         } else if (section === "sleep") {
           const [oura] = await Promise.all([
@@ -167,13 +168,18 @@ export function SectionStatusBar({ section }: { section: SectionKey }) {
           const line1 = `${ouraDays} nights tracked (7d)`;
           const line2 = `Last: ${relativeTime(lastDate)} · Sources: Oura Ring · Apple Health`;
           setData({ line1, line2, color });
+        } else {
+          const base = SECTIONS[section];
+          const line1 = sectionMeta?.tagline ?? base?.tagline ?? sectionLabel;
+          const line2 = base?.dataDir ? `Obsidian: ${vault}/${base.dataDir}/` : `Section: ${sectionLabel}`;
+          setData({ line1, line2, color });
         }
       } catch {
         // Silently fail — status bar is non-critical
       }
     };
     fetchStatus();
-  }, [section, vault, color]);
+  }, [section, vault, color, sectionLabel, sectionMeta?.tagline]);
 
   if (!data) return null;
 
@@ -197,5 +203,29 @@ export function SectionStatusBar({ section }: { section: SectionKey }) {
         </Link>
       </div>
     </StatusPill>
+  );
+}
+
+// Layout-level auto variant: resolves the current section from pathname the
+// same way SectionHeader does, so dashboards don't each have to import and
+// mount the status bar manually. Returns null on the root launcher and any
+// route that doesn't map to a registered section (e.g. /settings).
+export function SectionStatusBarAuto() {
+  const pathname = usePathname();
+  const sections = useSections();
+
+  if (pathname === "/") return null;
+
+  const match = sections
+    .filter((s) => s.path && (pathname === s.path || pathname.startsWith(s.path + "/")))
+    .sort((a, b) => b.path.length - a.path.length)[0];
+
+  if (!match) return null;
+  if (!(match.key in SECTIONS)) return null;
+
+  return (
+    <div className="mx-auto w-full max-w-6xl px-4 pb-10 sm:px-6 lg:px-8">
+      <SectionStatusBar section={match.key as SectionKey} />
+    </div>
   );
 }

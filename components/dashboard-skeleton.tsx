@@ -2,7 +2,7 @@
 
 export function DashboardSkeleton({ title }: { title?: string }) {
   return (
-    <main className="mx-auto min-h-screen max-w-6xl px-4 py-6 sm:px-6 lg:px-8 animate-pulse">
+    <div className="animate-pulse">
       <section className="mb-6">
         <div className="h-3 w-20 rounded bg-muted" />
         <div className="mt-2 h-8 w-48 rounded bg-muted" />
@@ -27,6 +27,6 @@ export function DashboardSkeleton({ title }: { title?: string }) {
           </div>
         ))}
       </div>
-    </main>
+    </div>
   );
 }

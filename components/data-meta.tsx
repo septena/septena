@@ -2,8 +2,9 @@
 
 import useSWR from "swr";
 import { getMeta, type SourceMeta } from "@/lib/api";
-import { useSection, useSectionColor } from "@/hooks/use-sections";
-import type { SectionKey } from "@/lib/sections";
+import { useSection } from "@/hooks/use-sections";
+import { SECTIONS, type SectionKey } from "@/lib/sections";
+import { useSectionColor } from "@/hooks/use-sections";
 import { cn } from "@/lib/utils";
 
 function timeAgo(iso: string | null | undefined): string {
@@ -118,6 +119,8 @@ function HealthSubRow({ sub }: { sub: { label: string; status?: string; last_mod
 // ── Main component ──────────────────────────────────────────────────────────
 
 export function DataMeta() {
+  // Live color from /api/sections, not the static SECTIONS fallback —
+  // honors user customisation in settings.yaml.
   const healthColor = useSectionColor("health");
   const { data, error, isLoading } = useSWR("meta", getMeta, { refreshInterval: 60_000 });
 

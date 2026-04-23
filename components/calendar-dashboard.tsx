@@ -2,9 +2,7 @@
 
 import useSWR from "swr";
 import { getCalendar, type CalendarEvent } from "@/lib/api";
-import { useSectionColor } from "@/hooks/use-sections";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { SectionStatusBar } from "@/components/section-status-bar";
 
 function fmtTime(iso: string): string {
   return new Date(iso).toLocaleTimeString("en-GB", {
@@ -43,12 +41,12 @@ export function CalendarDashboard() {
     refreshInterval: 300_000,
     shouldRetryOnError: false,
   });
-  const color = useSectionColor("calendar");
+  const color = "var(--section-accent)";
   const grouped = groupByDay(data?.events ?? []);
   const days = Object.keys(grouped).sort();
 
   return (
-    <main className="mx-auto min-h-screen max-w-3xl px-4 py-6 pb-24 sm:px-6 sm:pb-6">
+    <>
       {isLoading && <p className="text-sm text-muted-foreground">Loading…</p>}
 
       {!isLoading && data?.error && (
@@ -92,7 +90,6 @@ export function CalendarDashboard() {
         ))}
       </div>
 
-      <SectionStatusBar section="calendar" />
-    </main>
+    </>
   );
 }

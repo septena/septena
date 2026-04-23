@@ -6,15 +6,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { usePageHeader } from "@/components/page-header-context";
 import { Bar, BarChart, CartesianGrid, Line, LineChart, ReferenceLine, XAxis, YAxis } from "recharts";
 import { ChartContainer, type ChartConfig } from "@/components/ui/chart";
-import { SectionStatusBar } from "@/components/section-status-bar";
 import {
   getHealthCombined,
   getHealthCache,
   type OuraRow,
   type AppleRow,
 } from "@/lib/api";
-import { useSectionColor } from "@/hooks/use-sections";
-import { formatDateShort as formatDate, formatWeekdayTick } from "@/lib/date-utils";
+import { formatDateShort as formatDate } from "@/lib/date-utils";
+import { CHART_GRID, WEEKDAY_X_AXIS, Y_AXIS } from "@/lib/chart-defaults";
 import { StatCard } from "@/components/stat-card";
 import { useBarAnimation } from "@/hooks/use-bar-animation";
 import { useSelectedDate } from "@/hooks/use-selected-date";
@@ -72,7 +71,7 @@ const sleepStagesConfig = {
 } satisfies ChartConfig;
 
 export function SleepDashboard() {
-  const COLOR = useSectionColor("sleep");
+  const COLOR = "var(--section-accent)";
   const sleepScoreConfig = {
     sleep_score: { label: "Sleep Score", color: COLOR },
     readiness_score: { label: "Readiness", color: "hsl(140,60%,45%)" },
@@ -121,7 +120,7 @@ export function SleepDashboard() {
 
   if (loading) {
     return (
-      <main className="mx-auto min-h-screen max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
+      <>
         <div className="mb-4 grid min-w-0 grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3 [&>*]:min-w-0">
           {[...Array(4)].map((_, i) => (
             <div key={i} className="h-24 animate-pulse rounded-2xl border border-border bg-muted/30" />
@@ -130,12 +129,12 @@ export function SleepDashboard() {
         {[...Array(2)].map((_, i) => (
           <div key={i} className="mb-4 h-[180px] animate-pulse rounded-xl border border-border bg-muted/30" />
         ))}
-      </main>
+      </>
     );
   }
 
   return (
-    <main data-section="sleep" className="mx-auto min-h-screen w-full min-w-0 max-w-6xl overflow-hidden px-4 py-6 sm:px-6 lg:px-8">
+    <>
 
 
 
@@ -182,10 +181,9 @@ export function SleepDashboard() {
             <CardContent className="min-w-0 overflow-hidden px-4">
               <ChartContainer config={sleepScoreConfig} className="h-[160px] w-full">
                 <LineChart data={oura7} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
-                  <CartesianGrid vertical={false} strokeDasharray="3 3" />
-                  <XAxis dataKey="date" tickLine={false} axisLine={false} interval={0}
-                    tickFormatter={(v) => formatWeekdayTick(v)} tick={{ fontSize: 10 }} />
-                  <YAxis tickLine={false} axisLine={false} domain={[0, 100]} width={28} />
+                  <CartesianGrid {...CHART_GRID} />
+                  <XAxis {...WEEKDAY_X_AXIS} interval={0} />
+                  <YAxis {...Y_AXIS} domain={[0, 100]} width={28} />
                   <ReferenceLine y={85} stroke="hsl(140,40%,45%)" strokeDasharray="6 3" strokeOpacity={0.5} />
                   <Line type="monotone" dataKey="sleep_score" stroke="var(--color-sleep_score)"
                     strokeWidth={2} dot={false} />
@@ -206,10 +204,9 @@ export function SleepDashboard() {
             <CardContent className="min-w-0 overflow-hidden px-4">
               <ChartContainer config={sleepStagesConfig} className="h-[160px] w-full">
                 <BarChart data={oura7} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
-                  <CartesianGrid vertical={false} strokeDasharray="3 3" />
-                  <XAxis dataKey="date" tickLine={false} axisLine={false} interval={0}
-                    tickFormatter={(v) => formatWeekdayTick(v)} tick={{ fontSize: 10 }} />
-                  <YAxis tickLine={false} axisLine={false} domain={[0, 10]} width={28} />
+                  <CartesianGrid {...CHART_GRID} />
+                  <XAxis {...WEEKDAY_X_AXIS} interval={0} />
+                  <YAxis {...Y_AXIS} domain={[0, 10]} width={28} />
                   <Bar dataKey="deep_h" stackId="a" fill="var(--color-deep_h)" radius={[0, 0, 0, 0]} {...barAnim} />
                   <Bar dataKey="rem_h" stackId="a" fill="var(--color-rem_h)" radius={[0, 0, 0, 0]} {...barAnim} />
                   <Bar dataKey="light_h" stackId="a" fill="var(--color-light_h)" radius={[2, 2, 0, 0]} {...barAnim} />
@@ -228,10 +225,9 @@ export function SleepDashboard() {
             <CardContent className="min-w-0 overflow-hidden px-4">
               <ChartContainer config={totalConfig} className="h-[160px] w-full">
                 <LineChart data={oura7} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
-                  <CartesianGrid vertical={false} strokeDasharray="3 3" />
-                  <XAxis dataKey="date" tickLine={false} axisLine={false} interval={0}
-                    tickFormatter={(v) => formatWeekdayTick(v)} tick={{ fontSize: 10 }} />
-                  <YAxis tickLine={false} axisLine={false} domain={[0, 10]} width={28} />
+                  <CartesianGrid {...CHART_GRID} />
+                  <XAxis {...WEEKDAY_X_AXIS} interval={0} />
+                  <YAxis {...Y_AXIS} domain={[0, 10]} width={28} />
                   <ReferenceLine y={7} stroke={COLOR} strokeDasharray="6 3" strokeOpacity={0.4} />
                   <Line type="monotone" dataKey="total_h" stroke="var(--color-total_h)"
                     strokeWidth={2} dot={{ r: 3 }} />
@@ -242,7 +238,6 @@ export function SleepDashboard() {
         )}
       </div>
 
-      <SectionStatusBar section="sleep" />
-    </main>
+    </>
   );
 }

@@ -17,18 +17,16 @@ import {
   type CaffeineMethod,
   type CaffeineSession,
 } from "@/lib/api";
-import { SectionStatusBar } from "@/components/section-status-bar";
 import { SectionHeaderAction, SectionHeaderActionButton } from "@/components/section-header-action";
 import { StatCard } from "@/components/stat-card";
-import { useSectionColor } from "@/hooks/use-sections";
 import { useBarAnimation } from "@/hooks/use-bar-animation";
 import {
   todayLocalISO,
   nowHHMM as currentTime,
   HOUR_TICKS_2H,
   formatHourTick,
-  formatWeekdayTick,
 } from "@/lib/date-utils";
+import { CHART_GRID, WEEKDAY_X_AXIS, Y_AXIS } from "@/lib/chart-defaults";
 import { useSelectedDate } from "@/hooks/use-selected-date";
 
 // 30-minute buckets → 48 slots covering the full day.
@@ -52,7 +50,7 @@ function fmtHour(frac: number): string {
 }
 
 export function CaffeineDashboard() {
-  const caffeineColor = useSectionColor("caffeine");
+  const caffeineColor = "var(--section-accent)";
   const chartConfig = {
     count: { label: "Sessions", color: caffeineColor },
   } satisfies ChartConfig;
@@ -199,10 +197,7 @@ export function CaffeineDashboard() {
   );
 
   return (
-    <main
-      data-section="caffeine"
-      className="mx-auto min-h-screen w-full min-w-0 max-w-6xl overflow-hidden px-4 py-6 sm:px-6 lg:px-8"
-    >
+    <>
       <SectionHeaderAction>
         <SectionHeaderActionButton color={caffeineColor} onClick={handleToggleForm}>
           + Log
@@ -395,7 +390,7 @@ export function CaffeineDashboard() {
             <CardContent className="min-w-0 overflow-hidden px-4">
               <ChartContainer config={chartConfig} className="h-[220px] w-full">
                 <BarChart data={histogram} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-                  <CartesianGrid vertical={false} strokeDasharray="3 3" />
+                  <CartesianGrid {...CHART_GRID} />
                   <XAxis
                     dataKey="hourFrac"
                     type="number"
@@ -407,13 +402,7 @@ export function CaffeineDashboard() {
                     axisLine={false}
                     tick={{ fontSize: 10 }}
                   />
-                  <YAxis
-                    tickLine={false}
-                    axisLine={false}
-                    width={28}
-                    tick={{ fontSize: 11 }}
-                    allowDecimals={false}
-                  />
+                  <YAxis {...Y_AXIS} width={28} tick={{ fontSize: 11 }} allowDecimals={false} />
                   <Bar dataKey="count" fill="var(--color-count)" radius={[3, 3, 0, 0]} {...barAnim} />
                 </BarChart>
               </ChartContainer>
@@ -434,22 +423,9 @@ export function CaffeineDashboard() {
             <CardContent className="min-w-0 overflow-hidden px-4">
               <ChartContainer config={chartConfig} className="h-[200px] w-full">
                 <BarChart data={dailyTotals} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-                  <CartesianGrid vertical={false} strokeDasharray="3 3" />
-                  <XAxis
-                    dataKey="date"
-                    tickLine={false}
-                    axisLine={false}
-                    interval={0}
-                    tickFormatter={(v: string) => formatWeekdayTick(v)}
-                    tick={{ fontSize: 10 }}
-                  />
-                  <YAxis
-                    tickLine={false}
-                    axisLine={false}
-                    width={28}
-                    tick={{ fontSize: 11 }}
-                    allowDecimals={false}
-                  />
+                  <CartesianGrid {...CHART_GRID} />
+                  <XAxis {...WEEKDAY_X_AXIS} interval={0} />
+                  <YAxis {...Y_AXIS} width={28} tick={{ fontSize: 11 }} allowDecimals={false} />
                   <Bar dataKey="count" fill="var(--color-count)" radius={[3, 3, 0, 0]} {...barAnim} />
                 </BarChart>
               </ChartContainer>
@@ -458,7 +434,6 @@ export function CaffeineDashboard() {
         )}
       </div>
 
-      <SectionStatusBar section="caffeine" />
-    </main>
+    </>
   );
 }

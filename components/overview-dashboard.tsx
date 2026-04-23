@@ -12,11 +12,10 @@ import {
   YAxis,
 } from "recharts";
 import { ChartContainer, type ChartConfig } from "@/components/ui/chart";
-import { SECTIONS, EXERCISE_SHADES } from "@/lib/sections";
-import { useSections, useSectionColor } from "@/hooks/use-sections";
-// Optional local-only overlay module adds extra mini tiles. When missing,
-// next.config.ts aliases the import to `false`, so EXTRA_MINIS is undefined.
-import { EXTRA_MINIS as LOCAL_EXTRA_MINIS } from "@/components/overview-minis.local";
+import { SECTIONS } from "@/lib/sections";
+import { useSections } from "@/hooks/use-sections";
+import { SectionTheme } from "@/components/section-theme";
+import { EXTRA_MINIS as LOCAL_EXTRA_MINIS } from "@/components/overview-minis-extra";
 import {
   getCardioHistory,
   getEntries,
@@ -59,6 +58,7 @@ import {
   HabitsQuickLog,
   SupplementsQuickLog,
   ChoresQuickLog,
+  GutQuickLog,
 } from "@/components/quick-log-forms";
 import type { SectionKey } from "@/lib/sections";
 import { useBarAnimation } from "@/hooks/use-bar-animation";
@@ -66,9 +66,10 @@ import { useBarAnimation } from "@/hooks/use-bar-animation";
 // ── Constants ───────────────────────────────────────────────────────────────
 
 const CHART_HEIGHT = "h-[80px]";
-// Alias so existing references stay readable; value comes from the shared
-// exercise palette in lib/sections.ts.
-const CARDIO_COLOR = EXERCISE_SHADES.cardio;
+// Cardio uses the lighter shade of the exercise accent. Resolved via the
+// section-accent CSS vars so it auto-derives from `--section-accent` inside
+// any `<SectionTheme sectionKey="exercise">` subtree.
+const CARDIO_COLOR = "var(--section-accent-shade-2)";
 
 // ── Week streak helpers ─────────────────────────────────────────────────────
 
@@ -236,7 +237,7 @@ function ExerciseMini() {
     return { cardio, entries };
   }, { refreshInterval: 60_000 });
 
-  const color = useSectionColor("exercise");
+  const color = "var(--section-accent)";
   const cardio = data?.cardio;
   const latestRolling = cardio?.daily?.at(-1)?.rolling_7d ?? 0;
   const target = cardio?.target_weekly_min ?? 150;
@@ -327,7 +328,7 @@ function NutritionMini() {
     return () => clearInterval(id);
   }, []);
 
-  const color = useSectionColor("nutrition");
+  const color = "var(--section-accent)";
   const stats = data;
   const daily = stats?.daily ?? [];
   const todayRow = daily.find((d) => d.date === selectedDate);
@@ -357,10 +358,24 @@ function NutritionMini() {
     v: { label: isFasting ? "Fasting" : "Protein", color },
   } satisfies ChartConfig;
 
+  const nextMeal = useMemo(() => {
+    if (fastingState.state !== "fasting" || !stats?.avg_fast_h) return null;
+    const [h, m] = fastingState.sinceTime.split(":").map(Number);
+    const d = new Date();
+    d.setDate(d.getDate() - (fastingState.sinceDay === "yesterday" ? 1 : 0));
+    d.setHours(h ?? 0, m ?? 0, 0, 0);
+    d.setMinutes(d.getMinutes() + Math.round(stats.avg_fast_h * 60));
+    return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+  }, [fastingState, stats]);
+
   return (
     <SectionCard section="nutrition" loading={isLoading}>
       <div className="grid grid-cols-2 gap-3">
-        <MiniStat label="Protein" value={`${Math.round(todayProtein)}g`} color={color} />
+        {fastingState.state === "fasting" ? (
+          <MiniStat label="Next Meal" value={nextMeal ?? "—"} color={color} />
+        ) : (
+          <MiniStat label="Protein" value={`${Math.round(todayProtein)}g`} color={color} />
+        )}
         {fastingState.state === "fasting" ? (
           <MiniStat label="Fasting" value={`${fastingState.hours}h ${fastingState.mins}m`} color={color} />
         ) : (
@@ -404,7 +419,7 @@ function HabitsMini() {
     return { day, history };
   }, { refreshInterval: 60_000 });
 
-  const color = useSectionColor("habits");
+  const color = "var(--section-accent)";
   const day = data?.day;
   const history = data?.history;
   const streak = useMemo(() => computeStreak(history?.daily), [history]);
@@ -448,7 +463,7 @@ function ChoresMini() {
     return { list, history };
   }, { refreshInterval: 60_000 });
 
-  const color = useSectionColor("chores");
+  const color = "var(--section-accent)";
   const chores = data?.list.chores ?? [];
   const today = data?.list.today ?? "";
   const overdue = chores.filter((c) => c.days_overdue > 0 && c.last_completed !== today).length;
@@ -500,7 +515,7 @@ function GroceriesMini() {
   const { data: history } = useSWR("overview-groceries-history", () => getGroceryHistory(7), {
     refreshInterval: 60_000,
   });
-  const color = useSectionColor("groceries");
+  const color = "var(--section-accent)";
   const items = data?.items ?? [];
   const lowCount = items.filter((i) => i.low).length;
 
@@ -547,7 +562,7 @@ function SupplementsMini() {
     return { day, history };
   }, { refreshInterval: 60_000 });
 
-  const color = useSectionColor("supplements");
+  const color = "var(--section-accent)";
   const day = data?.day;
   const history = data?.history;
   const streak = useMemo(() => computeStreak(history?.daily), [history]);
@@ -603,7 +618,7 @@ function CannabisMini() {
     return () => clearInterval(id);
   }, []);
 
-  const color = useSectionColor("cannabis");
+  const color = "var(--section-accent)";
   const day = data?.day;
   const history = data?.history;
   const sessions = data?.sessions?.sessions ?? [];
@@ -675,7 +690,7 @@ function CaffeineMini() {
     { refreshInterval: 60_000 },
   );
 
-  const color = useSectionColor("caffeine");
+  const color = "var(--section-accent)";
   const day = data?.day;
   const history = data?.history;
 
@@ -738,7 +753,7 @@ function HealthMini() {
     refreshInterval: 60_000,
   });
 
-  const color = useSectionColor("health");
+  const color = "var(--section-accent)";
   const oura = data?.oura ?? [];
   const apple = data?.apple ?? [];
 
@@ -798,7 +813,7 @@ function SleepMini() {
     refreshInterval: 60_000,
   });
 
-  const color = useSectionColor("sleep");
+  const color = "var(--section-accent)";
   const oura = data?.oura ?? [];
 
   const latestSleep = [...oura].reverse().find((r) => r.sleep_score != null || r.efficiency != null);
@@ -857,7 +872,7 @@ function BodyMini() {
     refreshInterval: 60_000,
   });
 
-  const color = useSectionColor("body");
+  const color = "var(--section-accent)";
   const withings = data?.withings ?? [];
 
   const latestWeight = [...withings].reverse().find((r) => r.weight_kg != null);
@@ -972,7 +987,7 @@ function WeatherMini() {
     { refreshInterval: 600_000, shouldRetryOnError: false },
   );
 
-  const color = useSectionColor("weather");
+  const color = "var(--section-accent)";
 
   if (error || (!isLoading && !data)) {
     return (
@@ -1055,7 +1070,7 @@ function CalendarMini() {
     { refreshInterval: 300_000, shouldRetryOnError: false },
   );
 
-  const color = useSectionColor("calendar");
+  const color = "var(--section-accent)";
   const today = data?.today ?? "";
   const now = new Date();
   const events = data?.events ?? [];
@@ -1114,7 +1129,7 @@ function CalendarMini() {
 function AirMini() {
   const { data: summary, isLoading: sumLoading } = useSWR("overview-air-summary", getAirSummary, { refreshInterval: 60_000 });
   const { data: history, isLoading: hLoading } = useSWR("overview-air-history", () => getAirHistory(7), { refreshInterval: 60_000 });
-  const color = useSectionColor("air");
+  const color = "var(--section-accent)";
 
   const latest = summary?.latest ?? null;
 
@@ -1282,22 +1297,23 @@ const QUICK_LOG: Partial<
   habits:      { title: "Check habits",   Component: HabitsQuickLog,      icon: "check" },
   supplements: { title: "Supplements",    Component: SupplementsQuickLog, icon: "check" },
   chores:      { title: "Chores",         Component: ChoresQuickLog,      icon: "check" },
+  gut:         { title: "Log gut",        Component: GutQuickLog,         icon: "plus"  },
 };
 
 const QuickLogContext = createContext<((key: SectionKey) => void) | null>(null);
 
-function SectionCard({ section, loading, children }: {
+export function SectionCard({ section, loading, children }: {
   section: string;
   loading: boolean;
   children: React.ReactNode;
 }) {
   const s = SECTIONS[section as keyof typeof SECTIONS];
-  const color = useSectionColor(s.key);
+  const color = "var(--section-accent)";
   const openQuickLog = useContext(QuickLogContext);
   const quickLog = QUICK_LOG[s.key];
   const hasQuickLog = !!openQuickLog && !!quickLog;
   return (
-    <div className="group relative min-w-0 w-full rounded-2xl border border-border bg-background shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md">
+    <SectionTheme sectionKey={s.key} className="group relative min-w-0 w-full rounded-2xl border border-border bg-background shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md">
       <Link href={s.path} className="block p-5">
         <div
           className="absolute left-0 top-4 h-8 w-1 rounded-r-full"
@@ -1355,7 +1371,7 @@ function SectionCard({ section, loading, children }: {
           </span>
         </button>
       )}
-    </div>
+    </SectionTheme>
   );
 }
 
@@ -1386,7 +1402,7 @@ export function OverviewDashboard() {
 
   return (
     <QuickLogContext.Provider value={setOpenKey}>
-      <main className="min-h-screen px-4 pt-[max(2rem,env(safe-area-inset-top))] pb-8 sm:px-6 lg:px-8">
+      <>
         <div className="mb-8 text-center">
           <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">
             {greeting}
@@ -1396,7 +1412,7 @@ export function OverviewDashboard() {
           </p>
         </div>
 
-        <TodayTimeline />
+        <Link href="/timeline"><TodayTimeline /></Link>
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {visibleSections.map((s) => {
@@ -1419,7 +1435,7 @@ export function OverviewDashboard() {
             <active.Component onDone={() => setOpenKey(null)} />
           </QuickLogModal>
         )}
-      </main>
+      </>
     </QuickLogContext.Provider>
   );
 }

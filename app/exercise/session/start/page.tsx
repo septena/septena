@@ -112,7 +112,7 @@ export default function StartSessionPage() {
 
   return (
     <div className="min-h-screen bg-muted/30">
-      <main className="mx-auto max-w-2xl px-4 py-6 sm:px-6">
+      <>
         <div className="mb-4">
           <Link href="/exercise" className="text-sm text-muted-foreground hover:text-foreground">
             ← Back to dashboard
@@ -175,8 +175,8 @@ export default function StartSessionPage() {
                   className={cn(
                     "flex items-center justify-between rounded-2xl border-2 px-5 py-5 text-left transition-all",
                     isSelected
-                      ? "border-orange-500 bg-orange-500 text-white shadow-md"
-                      : "border-border bg-background hover:border-orange-300",
+                      ? "border-[color:var(--section-accent)] bg-[color:var(--section-accent)] text-white shadow-md"
+                      : "border-border bg-background hover:border-[color:var(--section-accent-shade-3)]",
                     loading && "opacity-60",
                   )}
                 >
@@ -193,7 +193,7 @@ export default function StartSessionPage() {
                     <span
                       className={cn(
                         "rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wider",
-                        isSelected ? "bg-white/25 text-white" : "bg-orange-100 text-orange-700",
+                        isSelected ? "bg-white/25 text-white" : "bg-[color:var(--section-accent-soft)] text-[color:var(--section-accent-strong)]",
                       )}
                     >
                       Suggested
@@ -207,7 +207,10 @@ export default function StartSessionPage() {
           <button
             onClick={startSession}
             disabled={!selected || loading || starting}
-            className="mt-6 w-full rounded-2xl bg-orange-500 py-4 text-lg font-semibold text-white transition-colors hover:bg-orange-600 disabled:opacity-50"
+            className="mt-6 w-full rounded-2xl py-4 text-lg font-semibold text-white transition-colors disabled:opacity-50"
+            style={{ backgroundColor: "var(--section-accent)" }}
+            onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "var(--section-accent-strong)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "var(--section-accent)"; }}
           >
             {starting ? "Starting…" : loading ? "Loading…" : "Start session →"}
           </button>
@@ -240,7 +243,7 @@ export default function StartSessionPage() {
             </div>
           </div>
         )}
-      </main>
+      </>
     </div>
   );
 }

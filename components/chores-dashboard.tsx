@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import useSWR from "swr";
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
+import { CHART_GRID, X_AXIS_DATE, Y_AXIS } from "@/lib/chart-defaults";
 
 import {
   completeChore,
@@ -12,12 +13,10 @@ import {
 } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChartContainer, type ChartConfig } from "@/components/ui/chart";
-import { SectionStatusBar } from "@/components/section-status-bar";
 import { StatCard } from "@/components/stat-card";
 import { TaskGroup, TaskRow } from "@/components/tasks";
 import { shortDate } from "@/lib/date-utils";
 import { useBarAnimation } from "@/hooks/use-bar-animation";
-import { useSectionColor } from "@/hooks/use-sections";
 
 const HAPTIC = () => {
   try {
@@ -54,7 +53,7 @@ function choreSublabel(chore: Chore, today: string): { text?: string; tone?: "wa
 }
 
 export function ChoresDashboard() {
-  const CHORES_COLOR = useSectionColor("chores");
+  const CHORES_COLOR = "var(--section-accent)";
   const chartConfig = {
     metric: { label: "Completions", color: CHORES_COLOR },
   } satisfies ChartConfig;
@@ -137,11 +136,7 @@ export function ChoresDashboard() {
   );
 
   return (
-    <main
-      data-section="chores"
-      className="mx-auto min-h-screen max-w-6xl px-4 py-6 sm:px-6 lg:px-8"
-      style={{ overflowX: "hidden" }}
-    >
+    <>
       {error && (
         <Card className="mb-4 border-red-500/30 bg-red-500/10">
           <CardContent className="py-3 text-sm text-red-700 dark:text-red-300">
@@ -258,12 +253,10 @@ export function ChoresDashboard() {
         <CardContent className="px-4">
           <ChartContainer config={chartConfig} className="h-[220px] w-full">
             <BarChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-              <CartesianGrid vertical={false} strokeDasharray="3 3" />
-              <XAxis dataKey="date" tickLine={false} axisLine={false} interval={3} />
+              <CartesianGrid {...CHART_GRID} />
+              <XAxis {...X_AXIS_DATE} interval={3} />
               <YAxis
-                tickLine={false}
-                axisLine={false}
-                domain={[0, "auto"]}
+                {...Y_AXIS}
                 width={30}
                 allowDecimals={false}
               />
@@ -273,7 +266,6 @@ export function ChoresDashboard() {
         </CardContent>
       </Card>
 
-      <SectionStatusBar section="chores" />
-    </main>
+    </>
   );
 }

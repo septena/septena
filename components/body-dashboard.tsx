@@ -6,15 +6,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { usePageHeader } from "@/components/page-header-context";
 import { Line, LineChart, CartesianGrid, XAxis, YAxis, ReferenceLine } from "recharts";
 import { ChartContainer, type ChartConfig } from "@/components/ui/chart";
-import { SectionStatusBar } from "@/components/section-status-bar";
 import {
   getHealthCombined,
   getHealthCache,
   getSettings,
   type WithingsRow,
 } from "@/lib/api";
-import { useSectionColor } from "@/hooks/use-sections";
-import { formatDateShort as formatDate, formatWeekdayTick } from "@/lib/date-utils";
+import { formatDateShort as formatDate } from "@/lib/date-utils";
+import { CHART_GRID, WEEKDAY_X_AXIS, Y_AXIS } from "@/lib/chart-defaults";
 import { StatCard } from "@/components/stat-card";
 import { useSelectedDate } from "@/hooks/use-selected-date";
 
@@ -43,7 +42,7 @@ const fatRatioConfig = {
 } satisfies ChartConfig;
 
 export function BodyDashboard() {
-  const COLOR = useSectionColor("body");
+  const COLOR = "var(--section-accent)";
   const weightConfig = {
     weight_kg: { label: "Weight (kg)", color: COLOR },
   } satisfies ChartConfig;
@@ -103,7 +102,7 @@ export function BodyDashboard() {
 
   if (loading) {
     return (
-      <main className="mx-auto min-h-screen max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
+      <>
         <div className="mb-4 grid min-w-0 grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 [&>*]:min-w-0">
           {[...Array(3)].map((_, i) => (
             <div key={i} className="h-20 animate-pulse rounded-xl border border-border bg-muted/30" />
@@ -112,12 +111,12 @@ export function BodyDashboard() {
         {[...Array(2)].map((_, i) => (
           <div key={i} className="mb-4 h-[200px] animate-pulse rounded-xl border border-border bg-muted/30" />
         ))}
-      </main>
+      </>
     );
   }
 
   return (
-    <main data-section="body" className="mx-auto min-h-screen w-full min-w-0 max-w-6xl overflow-hidden px-4 py-6 sm:px-6 lg:px-8">
+    <>
 
 
 
@@ -165,10 +164,9 @@ export function BodyDashboard() {
             <CardContent className="min-w-0 overflow-hidden px-4">
               <ChartContainer config={weightConfig} className="h-[200px] w-full">
                 <LineChart data={withingsWithWeight} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
-                  <CartesianGrid vertical={false} strokeDasharray="3 3" />
-                  <XAxis dataKey="date" tickLine={false} axisLine={false}
-                    tickFormatter={(v) => formatWeekdayTick(v as string)} tick={{ fontSize: 10 }} />
-                  <YAxis tickLine={false} axisLine={false} domain={["dataMin - 0.5", "dataMax + 0.5"]} width={36}
+                  <CartesianGrid {...CHART_GRID} />
+                  <XAxis {...WEEKDAY_X_AXIS} />
+                  <YAxis {...Y_AXIS} domain={["dataMin - 0.5", "dataMax + 0.5"]}
                     tickFormatter={(v: number) => `${Math.round(v)}`} />
                   <Line type="monotone" dataKey="weight_kg" stroke="var(--color-weight_kg)"
                     strokeWidth={2} dot={{ r: 2.5 }} isAnimationActive={false} />
@@ -189,10 +187,9 @@ export function BodyDashboard() {
             <CardContent className="min-w-0 overflow-hidden px-4">
               <ChartContainer config={fatConfig} className="h-[200px] w-full">
                 <LineChart data={withingsWithFat} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
-                  <CartesianGrid vertical={false} strokeDasharray="3 3" />
-                  <XAxis dataKey="date" tickLine={false} axisLine={false}
-                    tickFormatter={(v) => formatWeekdayTick(v as string)} tick={{ fontSize: 10 }} />
-                  <YAxis tickLine={false} axisLine={false} domain={["dataMin - 1", "dataMax + 1"]} width={36}
+                  <CartesianGrid {...CHART_GRID} />
+                  <XAxis {...WEEKDAY_X_AXIS} />
+                  <YAxis {...Y_AXIS} domain={["dataMin - 1", "dataMax + 1"]}
                     tickFormatter={(v: number) => `${Math.round(v)}%`} />
                   <ReferenceLine y={15} stroke="hsl(340,40%,50%)" strokeDasharray="6 3" strokeOpacity={0.5} />
                   <Line type="monotone" dataKey="fat_pct" stroke="var(--color-fat_pct)"
@@ -214,10 +211,9 @@ export function BodyDashboard() {
             <CardContent className="min-w-0 overflow-hidden px-4">
               <ChartContainer config={boneConfig} className="h-[200px] w-full">
                 <LineChart data={withingsWithBone} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
-                  <CartesianGrid vertical={false} strokeDasharray="3 3" />
-                  <XAxis dataKey="date" tickLine={false} axisLine={false}
-                    tickFormatter={(v) => formatWeekdayTick(v as string)} tick={{ fontSize: 10 }} />
-                  <YAxis tickLine={false} axisLine={false} width={36}
+                  <CartesianGrid {...CHART_GRID} />
+                  <XAxis {...WEEKDAY_X_AXIS} />
+                  <YAxis {...Y_AXIS}
                     tickFormatter={(v: number) => `${Math.round(v)}`} />
                   <Line type="monotone" dataKey="bone_mineral_kg" stroke="hsl(33,60%,50%)"
                     strokeWidth={2} dot={{ r: 2.5 }} isAnimationActive={false} />
@@ -238,10 +234,9 @@ export function BodyDashboard() {
             <CardContent className="min-w-0 overflow-hidden px-4">
               <ChartContainer config={vascularConfig} className="h-[200px] w-full">
                 <LineChart data={withingsWithVascular} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
-                  <CartesianGrid vertical={false} strokeDasharray="3 3" />
-                  <XAxis dataKey="date" tickLine={false} axisLine={false}
-                    tickFormatter={(v) => formatWeekdayTick(v as string)} tick={{ fontSize: 10 }} />
-                  <YAxis tickLine={false} axisLine={false} width={36}
+                  <CartesianGrid {...CHART_GRID} />
+                  <XAxis {...WEEKDAY_X_AXIS} />
+                  <YAxis {...Y_AXIS}
                     tickFormatter={(v: number) => `${Math.round(v)}`} />
                   <Line type="monotone" dataKey="vascular_age" stroke="hsl(200,60%,50%)"
                     strokeWidth={2} dot={{ r: 2.5 }} isAnimationActive={false} />
@@ -262,10 +257,9 @@ export function BodyDashboard() {
             <CardContent className="min-w-0 overflow-hidden px-4">
               <ChartContainer config={spo2Config} className="h-[200px] w-full">
                 <LineChart data={withingsWithSpo2} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
-                  <CartesianGrid vertical={false} strokeDasharray="3 3" />
-                  <XAxis dataKey="date" tickLine={false} axisLine={false}
-                    tickFormatter={(v) => formatWeekdayTick(v as string)} tick={{ fontSize: 10 }} />
-                  <YAxis tickLine={false} axisLine={false} width={36}
+                  <CartesianGrid {...CHART_GRID} />
+                  <XAxis {...WEEKDAY_X_AXIS} />
+                  <YAxis {...Y_AXIS}
                     tickFormatter={(v: number) => `${Math.round(v)}`} />
                   <Line type="monotone" dataKey="spo2_pct" stroke="hsl(200,70%,50%)"
                     strokeWidth={2} dot={{ r: 2.5 }} isAnimationActive={false} />
@@ -286,10 +280,9 @@ export function BodyDashboard() {
             <CardContent className="min-w-0 overflow-hidden px-4">
               <ChartContainer config={pulseConfig} className="h-[200px] w-full">
                 <LineChart data={withingsWithPulse} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
-                  <CartesianGrid vertical={false} strokeDasharray="3 3" />
-                  <XAxis dataKey="date" tickLine={false} axisLine={false}
-                    tickFormatter={(v) => formatWeekdayTick(v as string)} tick={{ fontSize: 10 }} />
-                  <YAxis tickLine={false} axisLine={false} width={36}
+                  <CartesianGrid {...CHART_GRID} />
+                  <XAxis {...WEEKDAY_X_AXIS} />
+                  <YAxis {...Y_AXIS}
                     tickFormatter={(v: number) => `${Math.round(v)}`} />
                   <Line type="monotone" dataKey="pulse_wave_mps" stroke="hsl(270,60%,50%)"
                     strokeWidth={2} dot={{ r: 2.5 }} isAnimationActive={false} />
@@ -310,10 +303,9 @@ export function BodyDashboard() {
             <CardContent className="min-w-0 overflow-hidden px-4">
               <ChartContainer config={fatRatioConfig} className="h-[200px] w-full">
                 <LineChart data={withingsWithFatRatio} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
-                  <CartesianGrid vertical={false} strokeDasharray="3 3" />
-                  <XAxis dataKey="date" tickLine={false} axisLine={false}
-                    tickFormatter={(v) => formatWeekdayTick(v as string)} tick={{ fontSize: 10 }} />
-                  <YAxis tickLine={false} axisLine={false} width={36}
+                  <CartesianGrid {...CHART_GRID} />
+                  <XAxis {...WEEKDAY_X_AXIS} />
+                  <YAxis {...Y_AXIS}
                     tickFormatter={(v: number) => `${Math.round(v)}`} />
                   <Line type="monotone" dataKey="fat_ratio_pct" stroke="hsl(142,55%,40%)"
                     strokeWidth={2} dot={{ r: 2.5 }} isAnimationActive={false} />
@@ -328,7 +320,6 @@ export function BodyDashboard() {
 
       </div>
 
-      <SectionStatusBar section="body" />
-    </main>
+    </>
   );
 }

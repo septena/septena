@@ -55,6 +55,27 @@ html, body {
 }
 
 :root {
+  /* Section accent + derived shades. Septena has *no* fixed brand color —
+   * every page lives inside a section and inherits that section's accent.
+   * These :root values are only the neutral fallback for routes with no
+   * section scope (for example `/`). SectionThemeRoot/SectionTheme override
+   * the full accent ramp inline on scoped descendants, because custom
+   * properties resolve where they are defined. Eink overrides below use
+   * `!important` so those inline overrides are stripped back to foreground. */
+  --section-accent: var(--primary);
+  /* Soft = same hue, low alpha (tinted backgrounds, glow fills). */
+  --section-accent-soft: color-mix(in oklab, var(--section-accent) 14%, transparent);
+  /* Strong = darker via OKLCH lightness drop (button-hover, deep text). */
+  --section-accent-strong: oklch(from var(--section-accent) calc(l - 0.10) c h);
+  /* Shade ramp — mirrors tailwind 500/400/300: brighten lightness, only
+   * trim chroma a touch on the lightest stop so it doesn't go pastel.
+   * Uses OKLCH relative-color syntax so saturation stays close to the
+   * accent (mixing with white desaturates in oklab and the result looks
+   * washed out compared to the old EXERCISE_SHADES). */
+  --section-accent-shade-1: var(--section-accent);
+  --section-accent-shade-2: oklch(from var(--section-accent) calc(l + 0.06) c h);
+  --section-accent-shade-3: oklch(from var(--section-accent) calc(l + 0.13) calc(c * 0.85) h);
+
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
@@ -121,6 +142,62 @@ html, body {
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+}
+
+.eink {
+  color-scheme: only light;
+  --background: #ffffff;
+  --foreground: #000000;
+  --card: #ffffff;
+  --card-foreground: #000000;
+  --popover: #ffffff;
+  --popover-foreground: #000000;
+  --primary: #000000;
+  --primary-foreground: #ffffff;
+  --secondary: #ffffff;
+  --secondary-foreground: #000000;
+  --muted: #ffffff;
+  --muted-foreground: #000000;
+  --accent: #ffffff;
+  --accent-foreground: #000000;
+  --destructive: #000000;
+  --border: #000000;
+  --input: #000000;
+  --ring: #000000;
+  --chart-1: #000000;
+  --chart-2: #000000;
+  --chart-3: #000000;
+  --chart-4: #000000;
+  --chart-5: #000000;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #000000;
+  --sidebar-primary: #000000;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #ffffff;
+  --sidebar-accent-foreground: #000000;
+  --sidebar-border: #000000;
+  --sidebar-ring: #000000;
+}
+
+.eink,
+.eink * {
+  text-shadow: none !important;
+  box-shadow: none !important;
+}
+
+/* Strip section colour in e-ink. `!important` is required here because
+ * <SectionThemeRoot> sets --section-accent as an inline style on a
+ * descendant div, and inline style would otherwise win over a
+ * non-important rule on .eink. Every descendant resets back to foreground
+ * so charts, pills, CTA buttons and chart lines all render black-on-white. */
+.eink,
+.eink * {
+  --section-accent: var(--foreground) !important;
+  --section-accent-soft: transparent !important;
+  --section-accent-strong: var(--foreground) !important;
+  --section-accent-shade-1: var(--foreground) !important;
+  --section-accent-shade-2: var(--foreground) !important;
+  --section-accent-shade-3: var(--foreground) !important;
 }
 
 @layer base {

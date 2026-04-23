@@ -1,20 +1,19 @@
 {
-  "name": "setlist",
+  "name": "septena",
   "version": "0.1.0",
   "private": true,
-  "description": "Local-first personal health command center — an Obsidian-YAML-backed dashboard for nutrition, exercise, habits, sleep, and more. Agent-legible by design.",
+  "description": "Local-first personal week tracker — a plain-YAML, git-native dashboard for nutrition, exercise, habits, sleep, and more. Agent-legible by design.",
   "license": "MIT",
   "author": "Michell Zappa",
-  "homepage": "https://github.com/michellzappa/setlist#readme",
+  "homepage": "https://github.com/septena/septena#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/michellzappa/setlist.git"
+    "url": "git+https://github.com/septena/septena.git"
   },
   "bugs": {
-    "url": "https://github.com/michellzappa/setlist/issues"
+    "url": "https://github.com/septena/septena/issues"
   },
   "keywords": [
-    "obsidian",
     "health",
     "quantified-self",
     "local-first",
@@ -29,8 +28,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "seed-demo": "python3 scripts/seed_demo_vault.py --vault /tmp/setlist-demo-vault",
-    "demo": "npm run seed-demo && echo '\\n→ Demo vault ready at /tmp/setlist-demo-vault\\n→ Start backend: SETLIST_VAULT=/tmp/setlist-demo-vault SETLIST_INTEGRATIONS_DIR=/tmp/none uvicorn main:app --port 4445 --reload\\n→ Start frontend: npm run dev'",
+    "seed-demo": "python3 scripts/seed_demo_vault.py --vault /tmp/septena-demo-vault",
+    "demo": "npm run seed-demo && echo '\\n→ Demo vault ready at /tmp/septena-demo-vault\\n→ Start backend: SEPTENA_DATA_DIR=/tmp/septena-demo-vault SEPTENA_INTEGRATIONS_DIR=/tmp/none uvicorn main:app --port 4445 --reload\\n→ Start frontend: npm run dev'",
     "screenshot": "node scripts/screenshots.mjs"
   },
   "dependencies": {

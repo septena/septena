@@ -29,7 +29,7 @@ export function SaveRow({
         {saving ? "Saving…" : "Save"}
       </button>
       <p className="text-right text-xs text-muted-foreground">
-        {saved ? "Saved." : "Writes to Obsidian on save."}
+        {saved ? "Saved." : "Writes to disk on save."}
       </p>
     </div>
   );

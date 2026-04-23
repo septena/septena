@@ -2,35 +2,24 @@
 
 import { useMemo, useState } from "react";
 import useSWR from "swr";
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
 
 import {
   getSupplementDay,
   getSupplementHistory,
   toggleSupplement,
   type SupplementDay,
-  type SupplementHistory,
   type SupplementItem,
 } from "@/lib/api";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ChartContainer, type ChartConfig } from "@/components/ui/chart";
-import { SectionStatusBar } from "@/components/section-status-bar";
+import { Card, CardContent } from "@/components/ui/card";
 import { TaskGroup, TaskRow } from "@/components/tasks";
-import { useBarAnimation } from "@/hooks/use-bar-animation";
-import { useSectionColor } from "@/hooks/use-sections";
-
-import { computeStreak, formatWeekdayTick } from "@/lib/date-utils";
+import { ChecklistStats, ChecklistChart } from "@/components/checklist-primitives";
+import { computeStreak } from "@/lib/date-utils";
 import { useSelectedDate } from "@/hooks/use-selected-date";
-import { StatCard } from "@/components/stat-card";
 
 export function SupplementsDashboard() {
-  const SUPPLEMENTS_COLOR = useSectionColor("supplements");
-  const chartConfig = {
-    metric: { label: "Completion", color: SUPPLEMENTS_COLOR },
-  } satisfies ChartConfig;
+  const SUPPLEMENTS_COLOR = "var(--section-accent)";
   const [pending, setPending] = useState<Set<string>>(new Set());
   const [optimisticDay, setOptimisticDay] = useState<SupplementDay | null>(null);
-  const barAnim = useBarAnimation();
 
   const { date: selectedDate } = useSelectedDate();
 
@@ -86,32 +75,20 @@ export function SupplementsDashboard() {
   const streak = useMemo(() => computeStreak(history?.daily), [history]);
 
   return (
-    <main className="mx-auto min-h-screen max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
+    <>
       {error && (
         <Card className="mb-4 border-red-500/30 bg-red-500/10">
           <CardContent className="py-3 text-sm text-red-700 dark:text-red-300">{error instanceof Error ? error.message : String(error)}</CardContent>
         </Card>
       )}
 
-      <div className="mb-6 grid min-w-0 grid-cols-2 gap-4 sm:grid-cols-3">
-        <StatCard
-          label="Today"
-          value={day ? `${day.done_count}/${day.total}` : "—"}
-          sublabel={day ? `${day.percent}% complete` : ""}
-          progress={day ? day.done_count / Math.max(1, day.total) : 0}
-          color={SUPPLEMENTS_COLOR}
-        />
-        <StatCard label="Streak" value={`${streak}d`} sublabel="consecutive days with activity" />
-        <StatCard
-          label="30-day avg"
-          value={
-            history && history.daily.length
-              ? `${Math.round(history.daily.reduce((s, d) => s + d.percent, 0) / history.daily.length)}%`
-              : "—"
-          }
-          sublabel="of supplements taken"
-        />
-      </div>
+      <ChecklistStats
+        day={day}
+        history={history?.daily}
+        streak={streak}
+        color={SUPPLEMENTS_COLOR}
+        avgSublabel="of supplements taken"
+      />
 
       <div className="grid gap-6 lg:grid-cols-[1fr_1fr]">
         <div>
@@ -149,30 +126,8 @@ export function SupplementsDashboard() {
           )}
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Last 7 days</CardTitle>
-          </CardHeader>
-          <CardContent className="px-4">
-            <ChartContainer config={chartConfig} className="h-[220px] w-full">
-              <BarChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-                <CartesianGrid vertical={false} strokeDasharray="3 3" />
-                <XAxis dataKey="date" tickLine={false} axisLine={false} interval={0}
-                  tickFormatter={(v: string) => formatWeekdayTick(v)} tick={{ fontSize: 10 }} />
-                <YAxis
-                  tickLine={false}
-                  axisLine={false}
-                  domain={[0, 100]}
-                  width={40}
-                  tickFormatter={(v: number) => `${v}%`}
-                />
-                <Bar dataKey="metric" fill="var(--color-metric)" radius={[4, 4, 0, 0]} {...barAnim} />
-              </BarChart>
-          </ChartContainer>
-        </CardContent>
-      </Card>
+        <ChecklistChart data={chartData} title="Last 7 days" color={SUPPLEMENTS_COLOR} xAxis="weekday" interval={0} />
       </div>
-      <SectionStatusBar section="supplements" />
-    </main>
+    </>
   );
 }

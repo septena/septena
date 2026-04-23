@@ -21,7 +21,10 @@ const ACTION_BUTTON_CLASS =
   "inline-flex shrink-0 items-center rounded-xl px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors";
 
 type ActionButtonProps = {
-  color: string;
+  /** Optional accent override. Defaults to `var(--section-accent)` from
+   *  the enclosing <SectionThemeRoot>, which resolves via pathname — so
+   *  individual dashboards no longer need to pass their section color. */
+  color?: string;
   children: ReactNode;
 } & (
   | { href: string; onClick?: never }
@@ -29,7 +32,7 @@ type ActionButtonProps = {
 );
 
 export function SectionHeaderActionButton(props: ActionButtonProps) {
-  const style = { backgroundColor: props.color };
+  const style = { backgroundColor: props.color ?? "var(--section-accent)" };
   if ("href" in props && props.href) {
     return (
       <a href={props.href} className={ACTION_BUTTON_CLASS} style={style}>

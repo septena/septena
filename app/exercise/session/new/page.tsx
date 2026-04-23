@@ -162,7 +162,7 @@ function NewSessionInner() {
 
   return (
     <div className="min-h-screen bg-muted/30">
-      <main className="mx-auto max-w-3xl px-4 py-6 sm:px-6">
+      <>
         <div className="mb-4">
           <Link href="/exercise" className="text-sm text-muted-foreground hover:text-foreground">
             ← Back to dashboard
@@ -308,14 +308,17 @@ function NewSessionInner() {
               <button
                 type="submit"
                 disabled={saving}
-                className="w-full rounded-xl bg-orange-500 py-3 font-semibold text-white transition-colors hover:bg-orange-600 disabled:opacity-50"
+                className="w-full rounded-xl py-3 font-semibold text-white transition-colors disabled:opacity-50"
+                style={{ backgroundColor: "var(--section-accent)" }}
+                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "var(--section-accent-strong)"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "var(--section-accent)"; }}
               >
                 {saving ? "Saving…" : "Save Session"}
               </button>
             </form>
           </CardContent>
         </Card>
-      </main>
+      </>
     </div>
   );
 }

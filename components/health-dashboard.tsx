@@ -6,14 +6,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { usePageHeader } from "@/components/page-header-context";
 import { Bar, BarChart, CartesianGrid, Line, LineChart, ReferenceLine, XAxis, YAxis, Tooltip } from "recharts";
 import { ChartContainer, type ChartConfig } from "@/components/ui/chart";
-import { SectionStatusBar } from "@/components/section-status-bar";
 import {
   getHealthCombined,
   getHealthCache,
   type OuraRow,
   type AppleRow,
 } from "@/lib/api";
-import { formatDateShort as formatDate, formatWeekdayTick } from "@/lib/date-utils";
+import { formatDateShort as formatDate } from "@/lib/date-utils";
+import { CHART_GRID, WEEKDAY_X_AXIS, Y_AXIS } from "@/lib/chart-defaults";
 import { StatCard } from "@/components/stat-card";
 import { useBarAnimation } from "@/hooks/use-bar-animation";
 import { useSelectedDate } from "@/hooks/use-selected-date";
@@ -89,7 +89,7 @@ const hrvConfig = {
 
 function LoadingSkeleton() {
   return (
-    <main className="mx-auto min-h-screen max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
+    <>
       <div className="mb-4 grid min-w-0 grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3 [&>*]:min-w-0">
         {[...Array(4)].map((_, i) => (
           <div key={i} className="h-24 animate-pulse rounded-2xl border border-border bg-muted/30" />
@@ -108,7 +108,7 @@ function LoadingSkeleton() {
       {[...Array(3)].map((_, i) => (
         <div key={i} className="mb-4 h-[180px] animate-pulse rounded-xl border border-border bg-muted/30" />
       ))}
-    </main>
+    </>
   );
 }
 
@@ -159,7 +159,7 @@ export function HealthDashboard() {
   if (loading) return <LoadingSkeleton />;
 
   return (
-    <main data-section="health" className="mx-auto min-h-screen w-full min-w-0 max-w-6xl overflow-hidden px-4 py-6 sm:px-6 lg:px-8">
+    <>
 
 
 
@@ -202,10 +202,9 @@ export function HealthDashboard() {
             <CardContent className="min-w-0 px-4">
               <ChartContainer config={stepsConfig} className="h-[160px] w-full overflow-hidden">
                 <BarChart data={apple7} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
-                  <CartesianGrid vertical={false} strokeDasharray="3 3" />
-                  <XAxis dataKey="date" tickLine={false} axisLine={false} interval={0}
-                    tickFormatter={(v) => formatWeekdayTick(v)} tick={{ fontSize: 10 }} />
-                  <YAxis tickLine={false} axisLine={false} domain={[0, "auto"]} width={44}
+                  <CartesianGrid {...CHART_GRID} />
+                  <XAxis {...WEEKDAY_X_AXIS} interval={0} />
+                  <YAxis {...Y_AXIS} width={44}
                     tickFormatter={(v: number) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : `${v}`} />
                   <ReferenceLine y={10000} stroke="hsl(270,40%,50%)" strokeDasharray="6 3" strokeOpacity={0.5} />
                   <Tooltip cursor={false} formatter={(v) => [fmt(v as number), "Steps"]} />
@@ -225,11 +224,9 @@ export function HealthDashboard() {
             <CardContent className="min-w-0 px-4">
               <ChartContainer config={calConfig} className="h-[160px] w-full overflow-hidden">
                 <BarChart data={apple7} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
-                  <CartesianGrid vertical={false} strokeDasharray="3 3" />
-                  <XAxis dataKey="date" tickLine={false} axisLine={false} interval={0}
-                    tickFormatter={(v) => formatWeekdayTick(v)} tick={{ fontSize: 10 }} />
-                  <YAxis tickLine={false} axisLine={false} domain={[0, "auto"]} width={36}
-                    tickFormatter={(v: number) => fmt(v)} />
+                  <CartesianGrid {...CHART_GRID} />
+                  <XAxis {...WEEKDAY_X_AXIS} interval={0} />
+                  <YAxis {...Y_AXIS} tickFormatter={(v: number) => fmt(v)} />
                   <Tooltip cursor={false} formatter={(v) => [fmt(v as number), "kcal"]} />
                   <Bar dataKey="active_cal" fill="var(--color-active_cal)" radius={[2, 2, 0, 0]} {...barAnim} />
                 </BarChart>
@@ -247,10 +244,9 @@ export function HealthDashboard() {
             <CardContent className="min-w-0 px-4">
               <ChartContainer config={vo2Config} className="h-[160px] w-full overflow-hidden">
                 <LineChart data={apple7} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
-                  <CartesianGrid vertical={false} strokeDasharray="3 3" />
-                  <XAxis dataKey="date" tickLine={false} axisLine={false} interval={0}
-                    tickFormatter={(v) => formatWeekdayTick(v)} tick={{ fontSize: 10 }} />
-                  <YAxis tickLine={false} axisLine={false} domain={[30, 45]} width={28} />
+                  <CartesianGrid {...CHART_GRID} />
+                  <XAxis {...WEEKDAY_X_AXIS} interval={0} />
+                  <YAxis {...Y_AXIS} domain={[30, 45]} width={28} />
                   <ReferenceLine y={40} stroke="hsl(280,40%,50%)" strokeDasharray="6 3" strokeOpacity={0.5} />
                   <Line type="monotone" dataKey="vo2_max" stroke="var(--color-vo2_max)"
                     strokeWidth={2} dot={{ r: 3 }} />
@@ -269,10 +265,9 @@ export function HealthDashboard() {
             <CardContent className="min-w-0 px-4">
               <ChartContainer config={hrvConfig} className="h-[160px] w-full overflow-hidden">
                 <LineChart data={oura7} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
-                  <CartesianGrid vertical={false} strokeDasharray="3 3" />
-                  <XAxis dataKey="date" tickLine={false} axisLine={false} interval={0}
-                    tickFormatter={(v) => formatWeekdayTick(v)} tick={{ fontSize: 10 }} />
-                  <YAxis tickLine={false} axisLine={false} domain={["auto", "auto"]} width={28} />
+                  <CartesianGrid {...CHART_GRID} />
+                  <XAxis {...WEEKDAY_X_AXIS} interval={0} />
+                  <YAxis {...Y_AXIS} domain={["auto", "auto"]} width={28} />
                   <Line type="monotone" dataKey="hrv" stroke="var(--color-hrv)"
                     strokeWidth={2} dot={false} />
                   <Line type="monotone" dataKey="resting_hr" stroke="var(--color-resting_heart_rate)"
@@ -327,7 +322,6 @@ export function HealthDashboard() {
         </Card>
       )}
 
-      <SectionStatusBar section="health" />
-    </main>
+    </>
   );
 }

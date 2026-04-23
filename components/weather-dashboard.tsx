@@ -3,21 +3,19 @@
 import Link from "next/link";
 import useSWR from "swr";
 import { getWeather } from "@/lib/api";
-import { useSectionColor } from "@/hooks/use-sections";
 import { usePageHeaderSubtitle } from "@/components/page-header-context";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { SectionStatusBar } from "@/components/section-status-bar";
 
 export function WeatherDashboard() {
   const { data, isLoading, error } = useSWR("weather-page", getWeather, {
     refreshInterval: 600_000,
     shouldRetryOnError: false,
   });
-  const color = useSectionColor("weather");
+  const color = "var(--section-accent)";
   usePageHeaderSubtitle("weather", data?.location?.split(",")[0]?.trim() ?? null);
 
   return (
-    <main className="mx-auto min-h-screen max-w-3xl px-4 py-6 pb-24 sm:px-6 sm:pb-6">
+    <>
       {error || (!isLoading && !data) ? (
         <Card>
           <CardContent className="py-6">
@@ -74,7 +72,6 @@ export function WeatherDashboard() {
         </div>
       )}
 
-      <SectionStatusBar section="weather" />
-    </main>
+    </>
   );
 }

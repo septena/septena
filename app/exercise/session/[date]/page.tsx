@@ -20,7 +20,7 @@ export default async function SessionPage({ params }: { params: Promise<{ date: 
   const response = await getSession(date);
 
   return (
-    <main className="mx-auto min-h-screen max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
+    <>
       <div className="mb-6">
         <Link href="/exercise" className="text-sm text-muted-foreground hover:text-foreground">
           ← Back to dashboard
@@ -69,6 +69,6 @@ export default async function SessionPage({ params }: { params: Promise<{ date: 
           </div>
         </CardContent>
       </Card>
-    </main>
+    </>
   );
 }

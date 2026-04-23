@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { TimeInput } from "@/components/time-input";
 import useSWR, { mutate as globalMutate } from "swr";
+import { addGutEntry, getGutConfig } from "@/lib/api-gut";
 import {
   addCaffeineEntry,
   addCannabisEntry,
@@ -29,7 +30,9 @@ import {
   type NutritionEntry,
   type SupplementItem,
 } from "@/lib/api";
+import { SECTIONS } from "@/lib/sections";
 import { useSectionColor } from "@/hooks/use-sections";
+import { useSelectedDate } from "@/hooks/use-selected-date";
 import {
   DEFAULT_DAY_PHASES,
   activePhaseId,
@@ -37,11 +40,7 @@ import {
   timeLeftInPhase,
 } from "@/lib/day-phases";
 import { SESSION_META, type SessionType } from "@/lib/session-templates";
-import {
-  daysAgoLocalISO,
-  nowHHMM,
-  todayLocalISO,
-} from "@/lib/date-utils";
+import { daysAgoLocalISO, nowHHMM } from "@/lib/date-utils";
 import { cn } from "@/lib/utils";
 import { showToast } from "@/lib/toast";
 import { TaskRow } from "@/components/tasks";
@@ -124,16 +123,15 @@ const HAPTIC = () => {
 // pages use `["<section>", date]`, and the timeline uses
 // `["today-timeline", date]` — a plain-string mutate never matches those,
 // so after any quick-log write we fan out with a filter function.
-function revalidateAfterLog(section: string) {
-  const heads = new Set([
-    `overview-${section}`,
-    section,
-    `quicklog-${section}`,
-    "today-timeline",
-  ]);
+export function revalidateAfterLog(section: string) {
+  // Prefix match on `overview-${section}` — tiles sometimes register
+  // extra keys like `overview-${section}-history` for companion queries.
+  const exact = new Set([section, `quicklog-${section}`, "today-timeline"]);
+  const overviewPrefix = `overview-${section}`;
   globalMutate((key) => {
     const head = Array.isArray(key) ? key[0] : key;
-    return typeof head === "string" && heads.has(head);
+    if (typeof head !== "string") return false;
+    return exact.has(head) || head === overviewPrefix || head.startsWith(`${overviewPrefix}-`);
   });
 }
 
@@ -149,6 +147,8 @@ function fmtDaysAgo(n: number | null): string {
 }
 
 export function ExerciseQuickLog({ onDone }: { onDone: () => void }) {
+  // Live color from /api/sections, not the static SECTIONS fallback —
+  // honors user customisation in settings.yaml.
   const accent = useSectionColor("exercise");
   const router = useRouter();
   const { data, isLoading } = useSWR("quicklog-exercise", () => getNextWorkout());
@@ -229,6 +229,7 @@ export function ExerciseQuickLog({ onDone }: { onDone: () => void }) {
 
 export function NutritionQuickLog({ onDone }: { onDone: () => void }) {
   const accent = useSectionColor("nutrition");
+  const { date: selectedDate } = useSelectedDate();
   const { data, isLoading } = useSWR("quicklog-nutrition", () =>
     getNutritionEntries(daysAgoLocalISO(7)),
   );
@@ -264,7 +265,7 @@ export function NutritionQuickLog({ onDone }: { onDone: () => void }) {
       HAPTIC();
       try {
         await saveNutritionEntry({
-          date: todayLocalISO(),
+          date: selectedDate,
           time: nowHHMM(),
           emoji: entry.emoji ?? "",
           protein_g: entry.protein_g,
@@ -280,7 +281,7 @@ export function NutritionQuickLog({ onDone }: { onDone: () => void }) {
         setSavingFile(null);
       }
     },
-    [savingFile, onDone],
+    [savingFile, onDone, selectedDate],
   );
 
   return (
@@ -341,7 +342,7 @@ const CAFFEINE_METHODS: { value: CaffeineMethod; label: string }[] = [
 
 export function CaffeineQuickLog({ onDone }: { onDone: () => void }) {
   const accent = useSectionColor("caffeine");
-  const today = todayLocalISO();
+  const { date: selectedDate } = useSelectedDate();
   const { data } = useSWR("quicklog-caffeine", async () => {
     const [sessions, cfg] = await Promise.all([getCaffeineSessions(7), getCaffeineConfig()]);
     return { sessions: sessions.sessions, beans: cfg.beans };
@@ -378,7 +379,7 @@ export function CaffeineQuickLog({ onDone }: { onDone: () => void }) {
     try {
       const gramsNum = grams.trim() ? parseFloat(grams) : null;
       await addCaffeineEntry({
-        date: today,
+        date: selectedDate,
         time,
         method,
         beans: beansSel.trim() || null,
@@ -389,7 +390,7 @@ export function CaffeineQuickLog({ onDone }: { onDone: () => void }) {
     } finally {
       setSaving(false);
     }
-  }, [saving, grams, today, time, method, beansSel, onDone]);
+  }, [saving, grams, selectedDate, time, method, beansSel, onDone]);
 
   return (
     <div className="space-y-3">
@@ -452,10 +453,10 @@ const CANNABIS_METHODS: { value: "vape" | "edible"; label: string }[] = [
 
 export function CannabisQuickLog({ onDone }: { onDone: () => void }) {
   const accent = useSectionColor("cannabis");
-  const today = todayLocalISO();
-  const { data, mutate } = useSWR("quicklog-cannabis", async () => {
+  const { date: selectedDate } = useSelectedDate();
+  const { data, mutate } = useSWR(["quicklog-cannabis", selectedDate], async () => {
     const [day, cap, sessions] = await Promise.all([
-      getCannabisDay(today),
+      getCannabisDay(selectedDate),
       getCannabisActiveCapsule(),
       getCannabisSessions(30),
     ]);
@@ -492,25 +493,25 @@ export function CannabisQuickLog({ onDone }: { onDone: () => void }) {
       await startCannabisCapsule(strain.trim() || null);
       // A fresh capsule always starts with the first hit — log a vape
       // session alongside it so use_count reflects reality.
-      await addCannabisEntry({ date: today, time: nowHHMM(), method: "vape" });
+      await addCannabisEntry({ date: selectedDate, time: nowHHMM(), method: "vape" });
       revalidateAfterLog("cannabis");
       await mutate();
     } finally {
       setSaving(false);
     }
-  }, [saving, strain, today, mutate]);
+  }, [saving, strain, selectedDate, mutate]);
 
   const handleLog = useCallback(async () => {
     if (saving) return;
     setSaving(true);
     try {
-      await addCannabisEntry({ date: today, time, method });
+      await addCannabisEntry({ date: selectedDate, time, method });
       revalidateAfterLog("cannabis");
       onDone();
     } finally {
       setSaving(false);
     }
-  }, [saving, today, time, method, onDone]);
+  }, [saving, selectedDate, time, method, onDone]);
 
   if (!data) {
     return <p className="text-sm text-muted-foreground">Loading…</p>;
@@ -559,8 +560,10 @@ export function CannabisQuickLog({ onDone }: { onDone: () => void }) {
 
 export function HabitsQuickLog() {
   const accent = useSectionColor("habits");
-  const today = todayLocalISO();
-  const { data, mutate, isLoading } = useSWR("quicklog-habits", () => getHabitDay(today));
+  const { date: selectedDate, isToday } = useSelectedDate();
+  const { data, mutate, isLoading } = useSWR(["quicklog-habits", selectedDate], () =>
+    getHabitDay(selectedDate),
+  );
   const { data: settings } = useSWR("settings", getSettings);
   const phases = settings?.day_phases ?? DEFAULT_DAY_PHASES;
   const [pending, setPending] = useState<Set<string>>(new Set());
@@ -571,7 +574,7 @@ export function HabitsQuickLog() {
       setPending((p) => new Set(p).add(habit.id));
       HAPTIC();
       try {
-        await toggleHabit(today, habit.id, !habit.done);
+        await toggleHabit(selectedDate, habit.id, !habit.done);
         revalidateAfterLog("habits");
         await mutate();
       } finally {
@@ -582,7 +585,7 @@ export function HabitsQuickLog() {
         });
       }
     },
-    [pending, data, today, mutate],
+    [pending, data, selectedDate, mutate],
   );
 
   if (isLoading || !data) {
@@ -601,7 +604,6 @@ export function HabitsQuickLog() {
   const order = orderPhasesByCurrent(phases).map((p) => p.id);
   const allDone = data.done_count === data.total;
 
-  const isToday = today === todayLocalISO();
   const showCurrentBucket = isToday;
   const activeBucket = isToday ? nowBucket : null;
   const timeLeft = activeBucket ? timeLeftInPhase(phases, activeBucket) : null;
@@ -661,9 +663,9 @@ export function HabitsQuickLog() {
 
 export function SupplementsQuickLog() {
   const accent = useSectionColor("supplements");
-  const today = todayLocalISO();
-  const { data, mutate, isLoading } = useSWR("quicklog-supplements", () =>
-    getSupplementDay(today),
+  const { date: selectedDate } = useSelectedDate();
+  const { data, mutate, isLoading } = useSWR(["quicklog-supplements", selectedDate], () =>
+    getSupplementDay(selectedDate),
   );
   const [pending, setPending] = useState<Set<string>>(new Set());
 
@@ -673,7 +675,7 @@ export function SupplementsQuickLog() {
       setPending((p) => new Set(p).add(item.id));
       HAPTIC();
       try {
-        await toggleSupplement(today, item.id, !item.done);
+        await toggleSupplement(selectedDate, item.id, !item.done);
         revalidateAfterLog("supplements");
         await mutate();
       } finally {
@@ -684,7 +686,7 @@ export function SupplementsQuickLog() {
         });
       }
     },
-    [pending, data, today, mutate],
+    [pending, data, selectedDate, mutate],
   );
 
   if (isLoading || !data) {
@@ -727,6 +729,7 @@ export function SupplementsQuickLog() {
 
 export function ChoresQuickLog() {
   const accent = useSectionColor("chores");
+  const { date: selectedDate } = useSelectedDate();
   const { data, mutate, isLoading } = useSWR("quicklog-chores", () => getChores());
   const [pending, setPending] = useState<Set<string>>(new Set());
 
@@ -736,7 +739,7 @@ export function ChoresQuickLog() {
       setPending((p) => new Set(p).add(id));
       HAPTIC();
       try {
-        await completeChore(id);
+        await completeChore(id, { date: selectedDate });
         revalidateAfterLog("chores");
         await mutate();
       } finally {
@@ -747,7 +750,7 @@ export function ChoresQuickLog() {
         });
       }
     },
-    [pending, mutate],
+    [pending, mutate, selectedDate],
   );
 
   if (isLoading || !data) {
@@ -788,6 +791,77 @@ export function ChoresQuickLog() {
           );
         })}
       </div>
+    </div>
+  );
+}
+
+// ── Gut ──────────────────────────────────────────────────────────────────────
+
+export function GutQuickLog({ onDone }: { onDone: () => void }) {
+  const accent = useSectionColor("gut");
+  const { date: selectedDate } = useSelectedDate();
+  const { data: config } = useSWR("quicklog-gut-config", getGutConfig);
+
+  const [time, setTime] = useState<string>(nowHHMM);
+  const [bristol, setBristol] = useState<string>("4");
+  const [blood, setBlood] = useState<string>("0");
+  const [saving, setSaving] = useState(false);
+
+  const bristolOpts = useMemo(
+    () =>
+      (config?.bristol ?? [1, 2, 3, 4, 5, 6, 7].map((id) => ({ id, label: `Type ${id}`, description: "" }))).map((b) => ({
+        value: String(b.id),
+        label: `${b.id}`,
+      })),
+    [config],
+  );
+  const bloodOpts = useMemo(
+    () =>
+      (config?.blood ?? [0, 1, 2].map((id) => ({ id, label: String(id) }))).map((b) => ({
+        value: String(b.id),
+        label: `${b.id} · ${b.label}`,
+      })),
+    [config],
+  );
+
+  const handleSave = useCallback(async () => {
+    if (saving) return;
+    setSaving(true);
+    try {
+      await addGutEntry({
+        date: selectedDate,
+        time,
+        bristol: parseInt(bristol, 10),
+        blood: parseInt(blood, 10),
+      });
+      revalidateAfterLog("gut");
+      onDone();
+    } finally {
+      setSaving(false);
+    }
+  }, [saving, selectedDate, time, bristol, blood, onDone]);
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-2">
+        <TimeInput
+          value={time}
+          onChange={setTime}
+          className="flex-1 rounded-lg border border-input bg-background px-3 py-2 text-sm"
+        />
+      </div>
+
+      <div>
+        <p className="mb-1 text-[10px] uppercase tracking-wide text-muted-foreground">Bristol</p>
+        <PillGroup options={bristolOpts} value={bristol} onChange={setBristol} accent={accent} />
+      </div>
+
+      <div>
+        <p className="mb-1 text-[10px] uppercase tracking-wide text-muted-foreground">Blood</p>
+        <PillGroup options={bloodOpts} value={blood} onChange={setBlood} accent={accent} />
+      </div>
+
+      <SaveBar onCancel={onDone} onSave={handleSave} saving={saving} accent={accent} />
     </div>
   );
 }

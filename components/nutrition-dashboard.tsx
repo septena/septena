@@ -20,22 +20,22 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { TimeInput } from "@/components/time-input";
 import { ChartContainer, type ChartConfig } from "@/components/ui/chart";
-import { SectionStatusBar } from "@/components/section-status-bar";
+import { CHART_GRID } from "@/lib/chart-defaults";
 import { showToast, showError } from "@/lib/toast";
 import { todayLocalISO, daysAgoLocalISO, addDaysISO, nowHHMM, shortDate, formatWeekdayTickNarrow } from "@/lib/date-utils";
 import { useSelectedDate } from "@/hooks/use-selected-date";
 import { computeFastingState, isBreakingFast, useFastingConfig } from "@/lib/fasting";
-import { useMacroTargets, useFastingTarget, useFiberTarget, formatRange, progressTowardRange, type MacroKey, type MacroTarget } from "@/lib/macro-targets";
+import { useMacroTargets, useFastingTarget, useFiberTarget, progressTowardRange, type MacroKey, type MacroTarget } from "@/lib/macro-targets";
 import { StatCard } from "@/components/stat-card";
 import { useBarAnimation } from "@/hooks/use-bar-animation";
-import { useSectionColor } from "@/hooks/use-sections";
+
+const NUTRITION_COLOR = "var(--section-accent)";
 
 export function NutritionDashboard() {
   return <NutritionDashboardInner />;
 }
 
 function NutritionDashboardInner() {
-  const NUTRITION_COLOR = useSectionColor("nutrition");
   const { date: selectedDate } = useSelectedDate();
   // Fetch a 7-day window ending at the selected date — covers both the day's
   // cards and the RecentEntries list.
@@ -92,7 +92,7 @@ function NutritionDashboardInner() {
   );
 
   return (
-    <main className="mx-auto min-h-screen max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
+    <>
       {error && (
         <Card className="mb-4 border-red-500/30 bg-red-500/10">
           <CardContent className="py-3 text-sm text-red-700 dark:text-red-300">{error instanceof Error ? error.message : String(error)}</CardContent>
@@ -163,10 +163,9 @@ function NutritionDashboardInner() {
         }}
       />
 
-      <SectionStatusBar section="nutrition" />
 
       {celebrating && <BreakFastCelebration onDone={() => setCelebrating(false)} />}
-    </main>
+    </>
   );
 }
 
@@ -284,55 +283,6 @@ function MiniMacroBar({ protein, fat, carbs, fiber, kcal, maxKcal = 1 }: { prote
         </div>
         {fiber > 0 && <div style={{ width: fbPx, backgroundColor: FB, minWidth: 2 }} />}
       </div>
-    </div>
-  );
-}
-
-function MacroWeekStrip({ totalsByDate }: {
-  totalsByDate: Map<string, { protein: number; fat: number; carbs: number; fiber: number; kcal: number }>;
-}) {
-  const targets = useMacroTargets();
-  const PROTEIN_C = targets.protein.color;
-  const FAT_C = targets.fat.color;
-  const CARBS_C = targets.carbs.color;
-
-  // Last 7 unique dates from entries
-  const last7 = [...totalsByDate.keys()].sort().slice(-7);
-  if (last7.length === 0) return null;
-
-  const dayTotals = totalsByDate;
-
-  const maxKcal = Math.max(...last7.map(d => dayTotals.get(d)?.kcal ?? 0), 1);
-  const MIN_BAR = 8; // px minimum bar width so tiny amounts stay visible
-  const MAX_BAR = 200; // px max bar width
-
-  return (
-    <div className="mb-4 space-y-1.5">
-      {last7.map(date => {
-        const t = dayTotals.get(date) ?? { protein: 0, fat: 0, carbs: 0, kcal: 0 };
-        const total = t.kcal;
-        const barWidth = Math.max(MIN_BAR, Math.min(MAX_BAR, (total / maxKcal) * MAX_BAR));
-        const totalW = barWidth;
-        const proteinW = total > 0 ? (t.protein / total) * totalW : 0;
-        const fatW = total > 0 ? (t.fat / total) * totalW : 0;
-        const carbsW = total > 0 ? (t.carbs / total) * totalW : 0;
-        const [y, m, d] = date.split("-").map(Number);
-        const weekday = new Date(y!, m! - 1, d!).toLocaleDateString(undefined, { weekday: "short" });
-        return (
-          <div key={date} className="flex items-center gap-2">
-            <span className="w-8 text-xs text-muted-foreground tabular-nums">{weekday}</span>
-            <div className="flex h-4 flex-1 overflow-hidden rounded-full">
-              {proteinW > 0 && <div style={{ width: proteinW, backgroundColor: PROTEIN_C }} />}
-              {fatW > 0 && <div style={{ width: fatW, backgroundColor: FAT_C }} />}
-              {carbsW > 0 && <div style={{ width: carbsW, backgroundColor: CARBS_C }} />}
-              {total === 0 && <div className="h-full w-px bg-muted-foreground/20" />}
-            </div>
-            <span className="w-10 text-right text-xs tabular-nums text-muted-foreground">
-              {total > 0 ? Math.round(total) : "—"}
-            </span>
-          </div>
-        );
-      })}
     </div>
   );
 }
@@ -690,7 +640,7 @@ function MacroChartCard({
           className="h-[200px] w-full overflow-hidden"
         >
           <BarChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-            <CartesianGrid vertical={false} strokeDasharray="3 3" />
+            <CartesianGrid {...CHART_GRID} />
             <XAxis dataKey="date" tickLine={false} axisLine={false} interval={0} fontSize={11}
               tickFormatter={(v: string) => formatWeekdayTickNarrow(v)} />
             <YAxis
@@ -726,14 +676,6 @@ function MacroChartCard({
   );
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-function parseHM(hm: string | null): number | null {
-  if (!hm) return null;
-  const [h, m] = hm.split(":").map(Number);
-  return (h ?? 0) * 60 + (m ?? 0);
-}
-
 // ── Fasting window chart ──────────────────────────────────────────────────────
 
 
@@ -743,6 +685,7 @@ function parseHM(hm: string | null): number | null {
 function FastingStatCard({ stats }: { stats: NutritionStats | null }) {
   const fastingTarget = useFastingTarget();
   const fastingConfig = useFastingConfig();
+  const nutritionColor = "var(--section-accent)";
   const today = todayLocalISO();
   const todayFast = (stats?.fasting ?? []).find((f) => f.date === today);
   const fastHours = todayFast?.hours;
@@ -754,27 +697,16 @@ function FastingStatCard({ stats }: { stats: NutritionStats | null }) {
   const fastingState = useMemo(() => computeFastingState(stats ?? null, fastingConfig), [stats, tick, fastingConfig]);
   const liveHours = fastingState.state === "fasting" ? fastingState.totalMin / 60 : null;
   const displayHours = liveHours ?? fastHours;
-  const progress = displayHours != null ? Math.min(1, displayHours / fastingTarget.max) : undefined;
-  const isFasting = fastingState.state === "fasting";
-
-  // Build 7-day histogram from historical fasting data (exclude today)
-  const histData = useMemo(() => {
-    return (stats?.fasting ?? [])
-      .filter((f) => f.hours != null && f.date !== today)
-      .slice(-7)
-      .map((f) => ({ date: f.date, value: f.hours ?? 0 }));
-  }, [stats, today]);
+  const midpoint = (fastingTarget.min + fastingTarget.max) / 2;
+  const progress = displayHours != null ? Math.min(1, displayHours / midpoint) : undefined;
 
   return (
     <StatCard
       label="Fasting"
       value={displayHours != null ? displayHours.toFixed(1) : null}
       unit="h"
-      progress={isFasting ? progress : undefined}
-      color={NUTRITION_COLOR}
-      histogramData={isFasting ? undefined : histData}
-      histogramColor={NUTRITION_COLOR}
-      histogramTarget={fastingTarget.min}
+      progress={progress}
+      color={nutritionColor}
     />
   );
 }
@@ -813,7 +745,7 @@ function FiberChartCard({
           className="h-[200px] w-full overflow-hidden"
         >
           <BarChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-            <CartesianGrid vertical={false} strokeDasharray="3 3" />
+            <CartesianGrid {...CHART_GRID} />
             <XAxis dataKey="date" tickLine={false} axisLine={false} interval={0} fontSize={11}
               tickFormatter={(v: string) => formatWeekdayTickNarrow(v)} />
             <YAxis
@@ -852,6 +784,7 @@ function FastingCard({ stats }: { stats: NutritionStats | null }) {
   const barAnim = useBarAnimation();
   const fastingTarget = useFastingTarget();
   const fastingConfig = useFastingConfig();
+  const nutritionColor = "var(--section-accent)";
   const today = todayLocalISO();
 
   // Build chart data from historical fasting windows, tagging today's entry.
@@ -894,7 +827,7 @@ function FastingCard({ stats }: { stats: NutritionStats | null }) {
     return data;
   }, [rawData, fastingState, today]);
 
-  const fastingChartConfig = { metric: { label: "Fasting hours", color: NUTRITION_COLOR } } satisfies ChartConfig;
+  const fastingChartConfig = { metric: { label: "Fasting hours", color: nutritionColor } } satisfies ChartConfig;
   const avg7d = useMemo(() => {
     const d = chartData.slice(-7).filter((x: any) => x.hasData && !x.isGap && !x.isToday && !x.isLive);
     return d.length ? +(d.reduce((s: number, x: any) => s + x.metric, 0) / d.length).toFixed(1) : 0;
@@ -909,21 +842,21 @@ function FastingCard({ stats }: { stats: NutritionStats | null }) {
             const mid = (fastingTarget.min + fastingTarget.max) / 2;
             const delta = +(avg7d - mid).toFixed(1);
             const sign = delta > 0 ? "+" : "";
-            return <span style={{ color: NUTRITION_COLOR }}>{sign}{delta}h vs target</span>;
+            return <span style={{ color: nutritionColor }}>{sign}{delta}h vs target</span>;
           })()}
         </CardDescription>
       </CardHeader>
       <CardContent className="px-4">
         <ChartContainer config={fastingChartConfig} className="h-[200px] w-full overflow-hidden">
           <BarChart data={chartData.slice(-7)} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-            <CartesianGrid vertical={false} strokeDasharray="3 3" />
+            <CartesianGrid {...CHART_GRID} />
             <XAxis dataKey="date" tickLine={false} axisLine={false} interval={0} fontSize={11}
               tickFormatter={(v: string) => formatWeekdayTickNarrow(v)} />
             <YAxis tickLine={false} axisLine={false} domain={[0, Math.ceil(fastingTarget.max / 0.85)]} width={36} fontSize={11} tickFormatter={(v: number) => `${v}h`} />
-            <ReferenceArea y1={fastingTarget.min} y2={fastingTarget.max} fill={NUTRITION_COLOR} fillOpacity={0.12} stroke="none" />
-            <ReferenceLine y={fastingTarget.min} stroke={NUTRITION_COLOR} strokeDasharray="4 4" strokeOpacity={0.6} />
-            <ReferenceLine y={fastingTarget.max} stroke={NUTRITION_COLOR} strokeDasharray="4 4" strokeOpacity={0.6} />
-            {avg7d > 0 && <ReferenceLine y={avg7d} stroke={NUTRITION_COLOR} strokeOpacity={0.8} strokeWidth={2} />}
+            <ReferenceArea y1={fastingTarget.min} y2={fastingTarget.max} fill={nutritionColor} fillOpacity={0.12} stroke="none" />
+            <ReferenceLine y={fastingTarget.min} stroke={nutritionColor} strokeDasharray="4 4" strokeOpacity={0.6} />
+            <ReferenceLine y={fastingTarget.max} stroke={nutritionColor} strokeDasharray="4 4" strokeOpacity={0.6} />
+            {avg7d > 0 && <ReferenceLine y={avg7d} stroke={nutritionColor} strokeOpacity={0.8} strokeWidth={2} />}
             <Tooltip
               cursor={false}
               contentStyle={{ fontSize: 12 }}
@@ -940,7 +873,7 @@ function FastingCard({ stats }: { stats: NutritionStats | null }) {
               {chartData.slice(-7).map((d, i) => {
                 const v = d.metric;
                 const hasData = d.hasData && !d.isGap;
-                const color = hasData ? NUTRITION_COLOR : "hsl(220,10%,88%)";
+                const color = hasData ? nutritionColor : "hsl(220,10%,88%)";
                 const opacity = !hasData ? 1 : v >= fastingTarget.min ? 1 : 0.55;
                 return <Cell key={i} fill={color} fillOpacity={opacity} />;
               })}

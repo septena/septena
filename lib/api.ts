@@ -1,3 +1,16 @@
+/** Universal event contract — mirrors api/events.py:SectionEvent.
+ *  Each section's /api/{section}/events?date= endpoint returns these,
+ *  so cross-section views (timeline, etc.) don't need per-section quirks. */
+export type SectionEvent = {
+  section: string;
+  date: string;
+  time: string | null;
+  label: string;
+  sublabel?: string | null;
+  icon?: string | null;
+  id?: string | null;
+};
+
 export type Stats = {
   total_sessions: number;
   total_entries: number;
@@ -75,6 +88,26 @@ async function request<T>(path: string, opts?: RequestInit): Promise<T> {
   return response.json() as Promise<T>;
 }
 
+function postJSON<T>(path: string, body: unknown) {
+  return request<T>(path, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}
+
+function putJSON<T>(path: string, body: unknown) {
+  return request<T>(path, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}
+
+function del<T>(path: string) {
+  return request<T>(path, { method: "DELETE" });
+}
+
 export type AppConfig = {
   paths: {
     vault: string;
@@ -82,7 +115,7 @@ export type AppConfig = {
     integrations: string;
     cache: string;
   };
-  /** Whether SETLIST_VAULT resolves to an existing directory. False on
+  /** Whether the data dir resolves to an existing directory. False on
    *  first install when the user hasn't created a vault yet. */
   vault_exists: boolean;
   /** Whether the vault has any section folders (e.g. Nutrition/, Habits/).
@@ -164,26 +197,18 @@ export async function getExerciseConfig() {
 }
 
 export async function addExercise(name: string, type: string, subgroup?: string) {
-  return request<ExerciseConfigItem>("/api/exercise/exercises", {
-    method: "POST",
-    body: JSON.stringify({ name, type, subgroup }),
-  });
+  return postJSON<ExerciseConfigItem>("/api/exercise/exercises", { name, type, subgroup });
 }
 
 export async function updateExercise(
   id: string,
   patch: { name?: string; type?: string; subgroup?: string },
 ) {
-  return request<ExerciseConfigItem>(`/api/exercise/exercises/${encodeURIComponent(id)}`, {
-    method: "PUT",
-    body: JSON.stringify(patch),
-  });
+  return putJSON<ExerciseConfigItem>(`/api/exercise/exercises/${encodeURIComponent(id)}`, patch);
 }
 
 export async function deleteExercise(id: string) {
-  return request<{ ok: boolean }>(`/api/exercise/exercises/${encodeURIComponent(id)}`, {
-    method: "DELETE",
-  });
+  return del<{ ok: boolean }>(`/api/exercise/exercises/${encodeURIComponent(id)}`);
 }
 
 // ── Cardio history ──────────────────────────────────────────────────────────
@@ -221,10 +246,7 @@ export type SessionWritePayload = {
 };
 
 export async function postSession(payload: SessionWritePayload) {
-  return request<{ written: string[]; concluded_at: string }>(
-    "/api/sessions",
-    { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) },
-  );
+  return postJSON<{ written: string[]; concluded_at: string }>("/api/sessions", payload);
 }
 
 export async function getLastSession(type: string) {
@@ -254,11 +276,7 @@ export async function getEntries(since?: string) {
 }
 
 export async function getLastEntries(exercises: string[]) {
-  return request<Record<string, LastEntryValues | null>>("/api/last-entries", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ exercises }),
-  });
+  return postJSON<Record<string, LastEntryValues | null>>("/api/last-entries", { exercises });
 }
 
 // ── Nutrition ───────────────────────────────────────────────────────────
@@ -347,6 +365,10 @@ export async function getNutritionEntries(since?: string) {
   return request<NutritionEntry[]>(`/api/nutrition/entries${qs}`);
 }
 
+export async function getSectionEvents(section: string, date: string) {
+  return request<{ events: SectionEvent[] }>(`/api/${section}/events?date=${date}`);
+}
+
 export async function getNutritionStats(days = 30, end?: string) {
   const qs = new URLSearchParams({ days: String(days) });
   if (end) qs.set("end", end);
@@ -354,19 +376,11 @@ export async function getNutritionStats(days = 30, end?: string) {
 }
 
 export async function saveNutritionEntry(payload: NutritionPayload) {
-  return request<{ ok: boolean; file: string }>("/api/nutrition/sessions", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
+  return postJSON<{ ok: boolean; file: string }>("/api/nutrition/sessions", payload);
 }
 
 export async function updateNutritionEntry(payload: NutritionPayload & { file: string }) {
-  return request<{ ok: boolean; file: string }>("/api/nutrition/sessions", {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
+  return putJSON<{ ok: boolean; file: string }>("/api/nutrition/sessions", payload);
 }
 
 export async function deleteNutritionEntry(file: string) {
@@ -431,36 +445,19 @@ export async function getHabitConfig() {
 }
 
 export async function addHabit(name: string, bucket: string) {
-  return request<{ ok: boolean; id: string; name: string; bucket: string; skipped?: boolean }>(
-    "/api/habits/new",
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, bucket }),
-    }
-  );
+  return postJSON<{ ok: boolean; id: string; name: string; bucket: string; skipped?: boolean }>("/api/habits/new", { name, bucket });
 }
 
 export async function updateHabit(id: string, patch: { name?: string; bucket?: string }) {
-  return request<{ ok: boolean }>("/api/habits/update", {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ id, ...patch }),
-  });
+  return putJSON<{ ok: boolean }>("/api/habits/update", { id, ...patch });
 }
 
 export async function deleteHabit(id: string) {
-  return request<{ ok: boolean; id: string }>(`/api/habits/delete/${encodeURIComponent(id)}`, {
-    method: "DELETE",
-  });
+  return del<{ ok: boolean; id: string }>(`/api/habits/delete/${encodeURIComponent(id)}`);
 }
 
 export async function toggleHabit(day: string, habitId: string, done: boolean) {
-  return request<{ ok: boolean; completed: string[] }>("/api/habits/toggle", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ date: day, habit_id: habitId, done }),
-  });
+  return postJSON<{ ok: boolean; completed: string[] }>("/api/habits/toggle", { date: day, habit_id: habitId, done });
 }
 
 export async function getHabitHistory(days = 30) {
@@ -502,40 +499,33 @@ export async function getSupplementDay(day: string) {
 }
 
 export async function toggleSupplement(day: string, supplementId: string, done: boolean) {
-  return request<{ ok: boolean; taken: string[] }>("/api/supplements/toggle", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ date: day, supplement_id: supplementId, done }),
-  });
+  return postJSON<{ ok: boolean; taken: string[] }>("/api/supplements/toggle", { date: day, supplement_id: supplementId, done });
 }
 
 export async function getSupplementHistory(days = 30) {
   return request<SupplementHistory>(`/api/supplements/history?days=${days}`);
 }
 
+export type SupplementHistoryByIdDay = { date: string; taken: string[] };
+export type SupplementHistoryByIdResponse = {
+  daily: SupplementHistoryByIdDay[];
+  supplements: Array<{ id: string; name: string; emoji: string }>;
+};
+
+export async function getSupplementHistoryById(days = 30) {
+  return request<SupplementHistoryByIdResponse>(`/api/supplements/history-by-id?days=${days}`);
+}
+
 export async function addSupplement(name: string, emoji?: string) {
-  return request<{ ok: boolean; id: string; name: string; emoji: string; skipped?: boolean }>(
-    "/api/supplements/new",
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, emoji: emoji ?? "" }),
-    },
-  );
+  return postJSON<{ ok: boolean; id: string; name: string; emoji: string; skipped?: boolean }>("/api/supplements/new", { name, emoji: emoji ?? "" });
 }
 
 export async function updateSupplement(id: string, patch: { name?: string; emoji?: string }) {
-  return request<{ ok: boolean }>("/api/supplements/update", {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ id, ...patch }),
-  });
+  return putJSON<{ ok: boolean }>("/api/supplements/update", { id, ...patch });
 }
 
 export async function deleteSupplement(id: string) {
-  return request<{ ok: boolean; id: string }>(`/api/supplements/delete/${encodeURIComponent(id)}`, {
-    method: "DELETE",
-  });
+  return del<{ ok: boolean; id: string }>(`/api/supplements/delete/${encodeURIComponent(id)}`);
 }
 
 // ── Cannabis ────────────────────────────────────────────────────────────
@@ -600,11 +590,7 @@ export async function addCannabisEntry(payload: {
   notes?: string | null;
   effect?: string | null;
 }) {
-  return request<{ ok: boolean; entry: CannabisEntry }>("/api/cannabis/entry", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
+  return postJSON<{ ok: boolean; entry: CannabisEntry }>("/api/cannabis/entry", payload);
 }
 
 export async function getCannabisActiveCapsule() {
@@ -612,26 +598,15 @@ export async function getCannabisActiveCapsule() {
 }
 
 export async function startCannabisCapsule(strain: string | null) {
-  return request<{ ok: boolean; active: CannabisCapsule }>(
-    "/api/cannabis/capsule/start",
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ strain }),
-    },
-  );
+  return postJSON<{ ok: boolean; active: CannabisCapsule }>("/api/cannabis/capsule/start", { strain });
 }
 
 export async function endCannabisCapsule() {
-  return request<{ ok: boolean }>("/api/cannabis/capsule/end", {
-    method: "POST",
-  });
+  return postJSON<{ ok: boolean }>("/api/cannabis/capsule/end", {});
 }
 
 export async function deleteCannabisEntry(entryId: string, date: string) {
-  return request<{ ok: boolean }>(`/api/cannabis/entry/${entryId}?date=${date}`, {
-    method: "DELETE",
-  });
+  return del<{ ok: boolean }>(`/api/cannabis/entry/${entryId}?date=${date}`);
 }
 
 export async function getCannabisHistory(days = 30) {
@@ -672,11 +647,7 @@ export async function getGroceries() {
 }
 
 export async function addGroceryItem(name: string, category?: string, emoji?: string) {
-  return request<GroceryItem>("/api/groceries/item", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name, category, emoji }),
-  });
+  return postJSON<GroceryItem>("/api/groceries/item", { name, category, emoji });
 }
 
 export async function patchGroceryItem(itemId: string, patch: Partial<GroceryItem>) {
@@ -688,7 +659,7 @@ export async function patchGroceryItem(itemId: string, patch: Partial<GroceryIte
 }
 
 export async function deleteGroceryItem(itemId: string) {
-  return request<{ ok: boolean }>(`/api/groceries/item/${itemId}`, { method: "DELETE" });
+  return del<{ ok: boolean }>(`/api/groceries/item/${itemId}`);
 }
 
 export type GroceryHistory = {
@@ -755,17 +726,11 @@ export async function addCaffeineEntry(payload: {
   grams?: number | null;
   notes?: string | null;
 }) {
-  return request<{ ok: boolean; entry: CaffeineEntry }>("/api/caffeine/entry", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
+  return postJSON<{ ok: boolean; entry: CaffeineEntry }>("/api/caffeine/entry", payload);
 }
 
 export async function deleteCaffeineEntry(entryId: string, date: string) {
-  return request<{ ok: boolean }>(`/api/caffeine/entry/${entryId}?date=${date}`, {
-    method: "DELETE",
-  });
+  return del<{ ok: boolean }>(`/api/caffeine/entry/${entryId}?date=${date}`);
 }
 
 export async function getCaffeineHistory(days = 30) {
@@ -1005,30 +970,22 @@ export async function getChores() {
   return request<ChoresList>("/api/chores/list");
 }
 
-export async function completeChore(choreId: string, note?: string) {
-  return request<{ ok: boolean; date: string; chore_id: string; action: "complete" }>(
+export async function completeChore(choreId: string, opts?: { date?: string; note?: string }) {
+  return postJSON<{ ok: boolean; date: string; chore_id: string; action: "complete" }>(
     "/api/chores/complete",
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ chore_id: choreId, note }),
-    },
+    { chore_id: choreId, date: opts?.date, note: opts?.note },
   );
 }
 
 export async function deferChore(choreId: string, mode: ChoreDeferMode) {
-  return request<{
+  return postJSON<{
     ok: boolean;
     date: string;
     chore_id: string;
     action: "defer";
     mode: ChoreDeferMode;
     new_due_date: string;
-  }>("/api/chores/defer", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ chore_id: choreId, mode }),
-  });
+  }>("/api/chores/defer", { chore_id: choreId, mode });
 }
 
 export async function getChoreHistory(days = 30) {
@@ -1043,31 +1000,17 @@ export type NewChoreInput = {
 };
 
 export async function createChoreDefinition(input: NewChoreInput) {
-  return request<{ ok: boolean; id: string; name: string; cadence_days: number }>(
-    "/api/chores/definitions",
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(input),
-    },
-  );
+  return postJSON<{ ok: boolean; id: string; name: string; cadence_days: number }>("/api/chores/definitions", input);
 }
 
 export type UpdateChoreInput = Partial<Omit<NewChoreInput, "id">>;
 
 export async function updateChoreDefinition(choreId: string, input: UpdateChoreInput) {
-  return request<{ ok: boolean }>(`/api/chores/definitions/${encodeURIComponent(choreId)}`, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(input),
-  });
+  return putJSON<{ ok: boolean }>(`/api/chores/definitions/${encodeURIComponent(choreId)}`, input);
 }
 
 export async function deleteChoreDefinition(choreId: string) {
-  return request<{ ok: boolean; id: string }>(
-    `/api/chores/definitions/${encodeURIComponent(choreId)}`,
-    { method: "DELETE" },
-  );
+  return del<{ ok: boolean; id: string }>(`/api/chores/definitions/${encodeURIComponent(choreId)}`);
 }
 
 export async function getSupplementConfig() {
@@ -1105,7 +1048,7 @@ export async function getMeta() {
 }
 
 // ── Settings ────────────────────────────────────────────────────────────
-export type AppTheme = "system" | "light" | "dark";
+export type AppTheme = "system" | "light" | "dark" | "eink";
 export type WeightUnit = "kg" | "lb";
 export type DistanceUnit = "km" | "mi";
 
@@ -1182,7 +1125,6 @@ export type AppSettings = {
   units: { weight: WeightUnit; distance: DistanceUnit };
   theme: AppTheme;
   icon_color: string;
-  mini_stats: Record<string, string[]>;
   animations: AppAnimations;
   weather: WeatherSettings;
   calendar: CalendarSettings;
@@ -1194,11 +1136,7 @@ export async function getSettings() {
 }
 
 export async function saveSettings(patch: Partial<AppSettings>) {
-  return request<AppSettings>("/api/settings", {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(patch),
-  });
+  return putJSON<AppSettings>("/api/settings", patch);
 }
 
 // ── Sections ────────────────────────────────────────────────────────────────
@@ -1217,7 +1155,7 @@ export type SectionMeta = {
   order: number;
   path: string;
   apiBase: string;
-  obsidianDir: string;
+  dataDir: string;
 };
 
 export async function getSections(): Promise<SectionMeta[]> {

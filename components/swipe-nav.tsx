@@ -5,7 +5,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { SECTION_LIST } from "@/lib/sections";
 
 const SWIPE_THRESHOLD = 50;
-const CHAIN_KEY = "setlist:swipe-chain";
+const CHAIN_KEY = "septena:swipe-chain";
 
 function readChain(): string[] {
   try {

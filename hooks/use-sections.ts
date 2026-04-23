@@ -4,7 +4,7 @@ import useSWR from "swr";
 import { getSections, getSettings, type SectionMeta } from "@/lib/api";
 import { SECTIONS, SECTION_LIST, type SectionKey } from "@/lib/sections";
 
-// Merges code-side wiring (path, apiBase, obsidianDir, defaults) with user
+// Merges code-side wiring (path, apiBase, dataDir, defaults) with user
 // overrides from settings.yaml. Falls back to the static registry when
 // settings haven't loaded yet (first paint + offline).
 function buildSectionsFromSettings(
@@ -32,7 +32,7 @@ function buildSectionsFromSettings(
       order: idx,
       path: base.path,
       apiBase: base.apiBase,
-      obsidianDir: base.obsidianDir,
+      dataDir: base.dataDir,
     };
   });
 }

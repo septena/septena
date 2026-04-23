@@ -6,15 +6,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { usePageHeader } from "@/components/page-header-context";
 import { Line, LineChart, CartesianGrid, XAxis, YAxis, ReferenceLine, ReferenceArea } from "recharts";
 import { ChartContainer, type ChartConfig } from "@/components/ui/chart";
-import { SectionStatusBar } from "@/components/section-status-bar";
 import {
   getAirSummary,
   getAirReadings,
   getAirHistory,
   type AirTimeSeriesPoint,
 } from "@/lib/api";
-import { useSectionColor } from "@/hooks/use-sections";
-import { formatWeekdayTick } from "@/lib/date-utils";
+import { CHART_GRID, WEEKDAY_X_AXIS, Y_AXIS } from "@/lib/chart-defaults";
 import { StatCard } from "@/components/stat-card";
 
 const CO2_BAND_COLOR: Record<string, string> = {
@@ -38,7 +36,7 @@ function formatHourTick(iso: string) {
 }
 
 export function AirDashboard() {
-  const COLOR = useSectionColor("air");
+  const COLOR = "var(--section-accent)";
   const co2Config = {
     co2_ppm: { label: "CO₂ (ppm)", color: COLOR },
   } satisfies ChartConfig;
@@ -60,21 +58,21 @@ export function AirDashboard() {
 
   if (loading) {
     return (
-      <main className="mx-auto min-h-screen max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
+      <>
         <div className="mb-4 grid min-w-0 grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3 [&>*]:min-w-0">
           {[...Array(4)].map((_, i) => (
             <div key={i} className="h-20 animate-pulse rounded-xl border border-border bg-muted/30" />
           ))}
         </div>
         <div className="h-[240px] animate-pulse rounded-xl border border-border bg-muted/30" />
-      </main>
+      </>
     );
   }
 
   const noData = !latest;
 
   return (
-    <main data-section="air" className="mx-auto min-h-screen w-full min-w-0 max-w-6xl overflow-hidden px-4 py-6 sm:px-6 lg:px-8">
+    <>
       {noData && (
         <Card className="mb-4 border-amber-500/30 bg-amber-500/10">
           <CardContent className="py-3 text-sm text-amber-700 dark:text-amber-300">
@@ -132,7 +130,7 @@ export function AirDashboard() {
           <CardContent className="min-w-0 overflow-hidden px-4">
             <ChartContainer config={co2Config} className="h-[240px] w-full">
               <LineChart data={todaySeries} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
-                <CartesianGrid vertical={false} strokeDasharray="3 3" />
+                <CartesianGrid {...CHART_GRID} />
                 <XAxis
                   dataKey="datetime"
                   tickLine={false}
@@ -141,7 +139,7 @@ export function AirDashboard() {
                   tick={{ fontSize: 10 }}
                   minTickGap={32}
                 />
-                <YAxis tickLine={false} axisLine={false} domain={[400, "auto"]} width={40} tickFormatter={(v: number) => `${Math.round(v)}`} />
+                <YAxis {...Y_AXIS} domain={[400, "auto"]} width={40} tickFormatter={(v: number) => `${Math.round(v)}`} />
                 {/* Health bands */}
                 <ReferenceArea y1={1000} y2={1400} fill="hsl(25,85%,55%)" fillOpacity={0.06} />
                 <ReferenceArea y1={1400} y2={5000} fill="hsl(0,70%,52%)" fillOpacity={0.08} />
@@ -171,10 +169,10 @@ export function AirDashboard() {
             <CardContent className="min-w-0 overflow-hidden px-4">
               <ChartContainer config={tempConfig} className="h-[160px] w-full">
                 <LineChart data={todaySeries} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
-                  <CartesianGrid vertical={false} strokeDasharray="3 3" />
+                  <CartesianGrid {...CHART_GRID} />
                   <XAxis dataKey="datetime" tickLine={false} axisLine={false}
                     tickFormatter={(v) => formatHourTick(v as string)} tick={{ fontSize: 10 }} minTickGap={40} />
-                  <YAxis tickLine={false} axisLine={false} domain={["dataMin - 0.5", "dataMax + 0.5"]} width={36}
+                  <YAxis {...Y_AXIS} domain={["dataMin - 0.5", "dataMax + 0.5"]}
                     tickFormatter={(v: number) => `${v.toFixed(0)}`} />
                   <Line type="monotone" dataKey="temp_c" stroke="var(--color-temp_c)"
                     strokeWidth={2} dot={false} isAnimationActive={false} />
@@ -190,10 +188,10 @@ export function AirDashboard() {
             <CardContent className="min-w-0 overflow-hidden px-4">
               <ChartContainer config={humConfig} className="h-[160px] w-full">
                 <LineChart data={todaySeries} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
-                  <CartesianGrid vertical={false} strokeDasharray="3 3" />
+                  <CartesianGrid {...CHART_GRID} />
                   <XAxis dataKey="datetime" tickLine={false} axisLine={false}
                     tickFormatter={(v) => formatHourTick(v as string)} tick={{ fontSize: 10 }} minTickGap={40} />
-                  <YAxis tickLine={false} axisLine={false} domain={[0, 100]} width={36}
+                  <YAxis {...Y_AXIS} domain={[0, 100]}
                     tickFormatter={(v: number) => `${v}%`} />
                   <ReferenceLine y={40} stroke="hsl(220,40%,55%)" strokeDasharray="6 3" strokeOpacity={0.4} />
                   <ReferenceLine y={60} stroke="hsl(220,40%,55%)" strokeDasharray="6 3" strokeOpacity={0.4} />
@@ -215,10 +213,9 @@ export function AirDashboard() {
           <CardContent className="min-w-0 overflow-hidden px-4">
             <ChartContainer config={co2Config} className="h-[180px] w-full">
               <LineChart data={history.daily} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
-                <CartesianGrid vertical={false} strokeDasharray="3 3" />
-                <XAxis dataKey="date" tickLine={false} axisLine={false}
-                  tickFormatter={(v) => formatWeekdayTick(v as string)} tick={{ fontSize: 10 }} />
-                <YAxis tickLine={false} axisLine={false} domain={[400, "auto"]} width={40}
+                <CartesianGrid {...CHART_GRID} />
+                <XAxis {...WEEKDAY_X_AXIS} />
+                <YAxis {...Y_AXIS} domain={[400, "auto"]} width={40}
                   tickFormatter={(v: number) => `${Math.round(v)}`} />
                 <ReferenceLine y={1000} stroke="hsl(25,85%,55%)" strokeDasharray="6 3" strokeOpacity={0.6} />
                 <Line type="monotone" dataKey="co2_max" stroke="var(--color-co2_ppm)"
@@ -229,7 +226,6 @@ export function AirDashboard() {
         </Card>
       )}
 
-      <SectionStatusBar section="air" />
-    </main>
+    </>
   );
 }

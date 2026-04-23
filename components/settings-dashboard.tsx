@@ -207,6 +207,8 @@ function CalendarConfigCard({
   const { data } = useSWR("settings-calendar-list", getCalendar, {
     shouldRetryOnError: false,
   });
+  // Live color from /api/sections, not the static SECTIONS fallback —
+  // honors user customisation in settings.yaml.
   const color = useSectionColor("calendar");
   const cals = data?.calendars ?? [];
 
@@ -283,6 +285,8 @@ function CalendarConfigCard({
 export function SettingsDashboard() {
   const { setTheme } = useTheme();
   const sectionsMeta = useSections();
+  // Live color from /api/sections, not the static SECTIONS fallback —
+  // honors user customisation in settings.yaml.
   const correlationsColor = useSectionColor("correlations");
   const weatherColor = useSectionColor("weather");
   const exerciseColor = useSectionColor("exercise");
@@ -446,22 +450,22 @@ export function SettingsDashboard() {
 
   if (isLoading || !draft) {
     return (
-      <main className="mx-auto min-h-screen max-w-3xl px-4 py-6 pb-24 sm:px-6 sm:pb-6">
+      <>
         <PageHeader title="Settings" />
         <p className="text-sm text-muted-foreground">Loading…</p>
-      </main>
+      </>
     );
   }
 
   const accent = correlationsColor;
 
   return (
-    <main className="mx-auto min-h-screen max-w-3xl px-4 py-6 pb-24 sm:px-6 sm:pb-6">
+    <>
       <PageHeader
         title="Settings"
         subtitle={
           <>
-            Stored in <code className="rounded bg-muted px-1">Bases/Settings/settings.yaml</code> — you can edit in Obsidian too.
+            Stored in <code className="rounded bg-muted px-1">Bases/Settings/settings.yaml</code> — you can edit on disk too.
           </>
         }
       />
@@ -747,13 +751,13 @@ export function SettingsDashboard() {
           <CardContent>
             <Pill<AppTheme>
               options={[
-                { value: "system", label: "System" },
-                { value: "light", label: "Light" },
-                { value: "dark", label: "Dark" },
+                { value: "light", label: "Day" },
+                { value: "dark", label: "Night" },
+                { value: "eink", label: "Eink" },
               ]}
               value={draft.theme}
               // Apply instantly so the user can see the effect; the final
-              // choice still persists to Obsidian on Save.
+              // choice still persists to disk on Save.
               onChange={(v) => {
                 patch({ theme: v });
                 setTheme(v);
@@ -866,7 +870,7 @@ export function SettingsDashboard() {
 
         <SaveRow saving={saving} saved={saved} onSave={handleSave} />
       </div>
-    </main>
+    </>
   );
 }
 

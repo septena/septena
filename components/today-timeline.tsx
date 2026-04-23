@@ -12,7 +12,9 @@ import {
   getHabitDay,
   getChores,
   getSupplementDay,
+  getCalendar,
 } from "@/lib/api";
+import { getGutDay } from "@/lib/api-gut";
 import { useSelectedDate } from "@/hooks/use-selected-date";
 import { relativeDayLabel } from "@/lib/date-utils";
 
@@ -30,6 +32,11 @@ function parseHHMM(t: string | null | undefined): number | null {
 
 export function TodayTimeline() {
   const { date: today, isToday } = useSelectedDate();
+  // Pull from the live registry (`/api/sections`) not the static
+  // `SECTIONS[key].color` fallback — the static map is the first-paint
+  // default; users can override per-section in settings.yaml. Reading
+  // statically here meant the timeline dots stayed default-colored even
+  // after the user customised a section's accent.
   const nutritionColor = useSectionColor("nutrition");
   const cannabisColor = useSectionColor("cannabis");
   const caffeineColor = useSectionColor("caffeine");
@@ -37,6 +44,8 @@ export function TodayTimeline() {
   const habitsColor = useSectionColor("habits");
   const supplementsColor = useSectionColor("supplements");
   const choresColor = useSectionColor("chores");
+  const gutColor = useSectionColor("gut");
+  const calendarColor = useSectionColor("calendar");
 
   const { data } = useSWR(
     ["today-timeline", today],
@@ -47,7 +56,7 @@ export function TodayTimeline() {
       //   - getHealthCache() serves the on-disk snapshot with no upstream API
       //     calls, so it returns instantly — we only need the latest oura row
       //     for wake_time.
-      const [nutrition, cannabis, caffeine, exercise, health, habits, chores, supplements] = await Promise.all([
+      const [nutrition, cannabis, caffeine, exercise, health, habits, chores, supplements, gut, calendar] = await Promise.all([
         getNutritionEntries(today).catch(() => []),
         getCannabisDay(today).catch(() => ({ entries: [] as { time: string }[] })),
         getCaffeineDay(today).catch(() => ({ entries: [] as { time: string; method: string }[] })),
@@ -56,8 +65,10 @@ export function TodayTimeline() {
         getHabitDay(today).catch(() => null),
         getChores().catch(() => null),
         getSupplementDay(today).catch(() => null),
+        getGutDay(today).catch(() => null),
+        getCalendar().catch(() => null),
       ]);
-      return { nutrition, cannabis, caffeine, exercise, health, habits, chores, supplements };
+      return { nutrition, cannabis, caffeine, exercise, health, habits, chores, supplements, gut, calendar };
     },
     { refreshInterval: 60_000, revalidateOnFocus: false },
   );
@@ -120,7 +131,37 @@ export function TodayTimeline() {
     if (hr == null) continue;
     dots.push({ hour: hr, color: choresColor, label: `${c.last_completed_time} · ${c.name}` });
   }
-  dots.sort((a, b) => a.hour - b.hour);
+  // Gut — dot per bowel movement.
+  for (const g of data?.gut?.entries ?? []) {
+    const h = parseHHMM(g.time);
+    if (h == null) continue;
+    dots.push({ hour: h, color: gutColor, label: `${g.time} · Bristol ${g.bristol}` });
+  }
+  // Calendar — dot at each event start, merged into the main dot stream.
+  for (const ev of data?.calendar?.events ?? []) {
+    if (ev.all_day) continue;
+    if (!ev.start?.startsWith(today)) continue;
+    const sh = parseHHMM(ev.start.slice(11, 16));
+    if (sh == null) continue;
+    dots.push({ hour: sh, color: calendarColor, label: `${ev.start.slice(11, 16)} · ${ev.title}` });
+  }
+
+  // Cluster dots by (color, ~10min bucket) so multiple entries of the same
+  // section close in time render as a single larger dot (e.g. a meal logged as
+  // several food items). Different sections at the same time stay separate.
+  type Cluster = { hour: number; color: string; labels: string[] };
+  const clusterMap = new Map<string, Cluster>();
+  for (const d of dots) {
+    const key = `${d.color}:${Math.floor(d.hour * 6)}`;
+    const existing = clusterMap.get(key);
+    if (existing) {
+      existing.labels.push(d.label);
+      existing.hour = (existing.hour * existing.labels.length + d.hour) / (existing.labels.length + 1);
+    } else {
+      clusterMap.set(key, { hour: d.hour, color: d.color, labels: [d.label] });
+    }
+  }
+  const clusters = [...clusterMap.values()].sort((a, b) => a.hour - b.hour);
 
   // Wake time — latest Oura row's wake_time. The row keyed to today's date
   // corresponds to last night's sleep that ended this morning.
@@ -192,15 +233,23 @@ export function TodayTimeline() {
             title={`Now · ${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`}
           />
         )}
-        {/* Dots */}
-        {dots.map((d, i) => (
-          <div
-            key={i}
-            className="absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full ring-2 ring-background"
-            style={{ left: `${pct(d.hour)}%`, backgroundColor: d.color }}
-            title={d.label}
-          />
-        ))}
+        {/* Dots — one per (section, ~10min bucket). Size grows with count. */}
+        {clusters.map((c, i) => {
+          const size = Math.min(14, 8 + (c.labels.length - 1) * 2);
+          return (
+            <div
+              key={i}
+              className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full ring-2 ring-background"
+              style={{
+                left: `${pct(c.hour)}%`,
+                width: `${size}px`,
+                height: `${size}px`,
+                backgroundColor: c.color,
+              }}
+              title={c.labels.join("\n")}
+            />
+          );
+        })}
       </div>
       <div className="mt-1 flex justify-between px-1 text-[9px] tabular-nums text-muted-foreground">
         <span>0</span>

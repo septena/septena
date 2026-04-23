@@ -18,7 +18,7 @@ export function SectionTabs() {
           href="/"
           aria-label="Home"
           title="Home"
-          className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-border px-3 py-1.5 text-sm font-semibold text-foreground transition-colors hover:border-orange-500 hover:text-orange-500"
+          className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-border px-3 py-1.5 text-sm font-semibold text-foreground transition-colors hover:border-[color:var(--section-accent)] hover:text-[color:var(--section-accent)]"
         >
           <svg
             viewBox="0 0 24 24"
@@ -36,7 +36,7 @@ export function SectionTabs() {
             <circle cx="12" cy="18" r="1.8" />
             <circle cx="18" cy="18" r="1.8" />
           </svg>
-          <span>Setlist</span>
+          <span>Septena</span>
         </Link>
         {sections.map((section) => {
           const active = pathname === section.path || pathname.startsWith(section.path + "/");
