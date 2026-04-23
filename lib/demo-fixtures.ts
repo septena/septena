@@ -34,6 +34,14 @@ const FIXTURES: Array<{ pattern: RegExp; handler: FixtureHandler }> = [
   { pattern: /^\/api\/exercise\/config$/, handler: exerciseConfig },
   { pattern: /^\/api\/exercises$/, handler: () => EXERCISE_LIST.map((e) => e.name) },
   { pattern: /^\/api\/sessions\//, handler: exerciseSession },
+  // ── Nutrition ────────────────────────────────────────────────────────
+  { pattern: /^\/api\/nutrition\/macros-config$/, handler: nutritionMacrosConfig },
+  { pattern: /^\/api\/nutrition\/entries$/, handler: nutritionEntries },
+  { pattern: /^\/api\/nutrition\/stats$/, handler: nutritionStats },
+  // ── Habits ───────────────────────────────────────────────────────────
+  { pattern: /^\/api\/habits\/config$/, handler: habitsConfig },
+  { pattern: /^\/api\/habits\/day\//, handler: habitsDay },
+  { pattern: /^\/api\/habits\/history$/, handler: habitsHistory },
 ];
 
 export function matchDemoFixture(path: string, init?: RequestInit): unknown {
@@ -179,6 +187,13 @@ function progressWeight(base: number, weeksBack: number, step: number): number {
 
 function buildSessions(): SessionTemplate[] {
   const sessions: SessionTemplate[] = [];
+  // Always seed a short cardio session for today so the timeline/overview
+  // dot shows a same-day workout regardless of DEMO_TODAY's weekday.
+  sessions.push({
+    type: "cardio",
+    daysAgo: 0,
+    entries: [{ exercise: "elliptical", duration_min: 20, distance_m: 4200 }],
+  });
   // 42 days covers the default 30-day window plus padding.
   for (let daysAgo = 1; daysAgo <= 42; daysAgo++) {
     const day = new Date(DEMO_TODAY + "T00:00:00Z");
@@ -365,6 +380,243 @@ function exerciseSession(url: URL) {
   const date = url.pathname.replace("/api/sessions/", "");
   const data = ALL_ENTRIES.filter((e) => e.date === date);
   return { date, data };
+}
+
+// ─── Nutrition fixtures ────────────────────────────────────────────────────
+
+const MEAL_TEMPLATES: Array<{
+  time: string;
+  emoji: string;
+  foods: string[];
+  protein_g: number;
+  fat_g: number;
+  carbs_g: number;
+  kcal: number;
+}> = [
+  {
+    time: "08:30",
+    emoji: "🍳",
+    foods: ["Breakfast", "2 eggs scrambled", "Sourdough toast", "Coffee with milk"],
+    protein_g: 22, fat_g: 16, carbs_g: 32, kcal: 370,
+  },
+  {
+    time: "13:00",
+    emoji: "🥗",
+    foods: ["Lunch", "Chicken bowl", "Brown rice", "Tahini sauce"],
+    protein_g: 42, fat_g: 18, carbs_g: 58, kcal: 580,
+  },
+  {
+    time: "16:30",
+    emoji: "🥜",
+    foods: ["Snack", "Greek yoghurt", "Walnuts", "Honey"],
+    protein_g: 18, fat_g: 14, carbs_g: 20, kcal: 280,
+  },
+  {
+    time: "20:00",
+    emoji: "🍝",
+    foods: ["Dinner", "Pasta bolognese", "Parmesan", "Side salad"],
+    protein_g: 38, fat_g: 22, carbs_g: 72, kcal: 660,
+  },
+];
+
+type NutritionEntryFixture = {
+  date: string;
+  time: string;
+  emoji: string;
+  protein_g: number;
+  fat_g: number;
+  carbs_g: number;
+  kcal: number;
+  foods: string[];
+  file: string;
+};
+
+function buildNutritionEntries(): NutritionEntryFixture[] {
+  const out: NutritionEntryFixture[] = [];
+  // 35 days of meals so a 30-day nutrition window always has content.
+  // On today we skip the dinner entry so fasting window looks live.
+  for (let daysAgo = 35; daysAgo >= 0; daysAgo--) {
+    const date = addDays(DEMO_TODAY, -daysAgo);
+    const todaysMeals = daysAgo === 0 ? MEAL_TEMPLATES.slice(0, 3) : MEAL_TEMPLATES;
+    for (let i = 0; i < todaysMeals.length; i++) {
+      const m = todaysMeals[i];
+      // Sprinkle deterministic ±10% jitter so daily bars aren't identical.
+      const j = ((daysAgo * 7 + i * 3) % 21) - 10; // -10..+10 %
+      const mul = 1 + j / 100;
+      out.push({
+        date,
+        time: m.time,
+        emoji: m.emoji,
+        protein_g: Math.round(m.protein_g * mul),
+        fat_g: Math.round(m.fat_g * mul),
+        carbs_g: Math.round(m.carbs_g * mul),
+        kcal: Math.round(m.kcal * mul),
+        foods: m.foods,
+        file: `${date}--${m.time.replace(":", "")}--01.md`,
+      });
+    }
+  }
+  return out;
+}
+
+const NUTRITION_ENTRIES = buildNutritionEntries();
+
+function nutritionMacrosConfig() {
+  return {
+    protein: { min: 120, max: 180, unit: "g" },
+    fat: { min: 60, max: 100, unit: "g" },
+    carbs: { min: 150, max: 300, unit: "g" },
+    kcal: { min: 1800, max: 2400, unit: "kcal" },
+    fasting: { min: 14, max: 18, unit: "h" },
+  };
+}
+
+function nutritionEntries(url: URL) {
+  const since = url.searchParams.get("since");
+  if (!since) return NUTRITION_ENTRIES;
+  return NUTRITION_ENTRIES.filter((e) => e.date >= since);
+}
+
+function nutritionStats(url: URL) {
+  const days = Number(url.searchParams.get("days") ?? "30");
+  const end = url.searchParams.get("end") ?? DEMO_TODAY;
+  const startISO = addDays(end, -(days - 1));
+  const daily: Array<{ date: string; protein_g: number; fat_g: number; carbs_g: number; kcal: number }> = [];
+  for (let i = 0; i < days; i++) {
+    const date = addDays(startISO, i);
+    const meals = NUTRITION_ENTRIES.filter((e) => e.date === date);
+    daily.push({
+      date,
+      protein_g: meals.reduce((a, m) => a + m.protein_g, 0),
+      fat_g: meals.reduce((a, m) => a + m.fat_g, 0),
+      carbs_g: meals.reduce((a, m) => a + m.carbs_g, 0),
+      kcal: meals.reduce((a, m) => a + m.kcal, 0),
+    });
+  }
+  const fasting = daily.map((d) => ({
+    date: d.date,
+    hours: 14 + ((parseInt(d.date.slice(-2), 10) % 5) * 0.5),
+    last_meal: "20:00",
+    first_meal: "08:30",
+    note: null as null,
+  }));
+  const totals = daily.reduce(
+    (acc, d) => ({
+      g: acc.g + d.protein_g,
+      f: acc.f + d.fat_g,
+      c: acc.c + d.carbs_g,
+      k: acc.k + d.kcal,
+    }),
+    { g: 0, f: 0, c: 0, k: 0 },
+  );
+  const todayMeals = NUTRITION_ENTRIES.filter((e) => e.date === DEMO_TODAY);
+  const yesterdayMeals = NUTRITION_ENTRIES.filter((e) => e.date === addDays(DEMO_TODAY, -1));
+  return {
+    daily,
+    fasting,
+    total_g: totals.g,
+    total_fat: totals.f,
+    total_carbs: totals.c,
+    total_kcal: totals.k,
+    avg_g: Math.round(totals.g / days),
+    avg_fat: Math.round(totals.f / days),
+    avg_carbs: Math.round(totals.c / days),
+    avg_kcal: Math.round(totals.k / days),
+    avg_fast_h: 15.5,
+    today_latest_meal: todayMeals[todayMeals.length - 1]?.time ?? null,
+    today_meal_count: todayMeals.length,
+    yesterday_last_meal: yesterdayMeals[yesterdayMeals.length - 1]?.time ?? null,
+  };
+}
+
+// ─── Habits fixtures ───────────────────────────────────────────────────────
+
+type HabitDef = { id: string; name: string; bucket: "morning" | "afternoon" | "evening" };
+
+const HABIT_DEFS: HabitDef[] = [
+  { id: "meditation", name: "Meditation 10min", bucket: "morning" },
+  { id: "sunlight", name: "Morning sunlight", bucket: "morning" },
+  { id: "creatine", name: "Creatine 5g", bucket: "morning" },
+  { id: "walk", name: "30min walk", bucket: "afternoon" },
+  { id: "reading", name: "Read 20min", bucket: "afternoon" },
+  { id: "stretch", name: "Evening stretch", bucket: "evening" },
+  { id: "journal", name: "Journal 5min", bucket: "evening" },
+];
+
+const HABIT_BUCKETS = ["morning", "afternoon", "evening"] as const;
+
+/** Deterministic "was this habit done on this date?" — each habit has its
+ *  own skip rhythm so the history grid isn't uniform. Today skips the
+ *  evening habits so there's a visible incomplete state live. */
+function habitDone(habitId: string, daysAgo: number): boolean {
+  if (daysAgo === 0) {
+    // Mid-day shape: morning and one afternoon done, evening pending.
+    const def = HABIT_DEFS.find((h) => h.id === habitId);
+    if (!def) return false;
+    if (def.bucket === "evening") return false;
+    if (def.id === "reading") return false;
+    return true;
+  }
+  const hash = habitId.charCodeAt(0) + habitId.charCodeAt(1);
+  // Skip every 5th / 7th day for variety.
+  if ((daysAgo + hash) % 7 === 0) return false;
+  if ((daysAgo + hash) % 11 === 0) return false;
+  return true;
+}
+
+function habitsConfig() {
+  const grouped: Record<string, HabitDef[]> = { morning: [], afternoon: [], evening: [] };
+  for (const h of HABIT_DEFS) grouped[h.bucket].push(h);
+  return { buckets: HABIT_BUCKETS, grouped, total: HABIT_DEFS.length };
+}
+
+function habitsDay(url: URL) {
+  const day = url.pathname.replace("/api/habits/day/", "");
+  const daysAgo = Math.round(
+    (new Date(DEMO_TODAY + "T00:00:00Z").getTime() - new Date(day + "T00:00:00Z").getTime()) /
+      (24 * 3600_000),
+  );
+  const grouped: Record<string, Array<HabitDef & { done: boolean; time: string | null }>> = {
+    morning: [], afternoon: [], evening: [],
+  };
+  let doneCount = 0;
+  for (const h of HABIT_DEFS) {
+    const done = habitDone(h.id, daysAgo);
+    if (done) doneCount++;
+    grouped[h.bucket].push({
+      ...h,
+      done,
+      time: done && daysAgo === 0
+        ? (h.bucket === "morning" ? "07:45" : h.bucket === "afternoon" ? "14:10" : "22:00")
+        : null,
+    });
+  }
+  const total = HABIT_DEFS.length;
+  return {
+    date: day,
+    buckets: HABIT_BUCKETS,
+    grouped,
+    done_count: doneCount,
+    total,
+    percent: Math.round((doneCount / total) * 100),
+  };
+}
+
+function habitsHistory(url: URL) {
+  const days = Number(url.searchParams.get("days") ?? "30");
+  const daily: Array<{ date: string; done: number; total: number; percent: number }> = [];
+  for (let i = days - 1; i >= 0; i--) {
+    const date = addDays(DEMO_TODAY, -i);
+    let done = 0;
+    for (const h of HABIT_DEFS) if (habitDone(h.id, i)) done++;
+    daily.push({
+      date,
+      done,
+      total: HABIT_DEFS.length,
+      percent: Math.round((done / HABIT_DEFS.length) * 100),
+    });
+  }
+  return { daily, total: HABIT_DEFS.length };
 }
 
 function cardioHistory(url: URL) {
