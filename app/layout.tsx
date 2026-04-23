@@ -4,7 +4,6 @@ import { ThemeInitScript } from "@/components/theme-init-script";
 import { SWRProvider } from "@/components/swr-provider";
 import { LoadTimeProvider } from "@/components/load-timer";
 import { Toaster } from "@/components/ui/toaster";
-import { AppShell } from "@/components/app-shell";
 import "./globals.css";
 
 export const dynamic = "force-dynamic";
@@ -42,7 +41,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <ThemeProvider>
           <SWRProvider>
             <LoadTimeProvider>
-              <AppShell>{children}</AppShell>
+              {children}
               <Toaster />
             </LoadTimeProvider>
           </SWRProvider>

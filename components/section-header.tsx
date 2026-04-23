@@ -16,7 +16,7 @@ export function SectionHeader() {
   const sections = useSections();
   const { isRefreshing, getSubtitle } = usePageHeaderContext();
 
-  if (pathname === "/") return null;
+  if (pathname === "/septena") return null;
 
   // Longest-path match wins so `/body` doesn't get shadowed by a future "/"-
   // prefixed section. Skips sections with an empty path (none today, but the

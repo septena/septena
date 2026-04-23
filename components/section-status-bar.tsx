@@ -214,7 +214,7 @@ export function SectionStatusBarAuto() {
   const pathname = usePathname();
   const sections = useSections();
 
-  if (pathname === "/") return null;
+  if (pathname === "/septena") return null;
 
   const match = sections
     .filter((s) => s.path && (pathname === s.path || pathname.startsWith(s.path + "/")))

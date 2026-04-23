@@ -4,7 +4,7 @@ import { usePathname } from "next/navigation";
 
 export function ShellMain({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() ?? "/";
-  const section = pathname === "/" ? "overview" : pathname.split("/")[1];
+  const section = pathname === "/septena" ? "overview" : pathname.split("/")[1];
   return (
     <main
       data-section={section}

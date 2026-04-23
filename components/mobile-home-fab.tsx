@@ -51,7 +51,6 @@ export function MobileHomeFab() {
     setMenuOpen(false);
   }, [pathname]);
 
-  if (pathname === "/") return null;
 
   const handlePointerDown = (e: React.PointerEvent) => {
     if (e.button !== 0 && e.pointerType === "mouse") return; // ignore non-primary mouse buttons
@@ -64,7 +63,7 @@ export function MobileHomeFab() {
     clearPressTimer();
     if (longPressFired.current) return;
     // Short tap → navigate home.
-    router.push("/");
+    router.push("/septena");
   };
 
   const handlePointerLeave = () => {
@@ -99,7 +98,7 @@ export function MobileHomeFab() {
           }}
         >
           <Link
-            href="/"
+            href="/septena"
             onClick={() => setMenuOpen(false)}
             className="flex items-center gap-2 rounded-full border border-border bg-background/95 px-4 py-2 text-sm font-semibold shadow-md backdrop-blur"
           >

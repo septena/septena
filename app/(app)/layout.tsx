@@ -1,7 +1,3 @@
-"use client";
-
-import { usePathname } from "next/navigation";
-import { ReactNode } from "react";
 import { BackendStatusBanner } from "@/components/backend-status-banner";
 import { SectionTabs } from "@/components/section-tabs";
 import { SectionHeader } from "@/components/section-header";
@@ -13,15 +9,7 @@ import { PullToRefresh } from "@/components/pull-to-refresh";
 import { PageHeaderContextProvider } from "@/components/page-header-context";
 import { OnboardingGate } from "@/components/onboarding-gate";
 
-const PUBLIC_SITE = process.env.NEXT_PUBLIC_PUBLIC_SITE === "1";
-
-export function AppShell({ children }: { children: ReactNode }) {
-  const pathname = usePathname();
-
-  if (PUBLIC_SITE && pathname === "/") {
-    return <>{children}</>;
-  }
-
+export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <>
       <BackendStatusBanner />

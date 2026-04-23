@@ -9,13 +9,12 @@ import { useNavSections } from "@/hooks/use-sections";
 export function SectionTabs() {
   const pathname = usePathname();
   const sections = useNavSections();
-  if (pathname === "/") return null;
 
   return (
     <nav className="sticky top-0 z-40 w-full border-b border-border bg-background/80 pt-[env(safe-area-inset-top)] backdrop-blur">
       <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-2 px-4 py-2 sm:px-6">
         <Link
-          href="/"
+          href="/septena"
           aria-label="Home"
           title="Home"
           className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-border px-3 py-1.5 text-sm font-semibold text-foreground transition-colors hover:border-[color:var(--section-accent)] hover:text-[color:var(--section-accent)]"
