@@ -7,10 +7,10 @@ section: chores
 ---
 
 Example chore definition. Each chore is one `.md` file under
-`Bases/Chores/Definitions/` with this YAML frontmatter.
+`Chores/Definitions/` with this YAML frontmatter.
 
 - `id` — unique, kebab-case. Used as the completion key in
-  `Bases/Chores/Log/`.
+  `Chores/Log/`.
 - `cadence_days` — how often it should repeat (1 = daily, 7 = weekly,
   14 = biweekly, etc.).
 - `emoji` — shown in the UI.

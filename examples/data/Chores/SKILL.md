@@ -9,8 +9,8 @@ Recurring, deferrable tasks with overdue tracking. Chores are NOT ad-hoc — eac
 
 ## Where it lives
 
-- **Definitions:** `$VAULT/Chores/Definitions/{chore-id}.md` — one file per chore
-- **Log folder:** `$VAULT/Chores/Log/` — one file per completion
+- **Definitions:** `$SEPTENA_DATA_DIR/Chores/Definitions/{chore-id}.md` — one file per chore
+- **Log folder:** `$SEPTENA_DATA_DIR/Chores/Log/` — one file per completion
 
 ## Definition file schema
 

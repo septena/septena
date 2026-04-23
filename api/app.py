@@ -10,6 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from api.routers import (
     air,
+    bootstrap,
     caffeine,
     calendar,
     cannabis,
@@ -64,3 +65,5 @@ app.include_router(settings.router)
 app.include_router(sections.router)
 # Meta endpoints (/api/config, /api/meta) cross every section's paths.
 app.include_router(meta.router)
+# First-install bootstrap — seeds data folder from examples/data/.
+app.include_router(bootstrap.router)

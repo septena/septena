@@ -106,13 +106,13 @@ function emptyFallback(url: URL): unknown {
   if (p === "/api/config") {
     return {
       paths: {
-        vault: "/demo/septena-data",
+        data: "/demo/septena-data",
         health: "/demo/health",
         integrations: "/demo/integrations",
         cache: "/demo/cache",
       },
-      vault_exists: true,
-      vault_has_sections: true,
+      data_exists: true,
+      data_has_sections: true,
       integrations: { oura: false, withings: false, apple_health: false },
       available_sections: ["training"],
     };

@@ -1,5 +1,5 @@
 ---
-name: septena-exercise
+name: septena-training
 description: Log training sessions (strength, cardio, mobility) to Septena's Training section. One Markdown file per exercise entry.
 ---
 
@@ -9,7 +9,7 @@ Track training sessions, exercise progression, and cardio zones.
 
 ## Where it lives
 
-- **Log folder:** `$VAULT/Training/Log/`
+- **Log folder:** `$SEPTENA_DATA_DIR/Training/Log/`
 - **One file per exercise entry** — a "session" is all entries sharing the same date + `concluded_at`
 
 ## Filename
@@ -52,9 +52,9 @@ level: 7              # machine resistance (integer, machine-specific)
 
 **Logging cardio:** same pattern, but with `duration_min` + `distance_m` + `level` instead of weight/sets/reps. Cardio is classified by exercise name (see list above); a new cardio exercise adds itself when first logged.
 
-**Session templates:** pre-filled exercise lists for upper / lower / cardio / yoga days live in `lib/session-templates.ts` (TypeScript, not in the vault yet — edit there if you change gym routine).
+**Session templates:** pre-filled exercise lists for upper / lower / cardio / yoga days live in `lib/session-templates.ts` (TypeScript, not in the data folder yet — edit there if you change gym routine).
 
-**Reading progression:** glob `$VAULT/Training/Log/*--{exercise-slug}--*.md`, parse frontmatter, order by date. The backend exposes `/api/training/progression/{exercise}` with this logic baked in.
+**Reading progression:** glob `$SEPTENA_DATA_DIR/Training/Log/*--{exercise-slug}--*.md`, parse frontmatter, order by date. The backend exposes `/api/training/progression/{exercise}` with this logic baked in.
 
 ## Example interactions
 

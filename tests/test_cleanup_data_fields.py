@@ -13,7 +13,7 @@ from api.storage.frontmatter import FrontmatterDocument, FrontmatterMarkdownCode
 ROOT = Path(__file__).resolve().parents[1]
 
 
-class CleanupVaultFieldsTests(unittest.TestCase):
+class CleanupDataFieldsTests(unittest.TestCase):
     def setUp(self) -> None:
         self.tmp = tempfile.TemporaryDirectory()
         self.vault = Path(self.tmp.name)
@@ -75,7 +75,7 @@ class CleanupVaultFieldsTests(unittest.TestCase):
 
     def _run(self, *args: str) -> subprocess.CompletedProcess[str]:
         return subprocess.run(
-            [sys.executable, "scripts/cleanup_vault_fields.py", "--vault", str(self.vault), *args],
+            [sys.executable, "scripts/cleanup_data_fields.py", "--data-dir", str(self.vault), *args],
             cwd=ROOT,
             check=False,
             capture_output=True,

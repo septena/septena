@@ -9,8 +9,8 @@ Log coffee/matcha/tea events for time-of-day pattern analysis.
 
 ## Where it lives
 
-- **Config:** `$VAULT/Caffeine/caffeine-config.yaml` — optional bean presets
-- **Log folder:** `$VAULT/Caffeine/Log/`
+- **Config:** `$SEPTENA_DATA_DIR/Caffeine/caffeine-config.yaml` — optional bean presets
+- **Log folder:** `$SEPTENA_DATA_DIR/Caffeine/Log/`
 
 ## caffeine-config.yaml schema
 

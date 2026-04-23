@@ -119,7 +119,7 @@ anything) without breaking the UI.
 
 ## File access vs. HTTP API — which to use
 
-If the Septena app is running (default `http://127.0.0.1:4445`):
+If the Septena app is running (default `http://127.0.0.1:7000`):
 
 - **Querying aggregates** — hit the HTTP API. It caches, handles edge
   cases, and gives you shapes the UI already uses. See

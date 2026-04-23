@@ -36,32 +36,6 @@ with data before logging your own._
   Settings UI. Nothing is baked into the app that you can't see and
   change.
 
-## Who It's For
-
-Septena currently assumes a user who is comfortable with:
-
-- running a local Python + Node app
-- editing a `.env.local` file when needed
-- keeping their own data in a folder on disk
-- optionally using Git for backup/versioning
-
-It does **not** currently assume a packaged installer, hosted backend,
-account system, or managed sync service.
-
-## Color system
-
-Septena uses two separate color layers:
-
-- **Brand** is fixed. The logo/mark uses a seven-color spectrum, and
-  non-section surfaces like marketing, onboarding, and icon fallbacks use
-  one stable brand accent.
-- **Sections** are configurable. Each section still owns its own accent,
-  and section pages derive lighter/darker tones from that accent for
-  charts, pills, buttons, and training-type indicators.
-
-That split keeps the product recognizable even when a user changes their
-section palette. Details live in [docs/COLOR_SYSTEM.md](docs/COLOR_SYSTEM.md).
-
 ## What you can track
 
 Septena ships with these sections. Each one is **auto-detected by
@@ -86,10 +60,11 @@ schema, and the relevant endpoints.
 | [**Air**](docs/sections/air.md) | Ambient CO₂, temperature, humidity — live band, day-stats, overnight windows. | Read-only from Aranet4 |
 | [**Insights**](docs/sections/insights.md) | Cross-section correlations and patterns. | Derived |
 
-The core three — Training, Nutrition, Habits — ship as starter
-scaffolding under [`examples/vault/Bases/`](examples/vault/Bases/). The
-rest live under [`examples/vault/optional/`](examples/vault/optional/),
-ready to copy into your data folder when you want them.
+The core three — Training, Nutrition, Habits — and the optional
+sections ship as starter scaffolding under
+[`examples/data/`](examples/data/). The first-install flow in the app
+copies whichever sections you pick into your data folder; you can also
+copy them by hand.
 
 ## Optional integrations
 
@@ -134,24 +109,6 @@ but they share `date`, `id`, and `section` across the universe.
 See `docs/HEALTH_DATA_SPEC.md` for the health-data pipeline and
 `CLAUDE.md` for section-by-section schema notes.
 
-## Try it with demo data
-
-Before committing to your own data folder, run Septena against
-disposable deterministic demo data:
-
-```bash
-pip install -r requirements.txt                 # one-time
-npm install                                     # one-time
-npm run seed-demo                               # generates /tmp/septena-demo-vault
-SEPTENA_DATA_DIR=/tmp/septena-demo-vault \
-  SEPTENA_INTEGRATIONS_DIR=/tmp/none \
-  uvicorn main:app --port 4445 --reload         # backend
-npm run dev                                     # frontend → :4444
-```
-
-30 days of fake meals, sessions, habits, and supplements appear across
-the sections. Delete the folder when done — nothing else is touched.
-
 ## Quickstart
 
 **Prerequisites:** Python 3.11+, Node 20+. Septena currently assumes
@@ -175,9 +132,9 @@ npm install
 
 ```bash
 npm run seed-demo
-SEPTENA_DATA_DIR=/tmp/septena-demo-vault \
+SEPTENA_DATA_DIR=/tmp/septena-demo-data \
 SEPTENA_INTEGRATIONS_DIR=/tmp/none \
-uvicorn main:app --port 4445 --reload
+uvicorn main:app --port 7000 --reload
 ```
 
 In a second terminal:
@@ -187,7 +144,7 @@ cd septena
 npm run dev
 ```
 
-Then open `http://localhost:4444`.
+Then open `http://localhost:7777`.
 
 #### Option B — Run with a new data folder
 
@@ -198,7 +155,7 @@ Create the folder and start the backend:
 
 ```bash
 mkdir -p ~/Documents/septena-data
-uvicorn main:app --port 4445 --reload
+uvicorn main:app --port 7000 --reload
 ```
 
 In a second terminal:
@@ -208,17 +165,12 @@ cd septena
 npm run dev
 ```
 
-Then open `http://localhost:4444`.
+Then open `http://localhost:7777`.
 
 On first run, Septena will show onboarding because the data folder is
-empty. Copy the starter scaffolding into your data folder:
-
-```bash
-cp -R examples/vault/Bases/* ~/Documents/septena-data/
-```
-
-If you set a custom `SEPTENA_DATA_DIR`, copy into that folder instead.
-Click `Check again` in the app once the folders exist.
+empty. Pick the sections you want in the checklist and click
+`Create my data folder` — the app copies the selected sections from
+[`examples/data/`](examples/data/) into your data folder and reloads.
 
 #### Option C — Run with an existing data folder
 
@@ -226,7 +178,7 @@ Set `SEPTENA_DATA_DIR` in `.env.local` if your data folder is not at
 `~/Documents/septena-data`, then start both processes:
 
 ```bash
-uvicorn main:app --port 4445 --reload
+uvicorn main:app --port 7000 --reload
 ```
 
 In a second terminal:
@@ -236,14 +188,8 @@ cd septena
 npm run dev
 ```
 
-Then open `http://localhost:4444`. Any section folders already present
+Then open `http://localhost:7777`. Any section folders already present
 in your data folder will appear automatically.
-
-### 3. What happens next
-
-- `demo data`: you land in a fully populated fake dataset
-- `new data folder`: you copy starter sections, then the app picks them up
-- `existing data folder`: Septena auto-detects the sections already present
 
 ## Configuration
 
@@ -257,7 +203,7 @@ Defaults work if your data directory lives at
 | `SEPTENA_HEALTH_DIR` | `~/Documents/septena-data/Health` | Read-only health snapshots folder |
 | `SEPTENA_INTEGRATIONS_DIR` | `~/.config/openclaw` | Tokens/credentials for Oura/Withings/Apple Health |
 | `SEPTENA_CACHE_DIR` | `~/.config/septena` | App-owned scratch space (health cache etc.) |
-| `SEPTENA_BACKEND_URL` | `http://127.0.0.1:4445` | Where Next.js proxies `/api/*` |
+| `SEPTENA_BACKEND_URL` | `http://127.0.0.1:7000` | Where Next.js proxies `/api/*` |
 | `SEPTENA_DEV_ORIGINS` | `localhost` | Comma-separated hostnames for LAN/Tailscale access |
 
 Full list with comments: [`.env.example`](.env.example).
@@ -310,16 +256,16 @@ Agents can also do the initial local setup for you. Good prompts:
 Every section ships a **`SKILL.md`** describing its file layout, YAML
 schema, and agent-friendly examples:
 
-- [`examples/vault/Bases/Nutrition/SKILL.md`](examples/vault/Bases/Nutrition/SKILL.md) — meals, macros
-- [`examples/vault/Bases/Exercise/SKILL.md`](examples/vault/Bases/Exercise/SKILL.md) — training sessions
-- [`examples/vault/Bases/Habits/SKILL.md`](examples/vault/Bases/Habits/SKILL.md) — habit checklist
-- [`examples/vault/optional/Supplements/SKILL.md`](examples/vault/optional/Supplements/SKILL.md), [`Chores`](examples/vault/optional/Chores/SKILL.md), [`Caffeine`](examples/vault/optional/Caffeine/SKILL.md)
+- [`examples/data/Nutrition/SKILL.md`](examples/data/Nutrition/SKILL.md) — meals, macros
+- [`examples/data/Training/SKILL.md`](examples/data/Training/SKILL.md) — training sessions
+- [`examples/data/Habits/SKILL.md`](examples/data/Habits/SKILL.md) — habit checklist
+- [`examples/data/Supplements/SKILL.md`](examples/data/Supplements/SKILL.md), [`Chores`](examples/data/Chores/SKILL.md), [`Caffeine`](examples/data/Caffeine/SKILL.md)
 
 Point your agent at the one(s) you need. One skill = one section's
 contract; context stays small.
 
 ```
-/skill examples/vault/Bases/Nutrition/SKILL.md
+/skill examples/data/Nutrition/SKILL.md
 ```
 
 Then:
@@ -349,43 +295,19 @@ Most section behavior is driven by YAML you edit directly:
 
 ## Architecture
 
-```
-septena/
-  app/                      Next.js App Router pages — one folder per section
-  components/               React components — one *-dashboard.tsx per section
-  hooks/                    Shared React hooks (useSections, useSelectedDate, …)
-  lib/
-    api.ts                  Typed API client
-    sections.ts             Section registry (nav, colors, paths)
-    app-config.ts           SWR hook for server-resolved config
-    macro-targets.ts        Macro helpers (reads from API)
-    session-templates.ts    Gym routine templates (TypeScript, user-editable)
-    date-utils.ts           Shared date/time helpers
-    day-phases.ts           Time-of-day bucketing helpers
-  main.py                   Two-line shim: `from api.app import app`
-  api/
-    app.py                  FastAPI app, CORS, lifespan, router inclusion
-    paths.py                Env-derived filesystem roots
-    parsing.py              YAML-frontmatter helpers
-    routers/                One file per section (exercise, nutrition, habits,
-                            health, settings, sections, meta, …)
-  scripts/                  Migration scripts, demo seeder, screenshot pipeline
-  examples/vault/           Starter scaffolding: Bases/ (core) + optional/
-  skills/                   Top-level agent skills (http-api, adding-a-section)
-  docs/                     Schema specs and design notes
-```
-
 **Frontend:** Next.js App Router + TypeScript + Tailwind + shadcn/ui +
-Recharts. Dev server on port 4444.
+Recharts. Dev server on port 7777.
 
 **Backend:** FastAPI, entrypoint at `main.py` delegating to `api/app.py`.
 One `APIRouter` per section under `api/routers/`. Dev server on port
-4445, hot-reloaded with `--reload`. No database — every request re-reads
+7000, hot-reloaded with `--reload`. No database — every request re-reads
 YAML from disk (cheap at personal-scale data volumes).
 
 **No build step for data.** Edit a YAML file in any editor, reload the
 page, changes appear. The Training section caches for performance and
 auto-invalidates on file mtime change.
+
+Full folder layout lives in [`CLAUDE.md`](CLAUDE.md).
 
 ## Adding your own section
 
@@ -420,15 +342,6 @@ than writing from scratch.
 - **Not polished for strangers yet.** This is a personal project opened
   up. Expect rough edges in onboarding and first-run UX while OSS
   adoption matures.
-
-**Known holdouts:**
-- Session templates (gym routine) still live in TypeScript — see
-  `lib/session-templates.ts`. Moving them into YAML in the data folder is tracked.
-- `components/training-dashboard.tsx` still mirrors the training-type
-  sets (`CARDIO_EXERCISES`, `MOBILITY_EXERCISES`, `CORE_EXERCISES`)
-  used by `metricKind` to pick the right chart rendering. The backend
-  is fully config-driven via `Bases/Exercise/exercise-config.yaml`;
-  the dashboard will consume it in a follow-up.
 
 ## Contributing
 

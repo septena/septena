@@ -110,7 +110,7 @@ leaves every other key alone.
 Write valid YAML to `$SEPTENA_DATA_DIR/Settings/settings.yaml`. Only include
 the keys you want to override — the backend deep-merges on next load,
 so partial files are valid. A brand-new install can create this file
-from scratch or from the template at `examples/vault/Bases/Settings/settings.yaml`.
+from scratch or from the template at `examples/data/Settings/settings.yaml`.
 
 ## Section enable/disable rules
 
@@ -118,9 +118,9 @@ from scratch or from the template at `examples/vault/Bases/Settings/settings.yam
 
 | Value | Behavior |
 |---|---|
-| `true` | Always enabled, even if the section's vault folder is missing |
+| `true` | Always enabled, even if the section's data folder is missing |
 | `false` | Always disabled, even if the folder exists |
-| *(unset)* | Auto: enabled iff the vault folder exists (or the integration token is present for sleep/body/health) |
+| *(unset)* | Auto: enabled iff the data folder exists (or the integration token is present for sleep/body/health) |
 
 Weather and Calendar default to `enabled: false` — they need explicit
 user opt-in (+ location config for weather).
@@ -139,7 +139,7 @@ user opt-in (+ location config for weather).
   write the new list to `section_order`. Unlisted sections append in
   registry order.
 - **"Disable Cannabis"** → `{"sections": {"cannabis": {"enabled":
-  false}}}` — the folder can stay untouched in the vault, it just
+  false}}}` — the folder can stay untouched in the data folder, it just
   won't show in nav.
 - **"Enable Weather with my location"** → `{"sections": {"weather":
   {"enabled": true}}, "weather": {"location": "Amsterdam"}}`.

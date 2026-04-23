@@ -485,7 +485,7 @@ export function SettingsDashboard() {
         title="Settings"
         subtitle={
           <>
-            Stored in <code className="rounded bg-muted px-1">Bases/Settings/settings.yaml</code> — you can edit on disk too.
+            Stored in <code className="rounded bg-muted px-1">Settings/settings.yaml</code> — you can edit on disk too.
           </>
         }
       />

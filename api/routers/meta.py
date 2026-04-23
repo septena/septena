@@ -19,6 +19,7 @@ from api.paths import (
     CANNABIS_DIR,
     CHORES_LOG_DIR,
     DATA_DIR,
+    DATA_ROOT,
     HABITS_DIR,
     HEALTH_CACHE_PATH,
     HEALTH_ROOT,
@@ -26,7 +27,6 @@ from api.paths import (
     NUTRITION_DIR,
     OURA_TOKEN_PATH,
     SUPPL_DIR,
-    VAULT_ROOT,
     WITHINGS_CREDS_PATH,
     WITHINGS_TOKEN_PATH,
     available_sections,
@@ -67,25 +67,25 @@ def _dir_meta(directory: Path, pattern: str = "*.md") -> Dict[str, Any]:
 def get_config() -> Dict[str, Any]:
     """Resolved filesystem config + reachable integrations + nav visibility.
     Lets the UI show correct paths, gate integration-specific views when
-    tokens are missing, render onboarding when the vault is missing,
-    and filter nav by what actually exists in the user's vault."""
-    vault_exists = VAULT_ROOT.exists() and VAULT_ROOT.is_dir()
-    vault_has_sections = vault_exists and any(
+    tokens are missing, render onboarding when the data folder is missing,
+    and filter nav by what actually exists in the user's data folder."""
+    data_exists = DATA_ROOT.exists() and DATA_ROOT.is_dir()
+    data_has_sections = data_exists and any(
         child.is_dir() and not child.name.startswith(".")
-        for child in VAULT_ROOT.iterdir()
+        for child in DATA_ROOT.iterdir()
     )
     oura = OURA_TOKEN_PATH.exists()
     withings = WITHINGS_TOKEN_PATH.exists() and WITHINGS_CREDS_PATH.exists()
     apple_health = APPLE_HEALTH_PATH.exists()
     return {
         "paths": {
-            "vault": str(VAULT_ROOT),
+            "data": str(DATA_ROOT),
             "health": str(HEALTH_ROOT),
             "integrations": str(INTEGRATIONS_DIR),
             "cache": str(CACHE_DIR),
         },
-        "vault_exists": vault_exists,
-        "vault_has_sections": vault_has_sections,
+        "data_exists": data_exists,
+        "data_has_sections": data_has_sections,
         "integrations": {
             "oura": oura,
             "withings": withings,
@@ -202,10 +202,10 @@ def get_meta() -> Dict[str, Any]:
 
     sources["health"] = {"label": "Health", "sources": health_sub}
 
-    # Calendar — live macOS Calendar, no vault
+    # Calendar — live macOS Calendar, not file-backed
     sources["calendar"] = {"label": "Calendar", "status": "live", "files": None}
 
-    # Weather — live Open-Meteo, no vault
+    # Weather — live Open-Meteo, not file-backed
     sources["weather"] = {"label": "Weather", "status": "live", "files": None}
 
     return {"sources": sources}

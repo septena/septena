@@ -24,12 +24,12 @@
     "ai-agents"
   ],
   "scripts": {
-    "dev": "next dev --port 4444",
+    "dev": "next dev --port 7777",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "seed-demo": "python3 scripts/seed_demo_vault.py --vault /tmp/septena-demo-vault",
-    "demo": "npm run seed-demo && echo '\\n→ Demo vault ready at /tmp/septena-demo-vault\\n→ Start backend: SEPTENA_DATA_DIR=/tmp/septena-demo-vault SEPTENA_INTEGRATIONS_DIR=/tmp/none uvicorn main:app --port 4445 --reload\\n→ Start frontend: npm run dev'",
+    "seed-demo": "python3 scripts/seed_demo_data.py --data-dir /tmp/septena-demo-data",
+    "demo": "npm run seed-demo && echo '\\n→ Demo data ready at /tmp/septena-demo-data\\n→ Start backend: SEPTENA_DATA_DIR=/tmp/septena-demo-data SEPTENA_INTEGRATIONS_DIR=/tmp/none uvicorn main:app --port 7000 --reload\\n→ Start frontend: npm run dev'",
     "screenshot": "node scripts/screenshots.mjs"
   },
   "dependencies": {

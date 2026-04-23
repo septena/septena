@@ -1,11 +1,11 @@
 ---
 name: septena-http-api
-description: Full HTTP endpoint reference for a running Septena backend. Use this when the app is up at http://127.0.0.1:4445 — faster than re-reading YAML files for aggregates, and handles edge cases the file-level skills don't spell out.
+description: Full HTTP endpoint reference for a running Septena backend. Use this when the app is up at http://127.0.0.1:7000 — faster than re-reading YAML files for aggregates, and handles edge cases the file-level skills don't spell out.
 ---
 
 # Septena · HTTP API reference
 
-When the Septena backend is running (default `http://127.0.0.1:4445`),
+When the Septena backend is running (default `http://127.0.0.1:7000`),
 prefer HTTP for queries — the server caches, handles malformed YAML
 gracefully, and returns the exact shapes the UI uses. For writing,
 either HTTP or direct file writes work; HTTP triggers UI invalidation

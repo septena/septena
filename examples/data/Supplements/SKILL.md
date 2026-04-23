@@ -9,8 +9,8 @@ Daily stack checklist with streak tracking. Same shape as Habits — a fixed con
 
 ## Where it lives
 
-- **Config:** `$VAULT/Supplements/supplements-config.yaml`
-- **Log folder:** `$VAULT/Supplements/Log/`
+- **Config:** `$SEPTENA_DATA_DIR/Supplements/supplements-config.yaml`
+- **Log folder:** `$SEPTENA_DATA_DIR/Supplements/Log/`
 
 ## supplements-config.yaml schema
 

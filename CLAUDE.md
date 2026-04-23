@@ -14,12 +14,12 @@ Septena is a local-first personal health command center. Multiple areas of life,
 - **Weather / Calendar** — optional ambient tiles (Open-Meteo + macOS Calendar); off by default
 - **Insights** — cross-section correlations (WIP)
 
-**Canonical data:** All structured data lives as plain YAML files under `~/Documents/septena-data/Bases/<Section>/` (override with `$SEPTENA_DATA_DIR`). Each section has its own folder containing any per-section config YAML plus a `Log/` subfolder with one file per event. Every event shares a universal frontmatter core — `date`, `id`, `section` (plus `time` when the event has a moment) — with section-specific fields added flat. Health/Sleep/Body are the exceptions — they read Oura, Withings, and Health Auto Export data directly. No separate database.
+**Canonical data:** All structured data lives as plain YAML files under `~/Documents/septena-data/<Section>/` (override with `$SEPTENA_DATA_DIR`). Each section has its own folder containing any per-section config YAML plus a `Log/` subfolder with one file per event. Every event shares a universal frontmatter core — `date`, `id`, `section` (plus `time` when the event has a moment) — with section-specific fields added flat. Health/Sleep/Body are the exceptions — they read Oura, Withings, and Health Auto Export data directly. No separate database.
 
 ## Architecture
 
 ```
-septena/                              # Next.js frontend :4444
+septena/                              # Next.js frontend :7777
   app/
     page.tsx                          → root launcher (grid of section cards)
     layout.tsx                        → shell: BackendStatusBanner + SectionTabs
@@ -45,7 +45,7 @@ septena/                              # Next.js frontend :4444
     section-colors.ts                 → shared brand/section color tokens + derived exercise tones
     pr.ts, session-draft.ts, session-templates.ts, idb.ts, utils.ts, fasting.ts, macro-targets.ts
   main.py                             → thin entrypoint: `from api.app import app`
-  api/                                → FastAPI backend :4445
+  api/                                → FastAPI backend :7000
     app.py                            → FastAPI app, CORS, lifespan, router inclusion
     paths.py                          → DATA_ROOT / HEALTH_ROOT / section dirs / token paths
     parsing.py                        → _extract_frontmatter, _normalize_date/number, _slugify
@@ -72,11 +72,11 @@ septena/                              # Next.js frontend :4444
 Two halves: the wiring (stable, code) and the metadata (user-editable, settings).
 
 - **`api/routers/sections.py:SECTION_IMMUTABLE`** — `{ key: { path, apiBase, dataDir } }` (`dataDir` is the on-disk folder under `$SEPTENA_DATA_DIR`). Changing any of these means shipping a new frontend route, so it stays in source.
-- **`DEFAULT_SETTINGS["sections"]`** in `api/routers/settings.py` — `{ label, emoji, color, tagline }` per key. Users override in `Bases/Settings/settings.yaml`.
+- **`DEFAULT_SETTINGS["sections"]`** in `api/routers/settings.py` — `{ label, emoji, color, tagline }` per key. Users override in `Settings/settings.yaml`.
 - **`lib/sections.ts`** — code-side defaults the frontend falls back to before `GET /api/sections` resolves.
 - **`lib/section-colors.ts`** — shared brand/section color tokens. Publishes derived exercise tones from the section accent instead of hardcoded orange shades.
 
-`GET /api/sections` merges both halves, ordered by `settings.section_order`, with `enabled` defaulting to vault-folder-presence + integration reachability (see `api/paths.py:available_sections`) and user-explicit overrides winning when present.
+`GET /api/sections` merges both halves, ordered by `settings.section_order`, with `enabled` defaulting to data-folder-presence + integration reachability (see `api/paths.py:available_sections`) and user-explicit overrides winning when present.
 
 Registered keys: `exercise, nutrition, habits, chores, supplements, cannabis, caffeine, health, sleep, body, correlations` (correlations path is `/insights`).
 
@@ -153,11 +153,12 @@ GET    /api/health/combined?days=N       # writes cache snapshot
 GET    /api/health/cache                 # instant reload from snapshot
 
 # Settings / Sections / Meta
-GET  /api/settings                       # merged defaults + Bases/Settings/settings.yaml
+GET  /api/settings                       # merged defaults + Settings/settings.yaml
 PUT  /api/settings                       # deep-merge partial JSON into YAML
 GET  /api/sections                       # merged registry (wiring + metadata)
 GET  /api/config                         # paths + integration reachability + nav visibility
 GET  /api/meta                           # per-section file counts / freshness
+POST /api/bootstrap                      # first-install: copy examples/data/{Section}/ into DATA_ROOT
 ```
 
 Only Exercise caches (`_cache`, `fresh_cache` dep); every other router re-reads from disk per request — cheap at current data volumes.
@@ -173,7 +174,7 @@ Moving these to per-section `{section}-config.yaml` + `/api/{section}/config` wo
 
 ### YAML Schema — Nutrition Sessions
 
-One file per eating event at `Bases/Nutrition/Log/{date}--{HHMM}--NN.md`. NN resolves collisions when two events share the same minute.
+One file per eating event at `Nutrition/Log/{date}--{HHMM}--NN.md`. NN resolves collisions when two events share the same minute.
 
 ```yaml
 ---
@@ -195,13 +196,13 @@ First meal of the day
 
 `foods[0]` is the title (rendered bold in the UI); subsequent entries are the ingredient/detail list. There is no separate `name` field — if the meal needs a short summary like "Breakfast" or "Pasta Bolognese", make it the first item of `foods`. Free-form notes live in the markdown body, not frontmatter.
 
-Daily targets are ranges stored in `Bases/Settings/settings.yaml` under `targets.*` (protein/fat/carbs/kcal min+max, fasting and eating window hours). Frontend defaults in `lib/macro-targets.ts`. Backfill carbs on legacy rows with `scripts/backfill_carbs.py` (kcal-math estimate: `carbs ≈ (kcal - 4*protein - 9*fat) / 4`, clamped to ≥ 0).
+Daily targets are ranges stored in `Settings/settings.yaml` under `targets.*` (protein/fat/carbs/kcal min+max, fasting and eating window hours). Frontend defaults in `lib/macro-targets.ts`. Backfill carbs on legacy rows with `scripts/backfill_carbs.py` (kcal-math estimate: `carbs ≈ (kcal - 4*protein - 9*fat) / 4`, clamped to ≥ 0).
 
 ### Habits — fixed checklist model
 
 Habits are NOT ad-hoc entries. They're a fixed, configurable set of recurring daily habits bucketed by time of day.
 
-**Config** at `Bases/Habits/habits-config.yaml`:
+**Config** at `Habits/habits-config.yaml`:
 
 ```yaml
 habits:
@@ -213,7 +214,7 @@ habits:
     bucket: morning
 ```
 
-**Per-completion events** — one file per habit per day at `Bases/Habits/Log/{date}--{habit_id}--01.md`, written on toggle-on, unlinked on toggle-off. Mirrors the per-event pattern used by cannabis/caffeine/supplements/chores — no consolidated daily log.
+**Per-completion events** — one file per habit per day at `Habits/Log/{date}--{habit_id}--01.md`, written on toggle-on, unlinked on toggle-off. Mirrors the per-event pattern used by cannabis/caffeine/supplements/chores — no consolidated daily log.
 
 ```yaml
 ---
@@ -233,11 +234,11 @@ Supplements follow the same shape (`supplements-config.yaml` + per-dose event fi
 
 ### Cannabis — capsule model
 
-Each active "capsule" is a dose unit (~0.15g, split across ~3 uses). Active-capsule state lives in `Bases/Cannabis/Log/_capsules.yaml`; vape sessions inherit the capsule's strain and bump `use_count`; edibles stand alone. Grams is snapshotted per-event so historical entries remain stable when the capsule model changes. Strains are presets defined in `Bases/Cannabis/cannabis-config.yaml`.
+Each active "capsule" is a dose unit (~0.15g, split across ~3 uses). Active-capsule state lives in `Cannabis/Log/_capsules.yaml`; vape sessions inherit the capsule's strain and bump `use_count`; edibles stand alone. Grams is snapshotted per-event so historical entries remain stable when the capsule model changes. Strains are presets defined in `Cannabis/cannabis-config.yaml`.
 
 ### Chores — replayed event log
 
-Definitions live in `Bases/Chores/Definitions/*.md` (one note per chore with `cadence_days`); events live in `Bases/Chores/Log/*.md` as either `complete` or `defer` entries. Current due date is derived by replaying events chronologically: a `complete` sets due = event.date + cadence_days; a `defer` sets due = new_due_date. No "current state" is persisted — the log is authoritative.
+Definitions live in `Chores/Definitions/*.md` (one note per chore with `cadence_days`); events live in `Chores/Log/*.md` as either `complete` or `defer` entries. Current due date is derived by replaying events chronologically: a `complete` sets due = event.date + cadence_days; a `defer` sets due = new_due_date. No "current state" is persisted — the log is authoritative.
 
 ### Health / Sleep / Body — read-only metric views
 
@@ -247,7 +248,7 @@ Oura daily sleep score comes from `daily_sleep` (separate endpoint from `sleep`)
 
 ### Settings
 
-`Bases/Settings/settings.yaml` — single user-preference file. `GET /api/settings` returns merged defaults + user YAML; `PUT` deep-merges partial JSON into disk.
+`Settings/settings.yaml` — single user-preference file. `GET /api/settings` returns merged defaults + user YAML; `PUT` deep-merges partial JSON into disk.
 
 Persists: `section_order`, `targets` (macros min/max, Z2 weekly min, sleep target, fasting/eating window hours), `units` (weight kg/lb, distance km/mi), `theme` (system/light/dark), `mini_stats` (per-section two-stat picker), `animations` (exercise_complete, first_meal, histograms_raise toggles), `sections` (per-section label/emoji/color/tagline + optional `enabled` override). See `api/routers/settings.py:DEFAULT_SETTINGS` for the full shape.
 
@@ -295,14 +296,14 @@ One block per section, all appended to the same file. See the `// ── {Sectio
 ## Known Skills (use before writing one-off scripts)
 
 - `obsidian-markdown` — wikilinks, callouts, YAML frontmatter
-- `obsidian-cli` — vault operations
+- `obsidian-cli` — data-folder operations
 - `defuddle` — clean content extraction from web pages
 - `ocr` — image-based food labels (future)
 
 ## Adding a New Section
 
 ### Phase 1: Data + Backend
-1. Create `Bases/{Section}/` directory (or config file if it's a fixed-set model like habits).
+1. Create `{Section}/` directory under the data folder (or a config file if it's a fixed-set model like habits).
 2. Write sample data.
 3. Add section paths to `api/paths.py` (`{SECTION}_DIR`, config paths).
 4. Create `api/routers/{section}.py` with an `APIRouter(prefix="/api/{section}")`. Reuse `_extract_frontmatter`, `_normalize_date/number`, `_slugify` from `api.parsing`.
@@ -326,5 +327,5 @@ One block per section, all appended to the same file. See the `// ── {Sectio
 
 ## Running locally
 
-- Frontend: `npm run dev` on :4444 (managed via `.claude/launch.json` → `septena-dev`).
-- Backend: `python3 -m uvicorn main:app --port 4445` — run directly; the preview-server config for this one fails due to sandbox import restrictions on `h11`. `start.sh` wraps the same command.
+- Frontend: `npm run dev` on :7777 (managed via `.claude/launch.json` → `septena-dev`).
+- Backend: `python3 -m uvicorn main:app --port 7000` — run directly; the preview-server config for this one fails due to sandbox import restrictions on `h11`. `start.sh` wraps the same command.

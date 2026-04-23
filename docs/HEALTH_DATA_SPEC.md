@@ -251,10 +251,10 @@ section: nutrition
 
 ---
 
-## 5. Septena App Backend (FastAPI — port 4445)
+## 5. Septena App Backend (FastAPI — port 7000)
 
-**Running at:** `http://127.0.0.1:4445` (configurable via `SEPTENA_BACKEND_URL`)
-**Frontend:** `http://127.0.0.1:4444` (Next.js)
+**Running at:** `http://127.0.0.1:7000` (configurable via `SEPTENA_BACKEND_URL`)
+**Frontend:** `http://127.0.0.1:7777` (Next.js)
 
 **Currently connected to Septena:**
 - ✅ Training YAML → `Bases/Exercise/Log/` → backend reads → frontend charts

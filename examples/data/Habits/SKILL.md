@@ -9,8 +9,8 @@ A fixed, configurable checklist of daily habits bucketed into morning / afternoo
 
 ## Where it lives
 
-- **Config:** `$VAULT/Habits/habits-config.yaml` — the master list
-- **Log folder:** `$VAULT/Habits/Log/` — per-completion event files
+- **Config:** `$SEPTENA_DATA_DIR/Habits/habits-config.yaml` — the master list
+- **Log folder:** `$SEPTENA_DATA_DIR/Habits/Log/` — per-completion event files
 
 ## habits-config.yaml schema
 
@@ -52,7 +52,7 @@ note: null                 # optional string if the user left a comment
 
 **Uncompleting:** delete the file. The app treats missing files as not-done.
 
-**Reading the day:** glob `$VAULT/Habits/Log/{today}--*.md`, collect `habit_id`s. Merge against `habits-config.yaml` to know which habits are done vs. pending.
+**Reading the day:** glob `$SEPTENA_DATA_DIR/Habits/Log/{today}--*.md`, collect `habit_id`s. Merge against `habits-config.yaml` to know which habits are done vs. pending.
 
 **Changing the habit list:** edit `habits-config.yaml` directly — add, remove, or reorder. Existing log files whose `habit_id` no longer appears in the config are silently ignored.
 

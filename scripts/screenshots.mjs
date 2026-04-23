@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Screenshot automation — spins up a full ephemeral Septena instance
- * (FastAPI backend + Next.js frontend) pointed at a seeded demo vault,
+ * (FastAPI backend + Next.js frontend) pointed at a seeded demo data folder,
  * visits each section, saves screenshots to docs/screenshots/.
  *
  * Usage:
@@ -10,8 +10,8 @@
  *   node scripts/screenshots.mjs --keep           # don't tear down servers on exit
  *   node scripts/screenshots.mjs --out dir/       # custom output directory
  *
- * Requires: `npm install -D playwright` and a seeded demo vault at
- * /tmp/septena-demo-vault (auto-seeded if missing).
+ * Requires: `npm install -D playwright` and a seeded demo data folder at
+ * /tmp/septena-demo-data (auto-seeded if missing).
  */
 
 import { chromium } from "playwright";
@@ -30,9 +30,9 @@ const has = (flag) => argv.includes(flag);
 const get = (flag) => { const i = argv.indexOf(flag); return i !== -1 ? argv[i + 1] : null; };
 
 const OUT_DIR = get("--out") ?? join(ROOT, "docs", "screenshots");
-const DEMO_VAULT = join(tmpdir(), "septena-demo-vault");
-const BACKEND_PORT = 14445;
-const FRONTEND_PORT = 14444;
+const DEMO_DATA = join(tmpdir(), "septena-demo-data");
+const BACKEND_PORT = 17000;
+const FRONTEND_PORT = 17777;
 const VIEWPORT = { width: 1440, height: 900 };
 const KEEP_SERVERS = has("--keep");
 const CACHE_DIR = join(tmpdir(), "septena-demo-cache");
@@ -55,13 +55,13 @@ const SECTIONS = get("--sections")
   ? DEFAULT_SECTIONS.filter((s) => get("--sections").split(",").includes(s.slug))
   : DEFAULT_SECTIONS;
 
-// ── Seed demo vault ─────────────────────────────────────────────────────────
+// ── Seed demo data folder ───────────────────────────────────────────────────
 async function seedVault() {
-  console.log(`🌱  Seeding demo vault at ${DEMO_VAULT}…`);
+  console.log(`🌱  Seeding demo data at ${DEMO_DATA}…`);
   return new Promise((resolve, reject) => {
     const p = spawn("python3", [
-      join(ROOT, "scripts", "seed_demo_vault.py"),
-      "--vault", DEMO_VAULT,
+      join(ROOT, "scripts", "seed_demo_data.py"),
+      "--data-dir", DEMO_DATA,
       "--days", "30",
     ], { stdio: ["ignore", "pipe", "pipe"], cwd: ROOT });
     let err = "";
@@ -100,7 +100,7 @@ async function startBackend() {
     cwd: ROOT,
     env: {
       ...process.env,
-      SEPTENA_DATA_DIR: DEMO_VAULT,
+      SEPTENA_DATA_DIR: DEMO_DATA,
       // Integrations dir that doesn't exist → Oura/Withings/HAE all fail
       // fast. In demo mode the health router serves the pre-seeded cache
       // (see SEPTENA_DEMO_HEALTH + seed_demo_health.py).

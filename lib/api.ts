@@ -58,7 +58,7 @@ export type ProgressionPoint = {
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
 
-/** Thrown when the FastAPI backend on :4445 is unreachable, or when the
+/** Thrown when the FastAPI backend on :7000 is unreachable, or when the
  *  Next.js proxy returns a 502/503/504 (which usually means the same).
  *  Lets UI components show a "backend missing" banner instead of a generic
  *  error and silently swallowed promises. */
@@ -117,30 +117,47 @@ function del<T>(path: string) {
 
 export type AppConfig = {
   paths: {
-    vault: string;
+    data: string;
     health: string;
     integrations: string;
     cache: string;
   };
-  /** Whether the data dir resolves to an existing directory. False on
-   *  first install when the user hasn't created a vault yet. */
-  vault_exists: boolean;
-  /** Whether the vault has any section folders (e.g. Nutrition/, Habits/).
-   *  An empty-but-existing vault still triggers onboarding. */
-  vault_has_sections: boolean;
+  /** Whether the data folder resolves to an existing directory. False on
+   *  first install when the user hasn't created one yet. */
+  data_exists: boolean;
+  /** Whether the data folder has any section folders (e.g. Nutrition/, Habits/).
+   *  An empty-but-existing data folder still triggers onboarding. */
+  data_has_sections: boolean;
   integrations: {
     oura: boolean;
     withings: boolean;
     apple_health: boolean;
   };
   /** Section keys the UI should show in nav/launcher/FAB. Derived from
-   *  vault folder presence + integration tokens — see the backend
+   *  data folder presence + integration tokens — see the backend
    *  _available_sections for the exact rules. */
   available_sections: string[];
 };
 
 export async function getAppConfig() {
   return request<AppConfig>("/api/config");
+}
+
+export type BootstrapRequest = {
+  sections: string[];
+};
+
+export type BootstrapResponse = {
+  created: string[];
+  skipped: string[];
+  data_dir: string;
+};
+
+export async function bootstrapDataFolder(body: BootstrapRequest) {
+  return request<BootstrapResponse>("/api/bootstrap", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
 }
 
 export async function getStats() {

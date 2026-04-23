@@ -49,7 +49,7 @@ const FRESHNESS_LABEL: Record<Freshness, string> = {
 
 // ── Vault source row ────────────────────────────────────────────────────────
 
-function VaultSourceRow({ sectionKey, meta }: { sectionKey: string; meta: SourceMeta }) {
+function DataSourceRow({ sectionKey, meta }: { sectionKey: string; meta: SourceMeta }) {
   const section = useSection(sectionKey as SectionKey);
   const color = section?.color ?? "hsl(0,0%,50%)";
   const f = freshness(meta.newest ?? meta.last_modified);
@@ -140,7 +140,7 @@ export function DataMeta() {
   if (error || !data) return null;
 
   const sources = data.sources;
-  const vaultKeys = ["training", "nutrition", "habits", "supplements", "cannabis", "caffeine", "calendar", "weather"];
+  const dataKeys = ["training", "nutrition", "habits", "supplements", "cannabis", "caffeine", "calendar", "weather"];
   const health = sources.health;
 
   return (
@@ -154,11 +154,11 @@ export function DataMeta() {
         </div>
       </div>
 
-      {/* Vault-backed sections */}
+      {/* Data-folder-backed sections */}
       <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-        {vaultKeys.map((key) => {
+        {dataKeys.map((key) => {
           const meta = sources[key];
-          return meta ? <VaultSourceRow key={key} sectionKey={key} meta={meta} /> : null;
+          return meta ? <DataSourceRow key={key} sectionKey={key} meta={meta} /> : null;
         })}
       </div>
 

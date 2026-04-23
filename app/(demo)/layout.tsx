@@ -5,6 +5,7 @@ import { SectionThemeRoot } from "@/components/section-theme";
 import { SectionStatusBarAuto } from "@/components/section-status-bar";
 import { ShellMain } from "@/components/shell-main";
 import { PageHeaderContextProvider } from "@/components/page-header-context";
+import { DemoBanner } from "@/components/demo-banner";
 
 /** Demo route group. Sets a global flag so lib/api.ts short-circuits into
  *  fixture data, and re-uses the real app shell (tabs, theme, header) so
@@ -19,6 +20,7 @@ export default function DemoLayout({ children }: { children: React.ReactNode }) 
         {`window.__SEPTENA_DEMO__=true;`}
       </Script>
       <SectionThemeRoot>
+        <DemoBanner />
         <SectionTabs />
         <SectionHeader />
         <PageHeaderContextProvider>

@@ -90,9 +90,6 @@ GUT_CONFIG_PATH = DATA_ROOT / "Gut/gut-config.yaml"
 SETTINGS_DIR = DATA_ROOT / "Settings"
 SETTINGS_PATH = SETTINGS_DIR / "settings.yaml"
 
-# Legacy alias. Some modules still import VAULT_ROOT by name.
-VAULT_ROOT = DATA_ROOT
-
 # ── Health integrations ────────────────────────────────────────────────────
 OURA_TOKEN_PATH = INTEGRATIONS_DIR / "oura/token.txt"
 WITHINGS_TOKEN_PATH = INTEGRATIONS_DIR / "withings/token.json"

@@ -8,7 +8,7 @@ import { useEffect, useState } from "react";
  *  succeeds.
  *
  *  Probing through the proxy is the only thing that works on phones:
- *  hitting 127.0.0.1:4445 from a mobile browser would point at the phone,
+ *  hitting 127.0.0.1:7000 from a mobile browser would point at the phone,
  *  not the dev machine. The proxy turns a refused upstream into a 500, so
  *  we treat ANY non-2xx as down. /api/training/stats is simple enough that real 500s
  *  are unlikely — false positives here are acceptable.
@@ -71,7 +71,7 @@ export function BackendStatusBanner() {
       <span className="font-semibold">Backend offline</span>
       <span className="hidden sm:inline"> — start it with </span>
       <code className="ml-1 rounded bg-zinc-700 px-1 py-0.5 text-[11px]">
-        uvicorn main:app --port 4445 --reload
+        uvicorn main:app --port 7000 --reload
       </code>
     </div>
   );

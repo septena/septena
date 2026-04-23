@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Report and optionally remove a small set of proven-unused vault fields."""
+"""Report and optionally remove a small set of proven-unused frontmatter fields."""
 from __future__ import annotations
 
 import argparse
@@ -25,8 +25,8 @@ class CleanupFinding:
     fields: list[str]
 
 
-def _collect_groceries(vault: Path) -> CleanupFinding | None:
-    path = vault / "Groceries" / "groceries.yaml"
+def _collect_groceries(data_dir: Path) -> CleanupFinding | None:
+    path = data_dir / "Groceries" / "groceries.yaml"
     if not path.exists():
         return None
     document = read_yaml_document(path, default={"items": []})
@@ -38,8 +38,8 @@ def _collect_groceries(vault: Path) -> CleanupFinding | None:
     return None
 
 
-def _apply_groceries(vault: Path) -> bool:
-    path = vault / "Groceries" / "groceries.yaml"
+def _apply_groceries(data_dir: Path) -> bool:
+    path = data_dir / "Groceries" / "groceries.yaml"
     if not path.exists():
         return False
     document = read_yaml_document(path, default={"items": []})
@@ -54,10 +54,10 @@ def _apply_groceries(vault: Path) -> bool:
     return changed
 
 
-def _collect_air(vault: Path) -> list[CleanupFinding]:
+def _collect_air(data_dir: Path) -> list[CleanupFinding]:
     codec = FrontmatterMarkdownCodec()
     findings: list[CleanupFinding] = []
-    air_dir = vault / "Air" / "Log"
+    air_dir = data_dir / "Air" / "Log"
     if not air_dir.exists():
         return findings
     for path in sorted(air_dir.glob("*.md")):
@@ -68,10 +68,10 @@ def _collect_air(vault: Path) -> list[CleanupFinding]:
     return findings
 
 
-def _apply_air(vault: Path) -> int:
+def _apply_air(data_dir: Path) -> int:
     codec = FrontmatterMarkdownCodec()
     changed = 0
-    air_dir = vault / "Air" / "Log"
+    air_dir = data_dir / "Air" / "Log"
     if not air_dir.exists():
         return changed
     for path in sorted(air_dir.glob("*.md")):
@@ -94,8 +94,8 @@ SAFE_SETTINGS_FIELDS = {
 }
 
 
-def _collect_settings(vault: Path) -> CleanupFinding | None:
-    path = vault / "Settings" / "settings.yaml"
+def _collect_settings(data_dir: Path) -> CleanupFinding | None:
+    path = data_dir / "Settings" / "settings.yaml"
     if not path.exists():
         return None
     document = read_yaml_document(path, default={})
@@ -106,8 +106,8 @@ def _collect_settings(vault: Path) -> CleanupFinding | None:
     return None
 
 
-def _apply_settings(vault: Path) -> bool:
-    path = vault / "Settings" / "settings.yaml"
+def _apply_settings(data_dir: Path) -> bool:
+    path = data_dir / "Settings" / "settings.yaml"
     if not path.exists():
         return False
     document = read_yaml_document(path, default={})
@@ -133,23 +133,23 @@ def _apply_settings(vault: Path) -> bool:
     return changed
 
 
-def collect_findings(vault: Path) -> list[CleanupFinding]:
+def collect_findings(data_dir: Path) -> list[CleanupFinding]:
     findings: list[CleanupFinding] = []
-    groceries = _collect_groceries(vault)
+    groceries = _collect_groceries(data_dir)
     if groceries:
         findings.append(groceries)
-    findings.extend(_collect_air(vault))
-    settings = _collect_settings(vault)
+    findings.extend(_collect_air(data_dir))
+    settings = _collect_settings(data_dir)
     if settings:
         findings.append(settings)
     return findings
 
 
-def apply_cleanup(vault: Path) -> int:
+def apply_cleanup(data_dir: Path) -> int:
     changed = 0
-    changed += int(_apply_groceries(vault))
-    changed += _apply_air(vault)
-    changed += int(_apply_settings(vault))
+    changed += int(_apply_groceries(data_dir))
+    changed += _apply_air(data_dir)
+    changed += int(_apply_settings(data_dir))
     return changed
 
 
@@ -161,13 +161,13 @@ def _print_findings(findings: list[CleanupFinding]) -> None:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Report or remove proven-unused fields from a Septena vault.")
-    parser.add_argument("--vault", default=str(Path.home() / "Documents" / "septena-data"))
+    parser = argparse.ArgumentParser(description="Report or remove proven-unused fields from a Septena data folder.")
+    parser.add_argument("--data-dir", dest="data_dir", default=str(Path.home() / "Documents" / "septena-data"))
     parser.add_argument("--apply", action="store_true", help="Rewrite files instead of reporting only.")
     args = parser.parse_args(argv)
 
-    vault = Path(args.vault).expanduser()
-    findings = collect_findings(vault)
+    data_dir = Path(args.data_dir).expanduser()
+    findings = collect_findings(data_dir)
     if not args.apply:
         if findings:
             print(f"Dry run: {len(findings)} file(s) would change")
@@ -176,10 +176,10 @@ def main(argv: list[str] | None = None) -> int:
             print("Dry run: no changes needed")
         return 0
 
-    changed = apply_cleanup(vault)
+    changed = apply_cleanup(data_dir)
     if changed:
         print(f"Applied cleanup to {changed} file(s)")
-        updated = collect_findings(vault)
+        updated = collect_findings(data_dir)
         if updated:
             print("Remaining findings:")
             _print_findings(updated)

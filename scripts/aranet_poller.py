@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Pull Aranet4 history over BLE using raw bleak GATT reads, and append
-readings to per-day rollup files at Bases/Air/Log/{date}.md.
+readings to per-day rollup files at Air/Log/{date}.md under the data folder.
 
 Bypasses aranet4-python entirely — that library's v2 header decoder
 rejects every packet on Aranet4 firmware v1.4.14 (the first-byte param
@@ -24,8 +24,8 @@ import yaml
 from bleak import BleakClient
 
 
-VAULT_ROOT = Path.home() / "Documents/septena-data"
-AIR_DIR = VAULT_ROOT / "Air" / "Log"
+DATA_ROOT = Path.home() / "Documents/septena-data"
+AIR_DIR = DATA_ROOT / "Air" / "Log"
 STATE_PATH = Path.home() / ".config/septena/aranet-state.json"
 DEFAULT_DEVICE = "518BB646-2E6C-7616-E6EC-2073CDBAC613"
 

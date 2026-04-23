@@ -40,7 +40,7 @@ type StatusData = {
 export function SectionStatusBar({ section }: { section: SectionKey }) {
   const [data, setData] = useState<StatusData | null>(null);
   const { paths } = useAppConfig();
-  const vault = paths.vault.replace(/\/$/, "");
+  const dataRoot = paths.data.replace(/\/$/, "");
   const loadTime = useLoadTime();
   const color = "var(--section-accent)";
   const sectionMeta = useSection(section);
@@ -52,7 +52,7 @@ export function SectionStatusBar({ section }: { section: SectionKey }) {
         if (section === "training") {
           const stats = await getStats();
           const line1 = `${stats.total_sessions ?? 0} sessions · ${stats.exercises_count ?? 0} exercises`;
-          const line2 = `Last: ${relativeTime(stats.last_logged_at)} · Vault: ${vault}/${sectionMeta?.dataDir ?? "Training/Log"}/`;
+          const line2 = `Last: ${relativeTime(stats.last_logged_at)} · Path: ${dataRoot}/${sectionMeta?.dataDir ?? "Training/Log"}/`;
           setData({ line1, line2, color });
         } else if (section === "health") {
           const [oura, withings, apple] = await Promise.all([
@@ -84,14 +84,14 @@ export function SectionStatusBar({ section }: { section: SectionKey }) {
             : 0;
           const streak = computeStreak(history.daily, { graceDays: 1 });
           const line1 = `${total} habits · ${streak}d streak · ${avg}% avg (30d)`;
-          const line2 = `Path: ${vault}/Habits/Log/`;
+          const line2 = `Path: ${dataRoot}/Habits/Log/`;
           setData({ line1, line2, color });
         } else if (section === "chores") {
           const list = await getChores();
           const overdue = list.chores.filter((c) => c.days_overdue > 0).length;
           const dueToday = list.chores.filter((c) => c.days_overdue === 0).length;
           const line1 = `${list.total} chores · ${overdue} overdue · ${dueToday} due today`;
-          const line2 = `Path: ${vault}/Chores/Definitions/`;
+          const line2 = `Path: ${dataRoot}/Chores/Definitions/`;
           setData({ line1, line2, color });
         } else if (section === "supplements") {
           const history = await getSupplementHistory(30);
@@ -101,7 +101,7 @@ export function SectionStatusBar({ section }: { section: SectionKey }) {
             : 0;
           const streak = computeStreak(history.daily, { graceDays: 1 });
           const line1 = `${total} supplements · ${streak}d streak · ${avg}% avg (30d)`;
-          const line2 = `Path: ${vault}/Supplements/Log/`;
+          const line2 = `Path: ${dataRoot}/Supplements/Log/`;
           setData({ line1, line2, color });
         } else if (section === "cannabis") {
           const history = await getCannabisHistory(7);
@@ -109,7 +109,7 @@ export function SectionStatusBar({ section }: { section: SectionKey }) {
           const lastDay = history.daily[history.daily.length - 1];
           const lastDate = lastDay ? relativeTime(lastDay.date) : "—";
           const line1 = `${total} sessions · ${history.daily.length}d tracked`;
-          const line2 = `Last session: ${lastDate} · Path: ${vault}/Cannabis/Log/`;
+          const line2 = `Last session: ${lastDate} · Path: ${dataRoot}/Cannabis/Log/`;
           setData({ line1, line2, color });
         } else if (section === "caffeine") {
           const history = await getCaffeineHistory(7);
@@ -117,7 +117,7 @@ export function SectionStatusBar({ section }: { section: SectionKey }) {
           const lastWithEntry = [...history.daily].reverse().find((d) => d.sessions > 0);
           const lastDate = lastWithEntry ? relativeTime(lastWithEntry.date) : "—";
           const line1 = `${total} sessions · ${history.daily.length}d tracked`;
-          const line2 = `Last: ${lastDate} · Path: ${vault}/Caffeine/Log/`;
+          const line2 = `Last: ${lastDate} · Path: ${dataRoot}/Caffeine/Log/`;
           setData({ line1, line2, color });
         } else if (section === "body") {
           const withings = await getHealthWithings(30).catch(() => null);
@@ -157,7 +157,7 @@ export function SectionStatusBar({ section }: { section: SectionKey }) {
           const low = g.items?.filter((i) => i.low && !i.last_bought).length ?? 0;
           const cart = g.items?.filter((i) => !!i.last_bought).length ?? 0;
           const line1 = `${total} items · ${low} low · ${cart} in cart`;
-          const line2 = `Path: ${vault}/Groceries/`;
+          const line2 = `Path: ${dataRoot}/Groceries/`;
           setData({ line1, line2, color });
         } else if (section === "sleep") {
           const [oura] = await Promise.all([
@@ -171,7 +171,7 @@ export function SectionStatusBar({ section }: { section: SectionKey }) {
         } else {
           const base = SECTIONS[section];
           const line1 = sectionMeta?.tagline ?? base?.tagline ?? sectionLabel;
-          const line2 = base?.dataDir ? `Obsidian: ${vault}/${base.dataDir}/` : `Section: ${sectionLabel}`;
+          const line2 = base?.dataDir ? `Path: ${dataRoot}/${base.dataDir}/` : `Section: ${sectionLabel}`;
           setData({ line1, line2, color });
         }
       } catch {
@@ -179,7 +179,7 @@ export function SectionStatusBar({ section }: { section: SectionKey }) {
       }
     };
     fetchStatus();
-  }, [section, vault, color, sectionLabel, sectionMeta?.tagline]);
+  }, [section, dataRoot, color, sectionLabel, sectionMeta?.tagline]);
 
   if (!data) return null;
 

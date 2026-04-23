@@ -23,7 +23,6 @@ class ApiRegressionTests(unittest.TestCase):
 
         patches = {
             "DATA_ROOT": self.vault,
-            "VAULT_ROOT": self.vault,
             "HABITS_DIR": self.vault / "Habits" / "Log",
             "HABITS_CONFIG_PATH": self.vault / "Habits" / "habits-config.yaml",
             "SUPPL_DIR": self.vault / "Supplements" / "Log",

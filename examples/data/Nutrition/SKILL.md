@@ -9,8 +9,8 @@ Track meals, macros, and (by derivation) fasting windows.
 
 ## Where it lives
 
-- **Log folder:** `$VAULT/Nutrition/Log/`
-- **Config:** `$VAULT/Nutrition/macros-config.yaml` — daily macro target ranges
+- **Log folder:** `$SEPTENA_DATA_DIR/Nutrition/Log/`
+- **Config:** `$SEPTENA_DATA_DIR/Nutrition/macros-config.yaml` — daily macro target ranges
 - **One file per eating event** — meals, snacks, supplements (when taken with food)
 
 ## Filename
@@ -43,7 +43,7 @@ section: nutrition        # required — must be literal "nutrition"
 
 **Logging a meal:** write one file with today's date, current time, rough macro estimates, and a foods list. The title of the meal (e.g. "Breakfast", "Lunch", "Pasta Bolognese") is the first item of `foods`. There is no separate `name` field.
 
-**Reading the day:** glob `$VAULT/Nutrition/Log/{today}--*.md`, parse frontmatter, sum the macro fields. To get targets, read `macros-config.yaml` (format: `targets: { protein: {min, max, unit}, ... }`); missing file → shipped defaults apply (100–150g protein, 50–80g fat, 200–300g carbs, 2000–2500 kcal).
+**Reading the day:** glob `$SEPTENA_DATA_DIR/Nutrition/Log/{today}--*.md`, parse frontmatter, sum the macro fields. To get targets, read `macros-config.yaml` (format: `targets: { protein: {min, max, unit}, ... }`); missing file → shipped defaults apply (100–150g protein, 50–80g fat, 200–300g carbs, 2000–2500 kcal).
 
 **Fasting window:** gap between the latest `time` of day N and the earliest `time` of day N+1.
 

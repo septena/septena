@@ -9,8 +9,8 @@ Log vape sessions, strains, and capsule usage for self-awareness tracking.
 
 ## Where it lives
 
-- **Config:** `$VAULT/Cannabis/cannabis-config.yaml` — strains + capsule model
-- **Log folder:** `$VAULT/Cannabis/Log/`
+- **Config:** `$SEPTENA_DATA_DIR/Cannabis/cannabis-config.yaml` — strains + capsule model
+- **Log folder:** `$SEPTENA_DATA_DIR/Cannabis/Log/`
 
 ## cannabis-config.yaml schema
 

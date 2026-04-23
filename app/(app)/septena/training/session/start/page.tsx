@@ -230,7 +230,7 @@ export default function StartSessionPage() {
               <p className="mt-2 text-sm text-muted-foreground">
                 You have a {draftMeta?.label.toLowerCase() ?? ""} session in progress
                 {progress ? ` (${progress.done}/${progress.total} done)` : ""}. Starting
-                a new one will discard it — already-saved exercises stay in your vault,
+                a new one will discard it — already-saved exercises stay in your data folder,
                 but any unsent edits will be lost.
               </p>
               <div className="mt-5 flex gap-2">

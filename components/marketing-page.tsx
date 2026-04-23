@@ -1,136 +1,16 @@
 import Image from "next/image";
 import Link from "next/link";
 import { SeptenaMark } from "@/components/septena-mark";
-import { SECTIONS as SECTION_REGISTRY } from "@/lib/sections";
-
-type SectionBlock = {
-  slug: string;
-  name: string;
-  tagline: string;
-  explainer: string;
-  screenshot: string;
-  demoHref: string;
-  accent: string;
-};
-
-const SECTIONS: SectionBlock[] = [
-  {
-    slug: "overview",
-    name: "Overview",
-    tagline: "today at a glance",
-    explainer:
-      "The landing view. Every section contributes a small tile so I can see the day's shape — did I eat, did I move, did I sleep — without clicking through eleven pages. The only screen that's really meant to be glanced at.",
-    screenshot: "/screenshots/overview.png",
-    demoHref: "/demo", // overview lives at /demo, not /demo/overview
-    accent: "var(--brand-accent)",
-  },
-  {
-    slug: "training",
-    name: "Training",
-    tagline: "sessions, PRs, progressions",
-    explainer:
-      "I log strength, cardio, and mobility work the same day I do it. The app tracks progression per exercise, surfaces personal records, and suggests the next logical workout based on what I did last time. Strength is where the data pays off; cardio and mobility get lighter treatment.",
-    screenshot: "/screenshots/exercise.png",
-    demoHref: "/demo/training",
-    accent: SECTION_REGISTRY.training.color,
-  },
-  {
-    slug: "nutrition",
-    name: "Nutrition",
-    tagline: "meals, macros, fasting",
-    explainer:
-      "One entry per eating event, with protein, fat, carbs, kcal, and a free-form ingredient list. Targets are ranges, not points — a protein minimum, a kcal window — because nutrition is a zone to stay inside of, not a number to hit. Fasting and eating windows are computed from the timestamps.",
-    screenshot: "/screenshots/nutrition.png",
-    demoHref: "/demo/nutrition",
-    accent: SECTION_REGISTRY.nutrition.color,
-  },
-  {
-    slug: "habits",
-    name: "Habits",
-    tagline: "the fixed daily checklist",
-    explainer:
-      "Habits aren't ad-hoc. They're a set of recurring things I want to do every day, bucketed morning / afternoon / evening so the order matches the day. Checked off, they generate an event file. No streaks theater.",
-    screenshot: "/screenshots/habits.png",
-    demoHref: "/demo/habits",
-    accent: SECTION_REGISTRY.habits.color,
-  },
-  {
-    slug: "supplements",
-    name: "Supplements",
-    tagline: "daily stack, honest streaks",
-    explainer:
-      "The same pattern as habits, without the buckets. A fixed list, one checkbox per day per item. Shows which I've been consistent with and which I've been quietly skipping.",
-    screenshot: "/screenshots/supplements.png",
-    demoHref: "/demo/supplements",
-    accent: SECTION_REGISTRY.supplements.color,
-  },
-  {
-    slug: "caffeine",
-    name: "Caffeine",
-    tagline: "when, how much, what method",
-    explainer:
-      "Espresso at 08:45, filter at 14:00. Bean presets speed up logging. Useful for correlating with sleep quality later, and just to see the shape of the week.",
-    screenshot: "/screenshots/caffeine.png",
-    demoHref: "/demo/caffeine",
-    accent: SECTION_REGISTRY.caffeine.color,
-  },
-  {
-    slug: "chores",
-    name: "Chores",
-    tagline: "recurring, deferrable",
-    explainer:
-      "Water the plants, change the sheets, clean the coffee machine. Each chore has a cadence in days. Complete it and the next due date is pushed out; defer it and the new due date is recorded explicitly. The current state is derived by replaying the log — no \"current\" is stored anywhere.",
-    screenshot: "/screenshots/chores.png",
-    demoHref: "/demo/chores",
-    accent: SECTION_REGISTRY.chores.color,
-  },
-  {
-    slug: "sleep",
-    name: "Sleep",
-    tagline: "from Oura",
-    explainer:
-      "Sleep score, stages, HRV, resting heart rate, time in bed. Read-only. Septena doesn't try to be a sleep tracker; it makes the data I already have easy to live with alongside everything else.",
-    screenshot: "/screenshots/sleep.png",
-    demoHref: "/demo/sleep",
-    accent: SECTION_REGISTRY.sleep.color,
-  },
-  {
-    slug: "body",
-    name: "Body",
-    tagline: "from Withings",
-    explainer:
-      "Weight and body fat, pulled from the scale. Nothing I have to type in. Most days I don't look; on the days I do, I want the trend, not yesterday's number.",
-    screenshot: "/screenshots/body.png",
-    demoHref: "/demo/body",
-    accent: SECTION_REGISTRY.body.color,
-  },
-  {
-    slug: "health",
-    name: "Health",
-    tagline: "from Apple Health Auto Export",
-    explainer:
-      "Steps, active energy, exercise minutes, VO₂ max, cardio recovery, respiratory rate. Whatever my watch captures, aggregated daily.",
-    screenshot: "/screenshots/health.png",
-    demoHref: "/demo/health",
-    accent: SECTION_REGISTRY.health.color,
-  },
-  {
-    slug: "insights",
-    name: "Insights",
-    tagline: "cross-section patterns",
-    explainer:
-      "The point of having everything in one place. Does caffeine after 14:00 actually cost me sleep? Do heavy leg days move weight? Still early — correlations get trustworthy around ninety days of data.",
-    screenshot: "/screenshots/insights.png",
-    demoHref: "/demo/insights",
-    accent: SECTION_REGISTRY.correlations.color,
-  },
-];
+import { GitHubStarButton, GITHUB_URL } from "@/components/github-star-button";
+import { MARKETING_SECTIONS, type MarketingSection } from "@/lib/marketing-sections";
 
 export function MarketingPage() {
   return (
-    <main className="mx-auto min-h-screen max-w-5xl px-6 py-16 sm:py-24">
-      <Header />
+    <main className="mx-auto min-h-screen max-w-5xl px-6 py-12 sm:py-16">
+      <Nav />
+      <Hero />
       <Why />
+      <BringYourOwnAgent />
       <Sections />
       <HowDataWorks />
       <Install />
@@ -139,18 +19,61 @@ export function MarketingPage() {
   );
 }
 
-function Header() {
+function Nav() {
   return (
-    <header className="mb-16 max-w-3xl">
-      <h1 className="flex items-center gap-3 text-4xl font-semibold tracking-tight sm:text-5xl">
-        <SeptenaMark className="h-9 w-9 sm:h-11 sm:w-11" />
-        <span>Septena</span>
-      </h1>
-      <p className="mt-3 text-lg text-muted-foreground">
-        A local-first personal health command center for people comfortable running a small local
-        Python + Node app.
-      </p>
-    </header>
+    <nav className="mb-12 flex items-center justify-between gap-2">
+      <div className="flex items-center gap-2">
+        <SeptenaMark className="h-7 w-7" />
+        <span className="text-lg font-semibold tracking-tight">Septena</span>
+      </div>
+      <GitHubStarButton />
+    </nav>
+  );
+}
+
+function Hero() {
+  return (
+    <section className="mb-20 grid gap-6 md:grid-cols-2 md:items-center md:gap-10">
+      <div className="max-w-xl">
+        <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">
+          One place for every signal your body sends.
+        </h1>
+        <p className="mt-5 text-lg text-muted-foreground sm:text-xl">
+          A local-first personal health command center — training, nutrition, habits, sleep,
+          vitals. Your data stays on your disk as plain YAML, ready for any AI agent you trust.
+        </p>
+        <div className="mt-7 flex flex-wrap gap-3">
+          <Link
+            href="/demo"
+            className="inline-flex items-center rounded-full border border-brand-accent bg-brand-accent px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-accent-strong"
+          >
+            Try the demo
+          </Link>
+          <Link
+            href="#install"
+            className="inline-flex items-center rounded-full border border-border px-4 py-2 text-sm font-semibold text-foreground transition-colors hover:border-brand-accent hover:text-brand-accent"
+          >
+            Install it yourself
+          </Link>
+          <Link
+            href="#sections"
+            className="inline-flex items-center rounded-full border border-border px-4 py-2 text-sm font-semibold text-foreground transition-colors hover:border-brand-accent hover:text-brand-accent"
+          >
+            See what it tracks
+          </Link>
+        </div>
+      </div>
+      <div className="overflow-hidden rounded-lg border border-border bg-muted/30">
+        <Image
+          src="/screenshots/overview.png"
+          alt="Septena overview — one tile per section showing today's state across training, nutrition, habits, sleep, and more."
+          width={1200}
+          height={800}
+          priority
+          className="h-auto w-full"
+        />
+      </div>
+    </section>
   );
 }
 
@@ -168,43 +91,85 @@ function Why() {
         files. That&apos;s the whole architecture.
       </p>
       <p>
-        Right now this is a tool for technical users, not a polished consumer install flow. If
-        you&apos;re comfortable cloning a repo, installing Node and Python dependencies, and running
-        a local web app, you&apos;re the intended user today.
-      </p>
-      <p>
         The name is from <em>heptad</em> — seven. Most views in the app span a week because that
         is the window where patterns start to show up.
       </p>
-      <div className="flex flex-wrap gap-3 pt-4">
-        <Link
-          href="/demo"
-          className="inline-flex items-center rounded-full border border-brand-accent bg-brand-accent px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-accent-strong"
-        >
-          Try the demo
-        </Link>
-        <Link
-          href="#install"
-          className="inline-flex items-center rounded-full border border-border px-4 py-2 text-sm font-semibold text-foreground transition-colors hover:border-brand-accent hover:text-brand-accent"
-        >
-          Install it yourself
-        </Link>
-      </div>
+    </section>
+  );
+}
+
+function BringYourOwnAgent() {
+  return (
+    <section className="mb-20 max-w-3xl space-y-5 text-base leading-relaxed sm:text-lg">
+      <h2 className="text-2xl font-semibold tracking-tight">Bring your own agent</h2>
+      <p>
+        The reason Septena stores everything as plain text under a folder you control isn&apos;t
+        purity — it&apos;s leverage. Your health log sits next to your notes, in a format any
+        model can read, and every event is git-versioned by default.
+      </p>
+      <p>
+        That means you don&apos;t need Septena to have an &quot;AI feature.&quot; Point Claude
+        Code, Cursor, an Obsidian plugin, or a local LLM at{" "}
+        <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-sm">
+          ~/Documents/septena-data/
+        </code>{" "}
+        and ask it whatever you want:
+      </p>
+      <ul className="ml-6 list-disc space-y-2 text-foreground/90">
+        <li>
+          <span className="font-medium">Structured → structured:</span> &quot;Plot my protein
+          intake vs. next-morning HRV for the last 90 days.&quot; Your agent reads the YAML
+          directly — no API, no schema docs.
+        </li>
+        <li>
+          <span className="font-medium">Unstructured → structured:</span> paste a cafe receipt or
+          a photo of a food label and have your agent append a well-formed nutrition event into
+          the right folder.
+        </li>
+        <li>
+          <span className="font-medium">Structured → unstructured:</span> &quot;Draft a note to
+          my doctor summarizing the last three months of sleep, weight, and training volume.&quot;
+          All the source files are right there to cite.
+        </li>
+      </ul>
+      <p>
+        Because the folder is a git repo, every change an agent makes is a diff you can review,
+        revert, or blame. The barrier between &quot;my structured data&quot; and &quot;my messy
+        notes&quot; dissolves: it&apos;s all one data folder, and whichever model you trust most this
+        month can work across both.
+      </p>
+      <p>
+        To make that reliable, every section ships a{" "}
+        <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-sm">SKILL.md</code> —
+        a compact contract describing the filename pattern, YAML schema, and example entries.
+        Point your agent at one skill and it can log into that section correctly from the first
+        try, no guessing.
+      </p>
+      <p className="text-sm text-muted-foreground">
+        Septena doesn&apos;t ship an agent. It ships the substrate that makes your agent useful.
+      </p>
     </section>
   );
 }
 
 function Sections() {
   return (
-    <section className="mb-20 space-y-16">
-      {SECTIONS.map((s) => (
+    <section id="sections" className="mb-20 space-y-16">
+      <div className="max-w-2xl">
+        <h2 className="text-2xl font-semibold tracking-tight">What Septena tracks</h2>
+        <p className="mt-2 text-muted-foreground">
+          Eleven sections, one data folder. Each links to a deeper page with the data shape, the
+          design decisions, and a live demo.
+        </p>
+      </div>
+      {MARKETING_SECTIONS.map((s) => (
         <SectionBlockView key={s.slug} section={s} />
       ))}
     </section>
   );
 }
 
-function SectionBlockView({ section }: { section: SectionBlock }) {
+function SectionBlockView({ section }: { section: MarketingSection }) {
   const accentSoft = `color-mix(in oklab, ${section.accent} 12%, transparent)`;
   const accentBorder = `color-mix(in oklab, ${section.accent} 28%, var(--border))`;
 
@@ -212,21 +177,29 @@ function SectionBlockView({ section }: { section: SectionBlock }) {
     <article className="grid gap-6 md:grid-cols-2 md:items-center md:gap-10">
       <div className="space-y-3">
         <div>
-          <h2 className="text-2xl font-semibold tracking-tight">{section.name}</h2>
+          <h3 className="text-2xl font-semibold tracking-tight">{section.name}</h3>
           <p className="text-sm text-muted-foreground">{section.tagline}</p>
         </div>
         <p className="text-base leading-relaxed text-foreground/90">{section.explainer}</p>
-        <Link
-          href={section.demoHref}
-          className="inline-flex items-center rounded-full border px-3 py-1.5 text-sm font-medium transition-colors"
-          style={{
-            color: section.accent,
-            borderColor: accentBorder,
-            backgroundColor: accentSoft,
-          }}
-        >
-          Try {section.name.toLowerCase()} demo →
-        </Link>
+        <div className="flex flex-wrap gap-2 pt-1">
+          <Link
+            href={`/about/${section.slug}`}
+            className="inline-flex items-center rounded-full border px-3 py-1.5 text-sm font-medium transition-colors"
+            style={{
+              color: section.accent,
+              borderColor: accentBorder,
+              backgroundColor: accentSoft,
+            }}
+          >
+            Read more →
+          </Link>
+          <Link
+            href={section.demoHref}
+            className="inline-flex items-center rounded-full border border-border px-3 py-1.5 text-sm font-medium text-foreground transition-colors hover:border-brand-accent hover:text-brand-accent"
+          >
+            Try the demo
+          </Link>
+        </div>
       </div>
       <div
         className="overflow-hidden rounded-lg border bg-muted/30"
@@ -234,7 +207,7 @@ function SectionBlockView({ section }: { section: SectionBlock }) {
       >
         <Image
           src={section.screenshot}
-          alt={`${section.name} screenshot`}
+          alt={`${section.name} screenshot — ${section.tagline}`}
           width={1200}
           height={800}
           className="h-auto w-full"
@@ -251,7 +224,7 @@ function HowDataWorks() {
       <p>
         Every event is a YAML file under{" "}
         <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-sm">
-          ~/Documents/septena-data/Bases/&lt;Section&gt;/Log/
+          ~/Documents/septena-data/&lt;Section&gt;/Log/
         </code>
         . A meal looks like this:
       </p>
@@ -268,13 +241,13 @@ section: nutrition
 ---`}
       </pre>
       <p>
-        You can edit the files directly in any text editor. You can back them up with Git. You can
-        write scripts against them. When Septena stops working for you, your data is still there in
-        a format you can read.
+        Edit the files in any text editor. Back them up with git. Write scripts against them.
+        When Septena stops working for you, your data is still there in a format you can read —
+        and that any language model, today or in ten years, can read too.
       </p>
       <p>
         There is no account, no sync server, no cloud. If you want sync, point your data folder
-        at iCloud Drive or Dropbox.
+        at iCloud Drive or Dropbox, or just <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-sm">git push</code> it.
       </p>
     </section>
   );
@@ -315,11 +288,11 @@ function Install() {
         <li>
           Run{" "}
           <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-sm">
-            uvicorn main:app --port 4445 --reload
+            uvicorn main:app --port 7000 --reload
           </code>{" "}
           and{" "}
           <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-sm">npm run dev</code>,
-          then open <span className="font-mono text-sm">http://localhost:4444</span>
+          then open <span className="font-mono text-sm">http://localhost:7777</span>
         </li>
       </ol>
       <p className="text-sm text-muted-foreground">
@@ -335,7 +308,9 @@ function Footer() {
       <p>
         Built by Michell Zappa. MIT licensed.{" "}
         <a
-          href="https://github.com/"
+          href={GITHUB_URL}
+          target="_blank"
+          rel="noreferrer noopener"
           className="text-foreground underline-offset-4 hover:text-brand-accent hover:underline"
         >
           Source on GitHub
