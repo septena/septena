@@ -1,4 +1,4 @@
-// Setlist calendar helper — prints upcoming events as JSON on stdout.
+// Septena calendar helper — prints upcoming events as JSON on stdout.
 //
 // Uses EventKit to read EKEvents across all calendars for a configurable
 // window (default 7 days). macOS shows its Calendar-access prompt on first
@@ -34,7 +34,7 @@ static BOOL requestAccess(EKEventStore *store) {
 int main(int argc, const char *argv[]) {
     @autoreleasepool {
         double days = 7.0;
-        const char *env = getenv("SETLIST_CAL_DAYS");
+        const char *env = getenv("SEPTENA_CAL_DAYS");
         if (env) {
             double n = atof(env);
             if (n > 0) days = n;
@@ -92,7 +92,7 @@ int main(int argc, const char *argv[]) {
             fprintf(stderr, "json encode failed: %s\n", err.localizedDescription.UTF8String);
             return 3;
         }
-        const char *outEnv = getenv("SETLIST_CAL_OUT");
+        const char *outEnv = getenv("SEPTENA_CAL_OUT");
         if (outEnv && outEnv[0]) {
             NSString *path = [NSString stringWithUTF8String:outEnv];
             NSError *werr = nil;

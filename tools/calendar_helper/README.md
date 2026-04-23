@@ -16,16 +16,16 @@ Produces `CalendarHelper.app/`. Run once manually to trigger the macOS
 access prompt:
 
 ```
-open -W ./CalendarHelper.app --env SETLIST_CAL_OUT=/tmp/out.json
+open -W ./CalendarHelper.app --env SEPTENA_CAL_OUT=/tmp/out.json
 cat /tmp/out.json
 ```
 
 Grant Calendar access when prompted. The grant persists in TCC so future
-runs are silent. The Setlist backend (`api/routers/calendar.py`) invokes
+runs are silent. The Septena backend (`api/routers/calendar.py`) invokes
 the same binary via `open -W` on every `/api/calendar` request.
 
 ## Env vars
 
-- `SETLIST_CAL_DAYS` — horizon in days (default 7)
-- `SETLIST_CAL_OUT`  — file to write JSON to (required when launched via
+- `SEPTENA_CAL_DAYS` — horizon in days (default 7)
+- `SEPTENA_CAL_OUT`  — file to write JSON to (required when launched via
   `open -W` since stdout is lost)

@@ -3,9 +3,9 @@
 <plist version="1.0">
 <dict>
     <key>CFBundleIdentifier</key>
-    <string>com.setlist.calendar-helper</string>
+    <string>com.septena.calendar-helper</string>
     <key>CFBundleName</key>
-    <string>Setlist Calendar Helper</string>
+    <string>Septena Calendar Helper</string>
     <key>CFBundleExecutable</key>
     <string>calendar_helper</string>
     <key>CFBundleVersion</key>
@@ -21,8 +21,8 @@
     <key>LSBackgroundOnly</key>
     <true/>
     <key>NSCalendarsFullAccessUsageDescription</key>
-    <string>Setlist reads your upcoming calendar events to show them on the dashboard.</string>
+    <string>Septena reads your upcoming calendar events to show them on the dashboard.</string>
     <key>NSCalendarsUsageDescription</key>
-    <string>Setlist reads your upcoming calendar events to show them on the dashboard.</string>
+    <string>Septena reads your upcoming calendar events to show them on the dashboard.</string>
 </dict>
 </plist>

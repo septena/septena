@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Build the Setlist calendar helper as a proper .app bundle.
+# Build the Septena calendar helper as a proper .app bundle.
 # macOS 14+ requires bundled Info.plist + designated path for TCC prompts.
 set -euo pipefail
 cd "$(dirname "$0")"

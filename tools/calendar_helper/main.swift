@@ -1,4 +1,4 @@
-// Setlist calendar helper — prints upcoming events as JSON on stdout.
+// Septena calendar helper — prints upcoming events as JSON on stdout.
 //
 // Reads EKEvents across all calendars for a configurable window (default 7 days)
 // and emits a JSON array: [{title, start, end, calendar, all_day, location}, ...].
@@ -32,7 +32,7 @@ func requestAccess() -> Bool {
 }
 
 let days: Double = {
-    if let raw = ProcessInfo.processInfo.environment["SETLIST_CAL_DAYS"],
+    if let raw = ProcessInfo.processInfo.environment["SEPTENA_CAL_DAYS"],
        let n = Double(raw), n > 0 { return n }
     return 7
 }()
