@@ -20,20 +20,18 @@ export function SectionTabs() {
           className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-border px-3 py-1.5 text-sm font-semibold text-foreground transition-colors hover:border-[color:var(--section-accent)] hover:text-[color:var(--section-accent)]"
         >
           <svg
-            viewBox="0 0 24 24"
+            viewBox="0 0 512 512"
             fill="currentColor"
             className="h-3.5 w-3.5"
             aria-hidden
           >
-            <circle cx="6" cy="6" r="1.8" />
-            <circle cx="12" cy="6" r="1.8" />
-            <circle cx="18" cy="6" r="1.8" />
-            <circle cx="6" cy="12" r="1.8" />
-            <circle cx="12" cy="12" r="1.8" />
-            <circle cx="18" cy="12" r="1.8" />
-            <circle cx="6" cy="18" r="1.8" />
-            <circle cx="12" cy="18" r="1.8" />
-            <circle cx="18" cy="18" r="1.8" />
+            <circle cx="256" cy="107" r="49" />
+            <circle cx="373" cy="162" r="49" />
+            <circle cx="402" cy="290" r="49" />
+            <circle cx="321" cy="391" r="49" />
+            <circle cx="191" cy="391" r="49" />
+            <circle cx="110" cy="290" r="49" />
+            <circle cx="139" cy="162" r="49" />
           </svg>
           <span>Septena</span>
         </Link>

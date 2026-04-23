@@ -128,7 +128,23 @@ export function MarketingPage() {
 function Header() {
   return (
     <header className="mb-16 max-w-xl">
-      <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">Septena</h1>
+      <h1 className="flex items-center gap-3 text-4xl font-semibold tracking-tight sm:text-5xl">
+        <svg
+          viewBox="0 0 512 512"
+          fill="currentColor"
+          className="h-9 w-9 text-orange-500 sm:h-11 sm:w-11"
+          aria-hidden
+        >
+          <circle cx="256" cy="107" r="49" />
+          <circle cx="373" cy="162" r="49" />
+          <circle cx="402" cy="290" r="49" />
+          <circle cx="321" cy="391" r="49" />
+          <circle cx="191" cy="391" r="49" />
+          <circle cx="110" cy="290" r="49" />
+          <circle cx="139" cy="162" r="49" />
+        </svg>
+        <span>Septena</span>
+      </h1>
       <p className="mt-3 text-lg text-muted-foreground">
         A local-first personal health command center.
       </p>
@@ -151,7 +167,7 @@ function Why() {
       </p>
       <p>
         The name is from <em>heptad</em> — seven. Most views in the app span a week because that's
-        the window where patterns show up and weekends stop distorting the signal.
+        the window where patterns start to show up.
       </p>
       <div className="flex flex-wrap gap-3 pt-4">
         <Link

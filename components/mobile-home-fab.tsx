@@ -157,19 +157,17 @@ export function MobileHomeFab() {
           </svg>
         ) : (
           <svg
-            viewBox="0 0 24 24"
+            viewBox="0 0 512 512"
             fill="currentColor"
             className="h-6 w-6 transition-transform"
           >
-            <circle cx="6" cy="6" r="1.8" />
-            <circle cx="12" cy="6" r="1.8" />
-            <circle cx="18" cy="6" r="1.8" />
-            <circle cx="6" cy="12" r="1.8" />
-            <circle cx="12" cy="12" r="1.8" />
-            <circle cx="18" cy="12" r="1.8" />
-            <circle cx="6" cy="18" r="1.8" />
-            <circle cx="12" cy="18" r="1.8" />
-            <circle cx="18" cy="18" r="1.8" />
+            <circle cx="256" cy="107" r="49" />
+            <circle cx="373" cy="162" r="49" />
+            <circle cx="402" cy="290" r="49" />
+            <circle cx="321" cy="391" r="49" />
+            <circle cx="191" cy="391" r="49" />
+            <circle cx="110" cy="290" r="49" />
+            <circle cx="139" cy="162" r="49" />
           </svg>
         )}
       </button>
