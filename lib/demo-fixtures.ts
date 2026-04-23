@@ -109,8 +109,10 @@ function sectionsRegistry() {
     tagline: string;
     emoji: string;
   }>;
+  // Personal-only sections that aren't part of the demo dataset.
+  const HIDDEN = new Set(["gut", "air", "cannabis"]);
   return entries
-    .filter((s) => s.key !== "gut")
+    .filter((s) => !HIDDEN.has(s.key))
     .map((s, idx) => ({ ...s, order: idx, enabled: true }));
 }
 
