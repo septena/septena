@@ -14,6 +14,7 @@ import {
 import { ChartContainer, type ChartConfig } from "@/components/ui/chart";
 import { SECTIONS } from "@/lib/sections";
 import { useSections } from "@/hooks/use-sections";
+import { useDemoHref } from "@/hooks/use-demo-href";
 import { SectionTheme } from "@/components/section-theme";
 import { EXTRA_MINIS as LOCAL_EXTRA_MINIS } from "@/components/overview-minis-extra";
 import {
@@ -1207,6 +1208,7 @@ const SECTION_MINI: Record<string, React.FC> = {
 // grid instead of taking up a card-sized tile.
 
 function MetaActionBar() {
+  const toHref = useDemoHref();
   const ACTIONS: { href: string; label: string; icon: React.ReactNode }[] = [
     {
       href: "/insights",
@@ -1245,7 +1247,7 @@ function MetaActionBar() {
       {ACTIONS.map((a) => (
         <Link
           key={a.href}
-          href={a.href}
+          href={toHref(a.href)}
           className="inline-flex items-center gap-2 rounded-full border border-border bg-background px-4 py-2 text-sm font-medium text-muted-foreground shadow-sm transition-colors hover:border-foreground/30 hover:text-foreground"
         >
           {a.icon}
@@ -1309,12 +1311,13 @@ export function SectionCard({ section, loading, children }: {
 }) {
   const s = SECTIONS[section as keyof typeof SECTIONS];
   const color = "var(--section-accent)";
+  const toHref = useDemoHref();
   const openQuickLog = useContext(QuickLogContext);
   const quickLog = QUICK_LOG[s.key];
   const hasQuickLog = !!openQuickLog && !!quickLog;
   return (
     <SectionTheme sectionKey={s.key} className="group relative min-w-0 w-full rounded-2xl border border-border bg-background shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md">
-      <Link href={s.path} className="block p-5">
+      <Link href={toHref(s.path)} className="block p-5">
         <div
           className="absolute left-0 top-4 h-8 w-1 rounded-r-full"
           style={{ backgroundColor: color }}
@@ -1392,7 +1395,7 @@ export function OverviewDashboard() {
   const active = openKey ? QUICK_LOG[openKey] : null;
   const allSections = useSections();
   const activeSection = openKey ? allSections.find((s) => s.key === openKey) ?? null : null;
-
+  const toHref = useDemoHref();
   // Home tiles respect user's section_order from settings. Correlations
   // is excluded — it's a meta view on the bottom action row, not a
   // section to log into.
@@ -1412,7 +1415,7 @@ export function OverviewDashboard() {
           </p>
         </div>
 
-        <Link href="/timeline"><TodayTimeline /></Link>
+        <Link href={toHref("/timeline")}><TodayTimeline /></Link>
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {visibleSections.map((s) => {
