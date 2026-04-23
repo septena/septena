@@ -70,6 +70,13 @@ export class BackendUnreachableError extends Error {
 }
 
 async function request<T>(path: string, opts?: RequestInit): Promise<T> {
+  if (
+    typeof window !== "undefined" &&
+    (window as unknown as { __SEPTENA_DEMO__?: boolean }).__SEPTENA_DEMO__
+  ) {
+    const { matchDemoFixture } = await import("./demo-fixtures");
+    return matchDemoFixture(path, opts) as T;
+  }
   let response: Response;
   try {
     response = await fetch(`${API_BASE}${path}`, opts);
