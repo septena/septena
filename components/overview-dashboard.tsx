@@ -63,13 +63,19 @@ import {
 } from "@/components/quick-log-forms";
 import type { SectionKey } from "@/lib/sections";
 import { useBarAnimation } from "@/hooks/use-bar-animation";
+import {
+  SECTION_ACCENT,
+  SECTION_ACCENT_SHADE_2,
+  SECTION_ACCENT_SHADE_3,
+  SECTION_ACCENT_STRONG,
+} from "@/lib/section-colors";
 
 // ── Constants ───────────────────────────────────────────────────────────────
 
 const CHART_HEIGHT = "h-[80px]";
 // Cardio uses the lighter shade of the exercise accent. Resolved via the
 // section-accent CSS vars so it auto-derives from `--section-accent` inside
-// any `<SectionTheme sectionKey="exercise">` subtree.
+// any `<SectionTheme sectionKey="training">` subtree.
 const CARDIO_COLOR = "var(--section-accent-shade-2)";
 
 // ── Week streak helpers ─────────────────────────────────────────────────────
@@ -230,7 +236,7 @@ function MiniBarChart({ label, data, chartConfig, yDomain, children }: {
 // ── Exercise Mini ────────────────────────────────────────────────────────────
 
 function ExerciseMini() {
-  const { data, isLoading } = useSWR("overview-exercise", async () => {
+  const { data, isLoading } = useSWR("overview-training", async () => {
     const [cardio, entries] = await Promise.all([
       getCardioHistory(7),
       getEntries(),
@@ -290,7 +296,7 @@ function ExerciseMini() {
   } satisfies ChartConfig;
 
   return (
-    <SectionCard section="exercise" loading={isLoading}>
+    <SectionCard section="training" loading={isLoading}>
       <div className="grid grid-cols-2 gap-3">
         <MiniStat label="Sessions" value={`${sessionCount}/7`} color={color} />
         <MiniStat label="Z2 min" value={Math.round(latestRolling)} unit="m" />
@@ -486,7 +492,7 @@ function ChoresMini() {
         <MiniStat
           label="Overdue"
           value={overdue}
-          color={overdue > 0 ? "hsl(0,70%,55%)" : color}
+          color={overdue > 0 ? SECTION_ACCENT_STRONG : color}
         />
         <MiniStat label="Due today" value={dueToday} color={color} />
       </div>
@@ -895,8 +901,8 @@ function BodyMini() {
     });
   }, [withings]);
   const chartConfig = { v: { label: "kg", color } } satisfies ChartConfig;
-  const LOSS_COLOR = "hsl(145,55%,42%)";
-  const GAIN_COLOR = "hsl(0,55%,50%)";
+  const LOSS_COLOR = SECTION_ACCENT_SHADE_3;
+  const GAIN_COLOR = SECTION_ACCENT_STRONG;
 
   // "Toward 15% BF" — bar fills as body fat approaches the goal from a
   // ceiling of 25%. Arbitrary goalposts (user can tune in settings later).
@@ -936,12 +942,12 @@ function BodyMini() {
 
       {weightData.length > 0 && (
         <MiniBarChart label="Weight vs avg (7d)" data={weightData} chartConfig={chartConfig} yDomain={["auto", "auto"]}>
-          <ReferenceLine y={0} stroke="hsl(var(--muted-foreground))" strokeOpacity={0.3} />
+          <ReferenceLine y={0} stroke={SECTION_ACCENT} strokeOpacity={0.2} />
           <Bar dataKey="v" radius={[3, 3, 3, 3]}>
             {weightData.map((d, i) => (
               <Cell
                 key={i}
-                fill={d.missing ? "hsl(var(--muted-foreground))" : d.v <= 0 ? LOSS_COLOR : GAIN_COLOR}
+                fill={d.missing ? SECTION_ACCENT_SHADE_3 : d.v <= 0 ? LOSS_COLOR : GAIN_COLOR}
                 fillOpacity={d.missing ? 0.15 : 1}
               />
             ))}
@@ -1171,7 +1177,7 @@ function AirMini() {
             {chartData.map((d, i) => (
               <Cell
                 key={i}
-                fill={d.missing ? "hsl(var(--muted-foreground))" : color}
+                fill={d.missing ? SECTION_ACCENT_SHADE_3 : color}
                 fillOpacity={d.missing ? 0.15 : 1}
               />
             ))}
@@ -1185,7 +1191,7 @@ function AirMini() {
 // ── Section card shell ──────────────────────────────────────────────────────
 
 const SECTION_MINI: Record<string, React.FC> = {
-  exercise: ExerciseMini,
+  training: ExerciseMini,
   nutrition: NutritionMini,
   habits: HabitsMini,
   chores: ChoresMini,
@@ -1292,7 +1298,7 @@ function QuickLogGlyph({ icon }: { icon: QuickLogIcon }) {
 const QUICK_LOG: Partial<
   Record<SectionKey, { title: string; Component: React.FC<{ onDone: () => void }>; icon: QuickLogIcon }>
 > = {
-  exercise:    { title: "Start session",  Component: ExerciseQuickLog,    icon: "play"  },
+  training:    { title: "Start session",  Component: ExerciseQuickLog,    icon: "play"  },
   nutrition:   { title: "Log meal",       Component: NutritionQuickLog,   icon: "plus"  },
   caffeine:    { title: "Log caffeine",   Component: CaffeineQuickLog,    icon: "plus"  },
   cannabis:    { title: "Log cannabis",   Component: CannabisQuickLog,    icon: "plus"  },
@@ -1400,7 +1406,7 @@ export function OverviewDashboard() {
   // is excluded — it's a meta view on the bottom action row, not a
   // section to log into.
   const visibleSections = allSections.filter(
-    (s) => s.enabled && s.key !== "correlations",
+    (s) => s.show_on_dashboard && s.key !== "correlations",
   );
 
   return (

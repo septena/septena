@@ -29,6 +29,8 @@ function buildSectionsFromSettings(
       color: o.color ?? base.color,
       tagline: o.tagline ?? base.tagline,
       enabled: o.enabled ?? true,
+      show_in_nav: o.show_in_nav ?? o.enabled ?? true,
+      show_on_dashboard: o.show_on_dashboard ?? o.enabled ?? true,
       order: idx,
       path: base.path,
       apiBase: base.apiBase,
@@ -50,7 +52,16 @@ export function useSections(): SectionMeta[] {
 /** Nav-visible sections: enabled only, excluding meta entries like
  *  `correlations` that live on the homepage action row instead of the tab bar. */
 export function useNavSections(): SectionMeta[] {
-  return useSections().filter((s) => s.enabled && s.key !== "correlations");
+  const { data: registry } = useSWR("sections-registry", getSections, { revalidateOnFocus: false });
+  if (!registry || registry.length === 0) return [];
+  return registry.filter((s) => s.show_in_nav && s.key !== "correlations");
+}
+
+/** Dashboard-grid sections: visible on the home overview. Correlations is
+ *  excluded — it lives on the bottom action row. */
+export function useDashboardSections(): SectionMeta[] {
+  const sections = useSections();
+  return sections.filter((s) => s.show_on_dashboard && s.key !== "correlations");
 }
 
 export function useSection(key: SectionKey): SectionMeta | undefined {

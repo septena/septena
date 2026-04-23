@@ -34,11 +34,13 @@ def sections_list() -> List[Dict[str, Any]]:
     immutable entry are skipped (stale config). Keys present in code but
     missing from section_order get appended in registry order.
 
-    `enabled` defaults to folder-presence + integration reachability
-    (see available_sections). User settings.yaml can override explicitly
-    — any section with `enabled: true|false` in settings wins over the
-    auto-detected default. This makes the OSS default "show what exists
-    in my vault" while preserving power-user explicit control."""
+    `show_in_nav` and `show_on_dashboard` default to folder-presence +
+    integration reachability (see available_sections). settings.yaml can
+    override each independently. Legacy `enabled` in settings.yaml, if
+    present, acts as a fallback for both flags — so old configs keep
+    working. `enabled` is still returned for backward-compat as
+    `show_in_nav OR show_on_dashboard` (i.e. "section is visible
+    somewhere")."""
     settings = _load_settings()
     order = settings.get("section_order") or []
     meta = settings.get("sections") if isinstance(settings.get("sections"), dict) else {}
@@ -60,16 +62,31 @@ def sections_list() -> List[Dict[str, Any]]:
         m = meta.get(key, {}) if isinstance(meta, dict) else {}
         if not isinstance(m, dict):
             m = {}
-        # Explicit override wins; otherwise fall back to folder-presence.
-        explicit = m.get("enabled")
-        enabled = bool(explicit) if explicit is not None else key in auto_enabled
+        # Per-surface visibility: explicit new-style flag wins, legacy
+        # `enabled` is the fallback, else folder-presence.
+        auto = key in auto_enabled
+        legacy = m.get("enabled")
+        nav_explicit = m.get("show_in_nav")
+        dash_explicit = m.get("show_on_dashboard")
+        show_in_nav = (
+            bool(nav_explicit) if nav_explicit is not None
+            else bool(legacy) if legacy is not None
+            else auto
+        )
+        show_on_dashboard = (
+            bool(dash_explicit) if dash_explicit is not None
+            else bool(legacy) if legacy is not None
+            else auto
+        )
         out.append({
             "key": key,
             "label": m.get("label") or defaults["label"],
             "emoji": m.get("emoji") or defaults["emoji"],
             "color": m.get("color") or defaults["color"],
             "tagline": m.get("tagline") or defaults["tagline"],
-            "enabled": enabled,
+            "enabled": show_in_nav or show_on_dashboard,
+            "show_in_nav": show_in_nav,
+            "show_on_dashboard": show_on_dashboard,
             "order": idx,
             "path": defaults["path"],
             "apiBase": defaults["apiBase"],

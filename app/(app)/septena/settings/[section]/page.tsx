@@ -22,8 +22,9 @@ import {
 export default function SectionSettingsPage() {
   const params = useParams<{ section: string }>();
   const key = params?.section;
+  const sectionKey = key === "exercise" ? "training" : key;
   const sections = useSections();
-  const section = sections.find((s) => s.key === key);
+  const section = sections.find((s) => s.key === sectionKey);
 
   const { data: settings } = useSWR("settings", getSettings);
 
@@ -31,7 +32,8 @@ export default function SectionSettingsPage() {
   const [emoji, setEmoji] = useState("");
   const [color, setColor] = useState("");
   const [tagline, setTagline] = useState("");
-  const [enabled, setEnabled] = useState(true);
+  const [showInNav, setShowInNav] = useState(true);
+  const [showOnDashboard, setShowOnDashboard] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
@@ -47,10 +49,11 @@ export default function SectionSettingsPage() {
     setEmoji(section.emoji);
     setColor(section.color);
     setTagline(section.tagline);
-    setEnabled(section.enabled);
+    setShowInNav(section.show_in_nav);
+    setShowOnDashboard(section.show_on_dashboard);
   }, [section]);
 
-  if (!key) return null;
+  if (!sectionKey) return null;
   if (sections.length > 0 && !section) return notFound();
   if (!section) return null;
 
@@ -62,7 +65,14 @@ export default function SectionSettingsPage() {
       await saveSettings({
         sections: {
           ...(settings?.sections ?? {}),
-          [key as string]: { label, emoji, color, tagline, enabled },
+          [sectionKey as string]: {
+            label,
+            emoji,
+            color,
+            tagline,
+            show_in_nav: showInNav,
+            show_on_dashboard: showOnDashboard,
+          },
         },
       });
       await globalMutate("settings");
@@ -115,7 +125,7 @@ export default function SectionSettingsPage() {
                 value={color}
                 onChange={setColor}
                 others={sections
-                  .filter((s) => s.key !== key)
+                  .filter((s) => s.key !== sectionKey)
                   .map((s) => ({ key: s.key, label: s.label, color: s.color }))}
               />
             </Field>
@@ -129,16 +139,27 @@ export default function SectionSettingsPage() {
               />
             </Field>
 
-            <Field label="Enabled">
-              <label className="inline-flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  checked={enabled}
-                  onChange={(e) => setEnabled(e.target.checked)}
-                  className="h-4 w-4"
-                />
-                <span className="text-muted-foreground">Show in nav</span>
-              </label>
+            <Field label="Visibility">
+              <div className="flex flex-col gap-1.5">
+                <label className="inline-flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={showInNav}
+                    onChange={(e) => setShowInNav(e.target.checked)}
+                    className="h-4 w-4"
+                  />
+                  <span className="text-muted-foreground">Show in top nav</span>
+                </label>
+                <label className="inline-flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={showOnDashboard}
+                    onChange={(e) => setShowOnDashboard(e.target.checked)}
+                    className="h-4 w-4"
+                  />
+                  <span className="text-muted-foreground">Show on homepage</span>
+                </label>
+              </div>
             </Field>
 
             <div className="border-t border-border pt-3 text-xs text-muted-foreground">
@@ -149,11 +170,11 @@ export default function SectionSettingsPage() {
           </CardContent>
         </Card>
 
-        {key === "exercise" && <ManageExercisesCard />}
-        {key === "groceries" && <ManageGroceriesCard />}
-        {key === "habits" && <ManageHabitsCard />}
-        {key === "supplements" && <ManageSupplementsCard />}
-        {key === "chores" && <ManageChoresCard />}
+        {sectionKey === "training" && <ManageExercisesCard />}
+        {sectionKey === "groceries" && <ManageGroceriesCard />}
+        {sectionKey === "habits" && <ManageHabitsCard />}
+        {sectionKey === "supplements" && <ManageSupplementsCard />}
+        {sectionKey === "chores" && <ManageChoresCard />}
 
         <SaveRow saving={saving} saved={saved} color={color || undefined} onSave={onSave} />
       </div>

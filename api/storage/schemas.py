@@ -326,7 +326,7 @@ SETTINGS_ALLOWED_TEMPLATE: Dict[str, Any] = {
     "theme": None,
     "icon_color": None,
     "animations": {
-        "exercise_complete": None,
+        "training_complete": None,
         "first_meal": None,
         "histograms_raise": None,
     },
@@ -337,6 +337,8 @@ SETTINGS_ALLOWED_TEMPLATE: Dict[str, Any] = {
             "color": None,
             "tagline": None,
             "enabled": None,
+            "show_in_nav": None,
+            "show_on_dashboard": None,
         },
     },
     "weather": {

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { Eye, EyeOff } from "lucide-react";
+import { LayoutGrid, PanelTop } from "lucide-react";
 import { useTheme } from "@/components/theme-provider";
 import useSWR, { mutate as globalMutate } from "swr";
 import { useSections, useSectionColor } from "@/hooks/use-sections";
@@ -289,7 +289,7 @@ export function SettingsDashboard() {
   // honors user customisation in settings.yaml.
   const correlationsColor = useSectionColor("correlations");
   const weatherColor = useSectionColor("weather");
-  const exerciseColor = useSectionColor("exercise");
+  const trainingColor = useSectionColor("training");
   const nutritionColor = useSectionColor("nutrition");
   const { data, isLoading, mutate } = useSWR("settings", getSettings);
   const { data: habitsCfg } = useSWR("habits-config", getHabitConfig);
@@ -407,17 +407,37 @@ export function SettingsDashboard() {
     setSaved(false);
   }, []);
 
-  const setSectionEnabled = useCallback((key: SectionKey, enabled: boolean) => {
-    setDraft((d) => {
-      if (!d) return d;
-      const prev = d.sections?.[key] ?? { label: "", emoji: "", color: "", tagline: "", enabled: false };
-      return {
-        ...d,
-        sections: { ...d.sections, [key]: { ...prev, enabled } },
-      };
-    });
-    setSaved(false);
-  }, []);
+  const setSectionVisibility = useCallback(
+    (
+      key: SectionKey,
+      surface: "show_in_nav" | "show_on_dashboard",
+      value: boolean,
+      /** Currently-resolved visibility for BOTH surfaces. We pin both so the
+       *  un-toggled surface doesn't silently fall back to auto-detect when we
+       *  drop the legacy `enabled` field. */
+      resolved: { show_in_nav: boolean; show_on_dashboard: boolean },
+    ) => {
+      setDraft((d) => {
+        if (!d) return d;
+        const prev = d.sections?.[key] ?? { label: "", emoji: "", color: "", tagline: "" };
+        const { enabled: _legacy, ...rest } = prev;
+        return {
+          ...d,
+          sections: {
+            ...d.sections,
+            [key]: {
+              ...rest,
+              show_in_nav: resolved.show_in_nav,
+              show_on_dashboard: resolved.show_on_dashboard,
+              [surface]: value,
+            },
+          },
+        };
+      });
+      setSaved(false);
+    },
+    [],
+  );
 
   const moveSection = useCallback((key: string, dir: -1 | 1) => {
     setDraft((d) => {
@@ -476,7 +496,8 @@ export function SettingsDashboard() {
           <CardHeader className="pb-2">
             <CardTitle className="text-base">Sections</CardTitle>
             <p className="text-xs text-muted-foreground">
-              Tap to edit color/label/tagline. Arrows reorder nav + homepage. Eye toggles visibility.
+              Tap to edit color/label/tagline. Arrows reorder nav + homepage.
+              Left icon toggles the top nav tab; right icon toggles the homepage tile.
             </p>
           </CardHeader>
           <CardContent>
@@ -488,15 +509,31 @@ export function SettingsDashboard() {
                   const emoji = "emoji" in meta ? meta.emoji : "";
                   // Enabled state: explicit user override wins; otherwise fall
                   // back to whatever the registry (/api/sections) resolved to.
-                  const metaEnabled = "enabled" in meta ? meta.enabled !== false : true;
-                  const override = draft.sections?.[key]?.enabled;
-                  const enabled = typeof override === "boolean" ? override : metaEnabled;
+                  // Resolve each surface: draft override wins, then the
+                  // registry's split flag, then legacy `enabled`, then true.
+                  const draftSection = draft.sections?.[key];
+                  const metaNav = "show_in_nav" in meta ? meta.show_in_nav !== false : true;
+                  const metaDash = "show_on_dashboard" in meta ? meta.show_on_dashboard !== false : true;
+                  const navOverride = draftSection?.show_in_nav;
+                  const dashOverride = draftSection?.show_on_dashboard;
+                  const legacyOverride = draftSection?.enabled;
+                  const showInNav = typeof navOverride === "boolean"
+                    ? navOverride
+                    : typeof legacyOverride === "boolean"
+                      ? legacyOverride
+                      : metaNav;
+                  const showOnDashboard = typeof dashOverride === "boolean"
+                    ? dashOverride
+                    : typeof legacyOverride === "boolean"
+                      ? legacyOverride
+                      : metaDash;
+                  const anyVisible = showInNav || showOnDashboard;
                   return (
                     <li
                       key={key}
                       className={cn(
                         "flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2",
-                        !enabled && "opacity-60",
+                        !anyVisible && "opacity-60",
                       )}
                     >
                       <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: meta.color }} />
@@ -514,16 +551,39 @@ export function SettingsDashboard() {
                       </Link>
                       <button
                         type="button"
-                        onClick={() => setSectionEnabled(key, !enabled)}
-                        aria-label={enabled ? "Hide section" : "Show section"}
-                        aria-pressed={enabled}
-                        title={enabled ? "Hide" : "Show"}
+                        onClick={() =>
+                          setSectionVisibility(key, "show_in_nav", !showInNav, {
+                            show_in_nav: showInNav,
+                            show_on_dashboard: showOnDashboard,
+                          })
+                        }
+                        aria-label={showInNav ? "Hide from nav" : "Show in nav"}
+                        aria-pressed={showInNav}
+                        title={showInNav ? "In top nav — click to hide" : "Hidden from top nav — click to show"}
                         className={cn(
                           "flex h-8 w-8 items-center justify-center rounded-md border border-border text-sm hover:bg-muted",
-                          !enabled && "text-muted-foreground",
+                          !showInNav && "text-muted-foreground opacity-50",
                         )}
                       >
-                        {enabled ? <Eye size={16} /> : <EyeOff size={16} />}
+                        <PanelTop size={16} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setSectionVisibility(key, "show_on_dashboard", !showOnDashboard, {
+                            show_in_nav: showInNav,
+                            show_on_dashboard: showOnDashboard,
+                          })
+                        }
+                        aria-label={showOnDashboard ? "Hide from dashboard" : "Show on dashboard"}
+                        aria-pressed={showOnDashboard}
+                        title={showOnDashboard ? "On homepage — click to hide" : "Hidden from homepage — click to show"}
+                        className={cn(
+                          "flex h-8 w-8 items-center justify-center rounded-md border border-border text-sm hover:bg-muted",
+                          !showOnDashboard && "text-muted-foreground opacity-50",
+                        )}
+                      >
+                        <LayoutGrid size={16} />
                       </button>
                       <button
                         type="button"
@@ -791,7 +851,8 @@ export function SettingsDashboard() {
 
         {/* Weather config — only relevant when the weather tile is enabled.
          *  Visibility toggle itself lives in the Sections list above. */}
-        {(draft.sections?.weather?.enabled ?? false) && (
+        {((draft.sections?.weather?.show_in_nav ?? draft.sections?.weather?.enabled) ||
+          (draft.sections?.weather?.show_on_dashboard ?? draft.sections?.weather?.enabled)) && (
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-base">Weather</CardTitle>
@@ -827,7 +888,8 @@ export function SettingsDashboard() {
         )}
 
         {/* Calendar config — only relevant when the calendar tile is enabled. */}
-        {(draft.sections?.calendar?.enabled ?? false) && (
+        {((draft.sections?.calendar?.show_in_nav ?? draft.sections?.calendar?.enabled) ||
+          (draft.sections?.calendar?.show_on_dashboard ?? draft.sections?.calendar?.enabled)) && (
           <CalendarConfigCard
             showAllDay={draft.calendar?.show_all_day ?? true}
             enabledCalendars={draft.calendar?.enabled_calendars ?? null}
@@ -846,9 +908,9 @@ export function SettingsDashboard() {
               <ToggleRow
                 label="Training complete"
                 description="Confetti when a workout wraps."
-                checked={draft.animations.exercise_complete}
-                onChange={(v) => patchAnimations({ exercise_complete: v })}
-                color={exerciseColor}
+                checked={draft.animations.training_complete}
+                onChange={(v) => patchAnimations({ training_complete: v })}
+                color={trainingColor}
               />
               <ToggleRow
                 label="First meal"

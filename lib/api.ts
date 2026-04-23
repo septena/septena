@@ -40,7 +40,7 @@ export type ExerciseEntry = {
   distance_m?: number | null;
   level?: number | null;
   // ISO timestamp "YYYY-MM-DDTHH:MM:SS" of session end (written by POST
-  // /api/sessions). Empty string on legacy entries without a recorded time.
+  // /api/training/sessions). Empty string on legacy entries without a recorded time.
   concluded_at?: string;
 };
 
@@ -144,18 +144,18 @@ export async function getAppConfig() {
 }
 
 export async function getStats() {
-  return request<Stats>("/api/stats");
+  return request<Stats>("/api/training/stats");
 }
 
 export async function getExercises() {
-  return request<string[]>("/api/exercises");
+  return request<string[]>("/api/training/exercises");
 }
 
 // Re-exported for pages that already import from lib/api and want the list.
 
 export async function getProgression(exercise: string) {
   return request<{ exercise: string; data: ProgressionPoint[] }>(
-    `/api/progression/${encodeURIComponent(exercise)}`,
+    `/api/training/progression/${encodeURIComponent(exercise)}`,
   );
 }
 
@@ -169,11 +169,11 @@ export type ExerciseSummary = {
 
 export async function getSummary(since?: string) {
   const qs = since ? `?since=${encodeURIComponent(since)}` : "";
-  return request<ExerciseSummary[]>(`/api/summary${qs}`);
+  return request<ExerciseSummary[]>(`/api/training/summary${qs}`);
 }
 
 export async function getSession(date: string) {
-  return request<{ date: string; data: ExerciseEntry[] }>(`/api/sessions/${date}`);
+  return request<{ date: string; data: ExerciseEntry[] }>(`/api/training/sessions/${date}`);
 }
 
 // ── Exercise config (types + exercises) ─────────────────────────────────────
@@ -200,22 +200,22 @@ export type ExerciseConfig = {
 };
 
 export async function getExerciseConfig() {
-  return request<ExerciseConfig>("/api/exercise/config");
+  return request<ExerciseConfig>("/api/training/config");
 }
 
 export async function addExercise(name: string, type: string, subgroup?: string) {
-  return postJSON<ExerciseConfigItem>("/api/exercise/exercises", { name, type, subgroup });
+  return postJSON<ExerciseConfigItem>("/api/training/exercises", { name, type, subgroup });
 }
 
 export async function updateExercise(
   id: string,
   patch: { name?: string; type?: string; subgroup?: string },
 ) {
-  return putJSON<ExerciseConfigItem>(`/api/exercise/exercises/${encodeURIComponent(id)}`, patch);
+  return putJSON<ExerciseConfigItem>(`/api/training/exercises/${encodeURIComponent(id)}`, patch);
 }
 
 export async function deleteExercise(id: string) {
-  return del<{ ok: boolean }>(`/api/exercise/exercises/${encodeURIComponent(id)}`);
+  return del<{ ok: boolean }>(`/api/training/exercises/${encodeURIComponent(id)}`);
 }
 
 // ── Cardio history ──────────────────────────────────────────────────────────
@@ -224,7 +224,7 @@ export type CardioDay = { date: string; minutes: number; rolling_7d: number };
 export type CardioHistory = { daily: CardioDay[]; target_weekly_min: number };
 
 export async function getCardioHistory(days = 30) {
-  return request<CardioHistory>(`/api/cardio-history?days=${days}`);
+  return request<CardioHistory>(`/api/training/cardio-history?days=${days}`);
 }
 
 // ── Session logger API ──────────────────────────────────────────────────────
@@ -253,12 +253,12 @@ export type SessionWritePayload = {
 };
 
 export async function postSession(payload: SessionWritePayload) {
-  return postJSON<{ written: string[]; concluded_at: string }>("/api/sessions", payload);
+  return postJSON<{ written: string[]; concluded_at: string }>("/api/training/sessions", payload);
 }
 
 export async function getLastSession(type: string) {
   return request<{ session_type: string; date: string; entries: ExerciseEntry[] }>(
-    `/api/sessions/last?type=${encodeURIComponent(type)}`,
+    `/api/training/sessions/last?type=${encodeURIComponent(type)}`,
   );
 }
 
@@ -269,7 +269,7 @@ export type NextWorkoutResponse = {
 };
 
 export async function getNextWorkout() {
-  return request<NextWorkoutResponse>("/api/next-workout");
+  return request<NextWorkoutResponse>("/api/training/next-workout");
 }
 
 export type LastEntryValues = ProgressionPoint & {
@@ -279,11 +279,11 @@ export type LastEntryValues = ProgressionPoint & {
 
 export async function getEntries(since?: string) {
   const qs = since ? `?since=${since}` : "";
-  return request<ExerciseEntry[]>(`/api/entries${qs}`);
+  return request<ExerciseEntry[]>(`/api/training/entries${qs}`);
 }
 
 export async function getLastEntries(exercises: string[]) {
-  return postJSON<Record<string, LastEntryValues | null>>("/api/last-entries", { exercises });
+  return postJSON<Record<string, LastEntryValues | null>>("/api/training/last-entries", { exercises });
 }
 
 // ── Nutrition ───────────────────────────────────────────────────────────
@@ -1083,7 +1083,7 @@ export type Targets = {
 };
 
 export type AppAnimations = {
-  exercise_complete: boolean;
+  training_complete: boolean;
   first_meal: boolean;
   histograms_raise: boolean;
 };
@@ -1093,7 +1093,12 @@ export type SectionSetting = {
   emoji: string;
   color: string;
   tagline: string;
-  enabled: boolean;
+  /** Legacy single-flag visibility. New code should set
+   *  `show_in_nav` / `show_on_dashboard`; `enabled` is still accepted
+   *  as a fallback for both. */
+  enabled?: boolean;
+  show_in_nav?: boolean;
+  show_on_dashboard?: boolean;
 };
 
 export type WeatherUnits = "celsius" | "fahrenheit";
@@ -1158,7 +1163,10 @@ export type SectionMeta = {
   emoji: string;
   color: string;
   tagline: string;
+  /** True iff visible on either nav or dashboard. Prefer the split flags. */
   enabled: boolean;
+  show_in_nav: boolean;
+  show_on_dashboard: boolean;
   order: number;
   path: string;
   apiBase: string;
