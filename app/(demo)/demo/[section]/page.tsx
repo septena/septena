@@ -1,11 +1,22 @@
+import dynamic from "next/dynamic";
 import Link from "next/link";
 
-export default function DemoSectionStub({ params }: { params: Promise<{ section: string }> }) {
-  return <DemoSectionStubContent params={params} />;
-}
+const TrainingDashboard = dynamic(() =>
+  import("@/components/training-dashboard").then((m) => m.TrainingDashboard),
+);
 
-async function DemoSectionStubContent({ params }: { params: Promise<{ section: string }> }) {
+const WIRED: Record<string, React.ComponentType> = {
+  exercise: TrainingDashboard,
+};
+
+export default async function DemoSectionPage({
+  params,
+}: {
+  params: Promise<{ section: string }>;
+}) {
   const { section } = await params;
+  const Wired = WIRED[section];
+  if (Wired) return <Wired />;
   return (
     <main className="mx-auto min-h-screen max-w-2xl px-6 py-24 text-center">
       <h1 className="text-3xl font-semibold tracking-tight">
