@@ -48,7 +48,6 @@ export function isDemoMode(): boolean {
 
 function emptyFallback(url: URL): unknown {
   const p = url.pathname;
-  if (p.endsWith("/events") || p.includes("/events?")) return { events: [] };
   if (p === "/api/config") {
     return {
       paths: {
@@ -66,6 +65,27 @@ function emptyFallback(url: URL): unknown {
   if (p === "/api/sections") return [];
   if (p === "/api/settings") return {};
   if (p === "/api/meta") return { sections: {} };
+  // Event-shaped endpoints.
+  if (p.endsWith("/events")) return { events: [] };
+  // Per-day endpoints return { items/entries: [] } style shapes. Avoid
+  // returning a bare Array — `Array.prototype.entries` would shadow the
+  // expected `.entries` field in any destructuring that uses optional
+  // chaining.
+  if (/\/(day|list|cache|summary|config|macros-config|stats|capsule\/active)($|\/)/.test(p)) {
+    return {
+      items: [],
+      entries: [],
+      events: [],
+      daily: [],
+      sessions: [],
+      history: [],
+      oura: [],
+      apple: [],
+      withings: [],
+      combined: [],
+      capsule: null,
+    };
+  }
   return [];
 }
 
