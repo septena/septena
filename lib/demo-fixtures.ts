@@ -10,6 +10,8 @@
  *  without crashing.
  */
 
+import sectionManifest from "@/sections/manifest.json";
+
 // Fixed "today" for demo mode. Every generated date/entry is anchored here
 // so the story stays self-consistent even if the deploy runs for a week.
 const DEMO_TODAY = "2026-04-23";
@@ -17,6 +19,11 @@ const DEMO_TODAY = "2026-04-23";
 type FixtureHandler = (url: URL, init?: RequestInit) => unknown;
 
 const FIXTURES: Array<{ pattern: RegExp; handler: FixtureHandler }> = [
+  // ── Sections registry ────────────────────────────────────────────────
+  // Gut is explicitly personal data (not part of the default dataset), so
+  // hide it in demo mode. Every other section appears, enabled, so the
+  // topnav looks realistic even before its tile has fixtures.
+  { pattern: /^\/api\/sections$/, handler: sectionsRegistry },
   // ── Exercise ──────────────────────────────────────────────────────────
   { pattern: /^\/api\/stats$/, handler: exerciseStats },
   { pattern: /^\/api\/next-workout$/, handler: exerciseNextWorkout },
@@ -87,6 +94,24 @@ function emptyFallback(url: URL): unknown {
     };
   }
   return [];
+}
+
+// ─── Sections registry ─────────────────────────────────────────────────────
+
+function sectionsRegistry() {
+  const entries = Object.values(sectionManifest) as Array<{
+    key: string;
+    label: string;
+    path: string;
+    apiBase: string;
+    dataDir: string;
+    color: string;
+    tagline: string;
+    emoji: string;
+  }>;
+  return entries
+    .filter((s) => s.key !== "gut")
+    .map((s, idx) => ({ ...s, order: idx, enabled: true }));
 }
 
 // ─── Exercise taxonomy ─────────────────────────────────────────────────────
