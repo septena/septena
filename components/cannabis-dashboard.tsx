@@ -14,11 +14,13 @@ import {
   getCannabisDay,
   addCannabisEntry,
   deleteCannabisEntry,
+  updateCannabisEntry,
   getCannabisHistory,
   getCannabisSessions,
   getCannabisActiveCapsule,
   startCannabisCapsule,
   endCannabisCapsule,
+  type CannabisEntry,
 } from "@/lib/api";
 import { SectionHeaderAction, SectionHeaderActionButton } from "@/components/section-header-action";
 import { StatCard } from "@/components/stat-card";
@@ -56,6 +58,7 @@ export function CannabisDashboard() {
   });
   const [formTime, setFormTime] = useState(currentTime());
   const [formMethod, setFormMethod] = useState<"vape" | "edible">("vape");
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [newCapsuleStrain, setNewCapsuleStrain] = useState("");
   const barAnim = useBarAnimation();
@@ -107,19 +110,27 @@ export function CannabisDashboard() {
     }
   }, [showForm, needsNewCapsule, lastStrain, newCapsuleStrain]);
 
-  const handleAdd = useCallback(async () => {
+  const handleSave = useCallback(async () => {
     if (saving) return;
     setSaving(true);
     try {
-      if (needsNewCapsule) {
-        await startCannabisCapsule(newCapsuleStrain || null);
+      if (editingId) {
+        await updateCannabisEntry(editingId, selectedDate, {
+          time: formTime,
+          method: formMethod,
+        });
+      } else {
+        if (needsNewCapsule) {
+          await startCannabisCapsule(newCapsuleStrain || null);
+        }
+        await addCannabisEntry({
+          date: today,
+          time: formTime,
+          method: formMethod,
+        });
       }
-      await addCannabisEntry({
-        date: today,
-        time: formTime,
-        method: formMethod,
-      });
       setShowForm(false);
+      setEditingId(null);
       setFormTime(currentTime());
       setFormMethod("vape");
       setNewCapsuleStrain("");
@@ -129,7 +140,20 @@ export function CannabisDashboard() {
     } finally {
       setSaving(false);
     }
-  }, [today, formTime, formMethod, saving, needsNewCapsule, newCapsuleStrain, mutate]);
+  }, [today, selectedDate, editingId, formTime, formMethod, saving, needsNewCapsule, newCapsuleStrain, mutate]);
+
+  const handleEdit = useCallback((entry: CannabisEntry) => {
+    setEditingId(entry.id);
+    setFormTime(entry.time.slice(0, 5));
+    setFormMethod(entry.method);
+    setShowForm(true);
+  }, []);
+
+  const handleCancel = useCallback(() => {
+    setShowForm(false);
+    setEditingId(null);
+    setNewCapsuleStrain("");
+  }, []);
 
   const handleEndCapsule = useCallback(async () => {
     await endCannabisCapsule();
@@ -230,7 +254,11 @@ export function CannabisDashboard() {
         <Card className="mb-6">
           <CardHeader className="pb-3">
             <CardTitle className="text-base">
-              {needsNewCapsule ? "Start capsule & log first use" : "Log session"}
+              {editingId
+                ? "Edit Session"
+                : needsNewCapsule
+                  ? "Start Capsule & Log First Use"
+                  : "Log Session"}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -245,7 +273,7 @@ export function CannabisDashboard() {
               </button>
             </div>
 
-            {needsNewCapsule && (
+            {needsNewCapsule && !editingId && (
               <>
                 <input
                   type="text"
@@ -274,22 +302,19 @@ export function CannabisDashboard() {
             <div className="flex gap-2">
               <button
                 type="button"
-                onClick={() => {
-                  setShowForm(false);
-                  setNewCapsuleStrain("");
-                }}
+                onClick={handleCancel}
                 className="flex-1 rounded-xl border border-border bg-card py-2.5 text-sm font-medium text-muted-foreground hover:bg-muted"
               >
                 Cancel
               </button>
               <button
                 type="button"
-                onClick={handleAdd}
+                onClick={handleSave}
                 disabled={saving}
                 className="flex-1 rounded-xl py-2.5 text-sm font-semibold text-white disabled:opacity-50"
                 style={{ backgroundColor: cannabisColor }}
               >
-                {saving ? "Saving…" : needsNewCapsule ? "Start & log" : "Save"}
+                {saving ? "Saving…" : editingId ? "Save changes" : needsNewCapsule ? "Start & log" : "Save"}
               </button>
             </div>
           </CardContent>
@@ -351,7 +376,11 @@ export function CannabisDashboard() {
           ) : day && day.entries.length > 0 ? (
             <div className="space-y-2">
               {day.entries.map((entry) => (
-                <div key={entry.id} className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3">
+                <div
+                  key={entry.id}
+                  className="flex cursor-pointer items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 hover:bg-muted/40"
+                  onClick={() => handleEdit(entry)}
+                >
                   <div className="flex shrink-0 items-center justify-center rounded-full px-2.5 py-1 text-xs font-bold"
                     style={{ backgroundColor: cannabisColor, color: "white" }}>
                     {entry.time.slice(0, 5)}
@@ -365,7 +394,7 @@ export function CannabisDashboard() {
                     </p>
                   </div>
                   <button
-                    onClick={() => handleDelete(entry.id)}
+                    onClick={(e) => { e.stopPropagation(); handleDelete(entry.id); }}
                     className="shrink-0 text-xs text-muted-foreground hover:text-red-500"
                   >
                     ✕

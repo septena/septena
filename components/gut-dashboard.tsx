@@ -44,18 +44,13 @@ function fmtDuration(h: number | null): string {
   return mins === 0 ? `${whole}h` : `${whole}h ${mins}m`;
 }
 
-function fmtClock(iso: string | null): string {
-  if (!iso) return "";
-  const t = iso.split("T")[1] ?? "";
-  return t.slice(0, 5);
-}
-
 export function GutDashboard() {
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [formTime, setFormTime] = useState(currentTime());
   const [formBristol, setFormBristol] = useState<number>(4);
   const [formBlood, setFormBlood] = useState<number>(0);
-  const [formDiscomfort, setFormDiscomfort] = useState<boolean>(false);
+  const [formDiscomfortHours, setFormDiscomfortHours] = useState<string>("");
   const [formNote, setFormNote] = useState<string>("");
   const [saving, setSaving] = useState(false);
   const { date: selectedDate } = useSelectedDate();
@@ -96,8 +91,9 @@ export function GutDashboard() {
     setFormTime(currentTime());
     setFormBristol(4);
     setFormBlood(0);
-    setFormDiscomfort(false);
+    setFormDiscomfortHours("");
     setFormNote("");
+    setEditingId(null);
   }, []);
 
   const handleToggleForm = useCallback(() => {
@@ -107,52 +103,70 @@ export function GutDashboard() {
     });
   }, [resetForm]);
 
-  const handleAdd = useCallback(async () => {
+  const handleEdit = useCallback((entry: GutEntry) => {
+    setEditingId(entry.id);
+    setFormTime(entry.time.slice(0, 5));
+    setFormBristol(entry.bristol);
+    setFormBlood(entry.blood);
+    setFormDiscomfortHours(
+      entry.discomfort_hours != null && entry.discomfort_hours > 0
+        ? String(entry.discomfort_hours)
+        : "",
+    );
+    setFormNote(entry.note ?? "");
+    setShowForm(true);
+  }, []);
+
+  const handleCancel = useCallback(() => {
+    setShowForm(false);
+    resetForm();
+  }, [resetForm]);
+
+  const handleSave = useCallback(async () => {
     if (saving) return;
     setSaving(true);
     try {
-      await addGutEntry({
-        date: today,
-        time: formTime,
-        bristol: formBristol,
-        blood: formBlood,
-        discomfort: formDiscomfort,
-        note: formNote.trim() || null,
-      });
+      const hours =
+        formDiscomfortHours.trim() === "" ? null : Number(formDiscomfortHours);
+      const hoursValid = hours == null || (Number.isFinite(hours) && hours >= 0);
+      const hoursPayload = hoursValid ? hours : null;
+      if (editingId) {
+        await updateGutEntry(editingId, selectedDate, {
+          time: formTime,
+          bristol: formBristol,
+          blood: formBlood,
+          discomfort_hours: hoursPayload,
+          note: formNote.trim() || null,
+        });
+      } else {
+        await addGutEntry({
+          date: today,
+          time: formTime,
+          bristol: formBristol,
+          blood: formBlood,
+          discomfort_hours: hoursPayload,
+          note: formNote.trim() || null,
+        });
+      }
       setShowForm(false);
+      resetForm();
       await mutate();
     } finally {
       setSaving(false);
     }
-  }, [today, formTime, formBristol, formBlood, formDiscomfort, formNote, saving, mutate]);
-
-  const handleResolveDiscomfort = useCallback(
-    async (entry: GutEntry) => {
-      await updateGutEntry(entry.id, selectedDate, { discomfort_end: "now" });
-      await mutate();
-    },
-    [selectedDate, mutate],
-  );
-
-  const handleStartDiscomfort = useCallback(
-    async (entry: GutEntry) => {
-      const startIso = `${entry.date}T${entry.time}`;
-      await updateGutEntry(entry.id, selectedDate, { discomfort_start: startIso });
-      await mutate();
-    },
-    [selectedDate, mutate],
-  );
-
-  const handleClearDiscomfort = useCallback(
-    async (entry: GutEntry) => {
-      await updateGutEntry(entry.id, selectedDate, {
-        discomfort_start: null,
-        discomfort_end: null,
-      });
-      await mutate();
-    },
-    [selectedDate, mutate],
-  );
+  }, [
+    today,
+    selectedDate,
+    editingId,
+    formTime,
+    formBristol,
+    formBlood,
+    formDiscomfortHours,
+    formNote,
+    saving,
+    mutate,
+    resetForm,
+  ]);
 
   const handleDelete = useCallback(
     async (entryId: string) => {
@@ -223,7 +237,7 @@ export function GutDashboard() {
       {showForm && (
         <Card className="mb-6">
           <CardHeader className="pb-3">
-            <CardTitle className="text-base">Log Movement</CardTitle>
+            <CardTitle className="text-base">{editingId ? "Edit Movement" : "Log Movement"}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="flex items-center gap-2">
@@ -282,15 +296,21 @@ export function GutDashboard() {
               </div>
             </div>
 
-            <label className="flex items-center gap-2 text-sm">
+            <div>
+              <p className="mb-1 text-xs uppercase tracking-wide text-muted-foreground">
+                Discomfort (hours)
+              </p>
               <input
-                type="checkbox"
-                checked={formDiscomfort}
-                onChange={(e) => setFormDiscomfort(e.target.checked)}
-                className="h-4 w-4"
+                type="number"
+                inputMode="decimal"
+                step="0.25"
+                min="0"
+                placeholder="0"
+                value={formDiscomfortHours}
+                onChange={(e) => setFormDiscomfortHours(e.target.value)}
+                className="w-32 rounded-lg border border-input bg-background px-3 py-2 text-sm"
               />
-              Ongoing discomfort (mark when it ends later)
-            </label>
+            </div>
 
             <textarea
               placeholder="Note (optional)"
@@ -303,19 +323,19 @@ export function GutDashboard() {
             <div className="flex gap-2">
               <button
                 type="button"
-                onClick={() => setShowForm(false)}
+                onClick={handleCancel}
                 className="flex-1 rounded-xl border border-border bg-card py-2.5 text-sm font-medium text-muted-foreground hover:bg-muted"
               >
                 Cancel
               </button>
               <button
                 type="button"
-                onClick={handleAdd}
+                onClick={handleSave}
                 disabled={saving}
                 className="flex-1 rounded-xl py-2.5 text-sm font-semibold text-white disabled:opacity-50"
                 style={{ backgroundColor: GUT_COLOR }}
               >
-                {saving ? "Saving…" : "Save"}
+                {saving ? "Saving…" : editingId ? "Save changes" : "Save"}
               </button>
             </div>
           </CardContent>
@@ -354,95 +374,49 @@ export function GutDashboard() {
             <p className="text-sm text-muted-foreground">Loading…</p>
           ) : day && day.entries.length > 0 ? (
             <div className="space-y-2">
-              {day.entries.map((entry) => {
-                const hasStart = !!entry.discomfort_start;
-                const resolved = hasStart && !!entry.discomfort_end;
-                const open = hasStart && !entry.discomfort_end;
-                return (
-                  <div
-                    key={entry.id}
-                    className="rounded-xl border border-border bg-card px-4 py-3"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div
-                        className="flex shrink-0 items-center justify-center rounded-full px-2.5 py-1 text-xs font-bold"
-                        style={{ backgroundColor: GUT_COLOR, color: "white" }}
-                      >
-                        {entry.time.slice(0, 5)}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium">
-                          <span>Bristol {entry.bristol}</span>
-                          <span className="ml-2 text-muted-foreground">
-                            · {bristolLabel(entry.bristol)}
+              {day.entries.map((entry) => (
+                <div
+                  key={entry.id}
+                  onClick={() => handleEdit(entry)}
+                  className="cursor-pointer rounded-xl border border-border bg-card px-4 py-3 hover:bg-muted/40"
+                >
+                  <div className="flex items-center gap-3">
+                    <div
+                      className="flex shrink-0 items-center justify-center rounded-full px-2.5 py-1 text-xs font-bold"
+                      style={{ backgroundColor: GUT_COLOR, color: "white" }}
+                    >
+                      {entry.time.slice(0, 5)}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium">
+                        <span>Bristol {entry.bristol}</span>
+                        <span className="ml-2 text-muted-foreground">
+                          · {bristolLabel(entry.bristol)}
+                        </span>
+                        {entry.blood > 0 && (
+                          <span className="ml-2 font-semibold" style={{ color: SECTION_ACCENT_STRONG }}>
+                            · Blood: {bloodLabel(entry.blood)}
                           </span>
-                          {entry.blood > 0 && (
-                            <span className="ml-2 font-semibold" style={{ color: SECTION_ACCENT_STRONG }}>
-                              · Blood: {bloodLabel(entry.blood)}
-                            </span>
-                          )}
-                        </p>
-                        {entry.note && (
-                          <p className="mt-0.5 text-xs text-muted-foreground">{entry.note}</p>
                         )}
-                      </div>
-                      <button
-                        onClick={() => handleDelete(entry.id)}
-                        className="shrink-0 text-xs text-muted-foreground hover:text-red-500"
-                      >
-                        ✕
-                      </button>
-                    </div>
-
-                    <div className="mt-2 flex items-center gap-2 text-xs">
-                      {open && (
-                        <>
-                          <span className="font-medium" style={{ color: SECTION_ACCENT_SHADE_2 }}>
-                            Discomfort open since {fmtClock(entry.discomfort_start)}
+                        {entry.discomfort_hours != null && entry.discomfort_hours > 0 && (
+                          <span className="ml-2 text-muted-foreground">
+                            · Discomfort {fmtDuration(entry.discomfort_hours)}
                           </span>
-                          <button
-                            onClick={() => handleResolveDiscomfort(entry)}
-                            className="rounded-md border border-border px-2 py-1 font-medium hover:bg-muted"
-                          >
-                            Mark Ended Now
-                          </button>
-                          <button
-                            onClick={() => handleClearDiscomfort(entry)}
-                            className="rounded-md px-2 py-1 text-muted-foreground hover:text-foreground"
-                          >
-                            Clear
-                          </button>
-                        </>
-                      )}
-                      {resolved && (
-                        <>
-                          <span className="text-muted-foreground">
-                            Discomfort {fmtClock(entry.discomfort_start)}–
-                            {fmtClock(entry.discomfort_end)} ·{" "}
-                            <span className="font-semibold text-foreground">
-                              {fmtDuration(entry.discomfort_hours)}
-                            </span>
-                          </span>
-                          <button
-                            onClick={() => handleClearDiscomfort(entry)}
-                            className="rounded-md px-2 py-1 text-muted-foreground hover:text-foreground"
-                          >
-                            Clear
-                          </button>
-                        </>
-                      )}
-                      {!hasStart && (
-                        <button
-                          onClick={() => handleStartDiscomfort(entry)}
-                          className="rounded-md border border-border px-2 py-1 text-muted-foreground hover:bg-muted"
-                        >
-                          Add Discomfort
-                        </button>
+                        )}
+                      </p>
+                      {entry.note && (
+                        <p className="mt-0.5 text-xs text-muted-foreground">{entry.note}</p>
                       )}
                     </div>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleDelete(entry.id); }}
+                      className="shrink-0 text-xs text-muted-foreground hover:text-red-500"
+                    >
+                      ✕
+                    </button>
                   </div>
-                );
-              })}
+                </div>
+              ))}
             </div>
           ) : (
             !showForm && (

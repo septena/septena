@@ -12,10 +12,12 @@ import {
   getCaffeineDay,
   addCaffeineEntry,
   deleteCaffeineEntry,
+  updateCaffeineEntry,
   getCaffeineHistory,
   getCaffeineSessions,
   type CaffeineMethod,
   type CaffeineSession,
+  type CaffeineEntry,
 } from "@/lib/api";
 import { SectionHeaderAction, SectionHeaderActionButton } from "@/components/section-header-action";
 import { StatCard } from "@/components/stat-card";
@@ -64,6 +66,7 @@ export function CaffeineDashboard() {
   const [formMethod, setFormMethod] = useState<CaffeineMethod>("v60");
   const [formBeans, setFormBeans] = useState("");
   const [formGrams, setFormGrams] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const barAnim = useBarAnimation();
   const { date: selectedDate } = useSelectedDate();
@@ -116,27 +119,52 @@ export function CaffeineDashboard() {
     });
   }, [lastSession, seedFormFromLast]);
 
-  const handleAdd = useCallback(async () => {
+  const handleSave = useCallback(async () => {
     if (saving) return;
     setSaving(true);
     try {
       const gramsNum = formGrams.trim() ? parseFloat(formGrams) : null;
-      await addCaffeineEntry({
-        date: today,
-        time: formTime,
-        method: formMethod,
-        beans: formBeans.trim() || null,
-        grams: Number.isFinite(gramsNum as number) ? (gramsNum as number) : null,
-      });
+      const grams = Number.isFinite(gramsNum as number) ? (gramsNum as number) : null;
+      const beans = formBeans.trim() || null;
+      if (editingId) {
+        await updateCaffeineEntry(editingId, selectedDate, {
+          time: formTime,
+          method: formMethod,
+          beans,
+          grams,
+        });
+      } else {
+        await addCaffeineEntry({
+          date: today,
+          time: formTime,
+          method: formMethod,
+          beans,
+          grams,
+        });
+      }
       setShowForm(false);
-      // Defaults get re-seeded from the (now freshly-saved) last entry on next open.
+      setEditingId(null);
       await mutate();
     } catch {
       // surfaced via SWR
     } finally {
       setSaving(false);
     }
-  }, [today, formTime, formMethod, formBeans, formGrams, saving, mutate]);
+  }, [today, selectedDate, editingId, formTime, formMethod, formBeans, formGrams, saving, mutate]);
+
+  const handleEdit = useCallback((entry: CaffeineEntry) => {
+    setEditingId(entry.id);
+    setFormTime(entry.time.slice(0, 5));
+    setFormMethod(entry.method);
+    setFormBeans(entry.beans ?? "");
+    setFormGrams(entry.grams != null ? String(entry.grams) : "");
+    setShowForm(true);
+  }, []);
+
+  const handleCancel = useCallback(() => {
+    setShowForm(false);
+    setEditingId(null);
+  }, []);
 
   const handleDelete = useCallback(
     async (entryId: string) => {
@@ -216,7 +244,7 @@ export function CaffeineDashboard() {
       {showForm && (
         <Card className="mb-6">
           <CardHeader className="pb-3">
-            <CardTitle className="text-base">Log caffeine</CardTitle>
+            <CardTitle className="text-base">{editingId ? "Edit Caffeine" : "Log Caffeine"}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="flex items-center gap-2">
@@ -278,19 +306,19 @@ export function CaffeineDashboard() {
             <div className="flex gap-2">
               <button
                 type="button"
-                onClick={() => setShowForm(false)}
+                onClick={handleCancel}
                 className="flex-1 rounded-xl border border-border bg-card py-2.5 text-sm font-medium text-muted-foreground hover:bg-muted"
               >
                 Cancel
               </button>
               <button
                 type="button"
-                onClick={handleAdd}
+                onClick={handleSave}
                 disabled={saving}
                 className="flex-1 rounded-xl py-2.5 text-sm font-semibold text-white disabled:opacity-50"
                 style={{ backgroundColor: caffeineColor }}
               >
-                {saving ? "Saving…" : "Save"}
+                {saving ? "Saving…" : editingId ? "Save changes" : "Save"}
               </button>
             </div>
           </CardContent>
@@ -335,7 +363,8 @@ export function CaffeineDashboard() {
               {day.entries.map((entry) => (
                 <div
                   key={entry.id}
-                  className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3"
+                  onClick={() => handleEdit(entry)}
+                  className="flex cursor-pointer items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 hover:bg-muted/40"
                 >
                   <div
                     className="flex shrink-0 items-center justify-center rounded-full px-2.5 py-1 text-xs font-bold"
@@ -355,7 +384,7 @@ export function CaffeineDashboard() {
                     </p>
                   </div>
                   <button
-                    onClick={() => handleDelete(entry.id)}
+                    onClick={(e) => { e.stopPropagation(); handleDelete(entry.id); }}
                     className="shrink-0 text-xs text-muted-foreground hover:text-red-500"
                   >
                     ✕

@@ -52,6 +52,18 @@ async def caffeine_add_entry(request: Request) -> Dict[str, Any]:
     return {"ok": True, "entry": record}
 
 
+@router.put("/entry/{entry_id}")
+async def caffeine_update_entry(request: Request, entry_id: str) -> Dict[str, Any]:
+    """Edit a logged caffeine entry. Mutable: time, method, beans, grams, note."""
+    params = dict(request.query_params)
+    day = _normalize_date(params.get("date")) or date.today().isoformat()
+    payload = await request.json()
+    updated = caffeine_service.update_entry(entry_id, day, payload)
+    if updated is None:
+        raise HTTPException(status_code=404, detail="entry not found")
+    return {"ok": True, "entry": updated}
+
+
 @router.delete("/entry/{entry_id}")
 async def caffeine_delete_entry(request: Request, entry_id: str) -> Dict[str, Any]:
     params = dict(request.query_params)

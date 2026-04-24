@@ -195,11 +195,19 @@ async def gut_add_entry(request: Request) -> Dict[str, Any]:
     blood = _coerce_int_in(payload.get("blood"), {0, 1, 2}, 0)
     note = str(payload.get("note") or "").strip() or None
 
-    discomfort = bool(payload.get("discomfort"))
     start_iso: Optional[str] = None
     end_iso: Optional[str] = None
-    if discomfort:
-        start_iso = f"{day}T{time_str}"
+    hours_raw = payload.get("discomfort_hours")
+    if hours_raw not in (None, ""):
+        try:
+            hours_val = float(hours_raw)
+        except (TypeError, ValueError):
+            hours_val = 0.0
+        if hours_val > 0:
+            start_dt = datetime.fromisoformat(f"{day}T{time_str}")
+            end_dt = start_dt + timedelta(hours=hours_val)
+            start_iso = start_dt.isoformat(timespec="minutes")
+            end_iso = end_dt.isoformat(timespec="minutes")
     # Explicit overrides if the caller provided timestamps.
     if payload.get("discomfort_start"):
         start_iso = str(payload["discomfort_start"])
@@ -257,6 +265,28 @@ async def gut_update_entry(request: Request, entry_id: str) -> Dict[str, Any]:
     # Sanitize legacy rows that captured the literal "None" string.
     if existing.get("note") in ("None", "none"):
         existing["note"] = None
+    if "discomfort_hours" in payload:
+        v = payload["discomfort_hours"]
+        if v in (None, "", 0, 0.0):
+            existing["discomfort_start"] = None
+            existing["discomfort_end"] = None
+        else:
+            try:
+                hv = float(v)
+            except (TypeError, ValueError):
+                hv = 0.0
+            if hv > 0:
+                t = str(existing.get("time") or "00:00")
+                d_str = existing.get("date")
+                if hasattr(d_str, "isoformat"):
+                    d_str = d_str.isoformat()
+                start_dt = datetime.fromisoformat(f"{d_str}T{t}")
+                end_dt = start_dt + timedelta(hours=hv)
+                existing["discomfort_start"] = start_dt.isoformat(timespec="minutes")
+                existing["discomfort_end"] = end_dt.isoformat(timespec="minutes")
+            else:
+                existing["discomfort_start"] = None
+                existing["discomfort_end"] = None
     if "discomfort_start" in payload:
         v = payload["discomfort_start"]
         existing["discomfort_start"] = str(v) if v else None

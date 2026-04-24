@@ -633,6 +633,17 @@ export async function deleteCannabisEntry(entryId: string, date: string) {
   return del<{ ok: boolean }>(`/api/cannabis/entry/${entryId}?date=${date}`);
 }
 
+export async function updateCannabisEntry(
+  entryId: string,
+  date: string,
+  patch: { time?: string; method?: "vape" | "edible"; note?: string | null; effect?: string | null },
+) {
+  return putJSON<{ ok: boolean; entry: CannabisEntry }>(
+    `/api/cannabis/entry/${entryId}?date=${date}`,
+    patch,
+  );
+}
+
 export async function getCannabisHistory(days = 30) {
   return request<CannabisHistory>(`/api/cannabis/history?days=${days}`);
 }
@@ -755,6 +766,23 @@ export async function addCaffeineEntry(payload: {
 
 export async function deleteCaffeineEntry(entryId: string, date: string) {
   return del<{ ok: boolean }>(`/api/caffeine/entry/${entryId}?date=${date}`);
+}
+
+export async function updateCaffeineEntry(
+  entryId: string,
+  date: string,
+  patch: {
+    time?: string;
+    method?: CaffeineMethod;
+    beans?: string | null;
+    grams?: number | null;
+    note?: string | null;
+  },
+) {
+  return putJSON<{ ok: boolean }>(
+    `/api/caffeine/entry/${entryId}?date=${date}`,
+    patch,
+  );
 }
 
 export async function getCaffeineHistory(days = 30) {

@@ -142,6 +142,18 @@ def _write_cannabis_event(path: Path, event: Dict[str, Any]) -> None:
     atomic_write_text(path, body)
 
 
+def _find_cannabis_event_by_id(entry_id: str, day: Optional[str] = None) -> Optional[Path]:
+    pattern = f"{day}--*.md" if day else "*.md"
+    for p in CANNABIS_DIR.glob(pattern):
+        try:
+            fm = _extract_frontmatter(p.read_text(encoding="utf-8"))
+        except Exception:  # noqa: BLE001
+            continue
+        if str(fm.get("id", "")) == entry_id:
+            return p
+    return None
+
+
 def _delete_cannabis_event_by_id(entry_id: str, day: Optional[str] = None) -> bool:
     """Find the event file whose frontmatter `id` matches and unlink it.
     Scoped to a single day if provided; otherwise scans the whole dir."""
@@ -275,6 +287,38 @@ async def cannabis_end_capsule() -> Dict[str, Any]:
     """End the currently active capsule. No-op if none active."""
     _save_capsule_state({"active": None})
     return {"ok": True}
+
+
+@router.put("/entry/{entry_id}")
+async def cannabis_update_entry(request: Request, entry_id: str) -> Dict[str, Any]:
+    """Edit a logged session. Mutable: time, method, note, effect.
+    Strain/grams stay tied to the original capsule snapshot."""
+    params = dict(request.query_params)
+    day = _normalize_date(params.get("date")) or date.today().isoformat()
+    path = _find_cannabis_event_by_id(entry_id, day)
+    if path is None:
+        raise HTTPException(status_code=404, detail="entry not found")
+
+    existing = _extract_frontmatter(path.read_text(encoding="utf-8"))
+    payload = await request.json()
+
+    if "time" in payload:
+        t = str(payload["time"]).strip()
+        if t:
+            existing["time"] = t
+    if "method" in payload:
+        m = str(payload["method"]).strip()
+        if m in {"vape", "edible"}:
+            existing["method"] = m
+    if "note" in payload:
+        n = str(payload["note"] or "").strip()
+        existing["note"] = n or None
+    if "effect" in payload:
+        e = str(payload["effect"] or "").strip()
+        existing["effect"] = e or None
+    existing["updated_at"] = datetime.now().isoformat()
+    _write_cannabis_event(path, existing)
+    return {"ok": True, "entry": existing}
 
 
 @router.delete("/entry/{entry_id}")

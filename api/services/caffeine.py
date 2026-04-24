@@ -55,6 +55,43 @@ def delete_entry(entry_id: str, day: str | None = None) -> bool:
     return _events().delete(entry_id, day=day)
 
 
+def update_entry(entry_id: str, day: str, patch: Dict[str, Any]) -> Dict[str, Any] | None:
+    """Merge a partial patch into an existing entry, write back to the same
+    file. Returns the updated record, or None when no entry matches."""
+    repo = _events()
+    existing = repo.get_by_id(entry_id, day=day)
+    path = repo.path_of(entry_id, day=day)
+    if existing is None or path is None:
+        return None
+
+    if "time" in patch:
+        t = str(patch["time"] or "").strip()
+        if t:
+            existing["time"] = t
+    if "method" in patch:
+        m = str(patch["method"] or "").strip()
+        if m in CAFFEINE_METHODS:
+            existing["method"] = m
+    if "beans" in patch:
+        beans = str(patch["beans"] or "").strip()
+        existing["beans"] = beans if beans and beans.lower() != "none" else None
+    if "grams" in patch:
+        g = patch["grams"]
+        if g is None or g == "":
+            existing["grams"] = None
+        else:
+            try:
+                gv = float(g)
+                existing["grams"] = gv if gv > 0 else None
+            except (TypeError, ValueError):
+                pass
+    if "note" in patch:
+        n = str(patch["note"] or "").strip()
+        existing["note"] = n or None
+    repo.write(existing, path=path)
+    return existing
+
+
 def day_summary(day: str) -> Dict[str, Any]:
     events = load_day(day)
     method_counts: Dict[str, int] = {method: 0 for method in CAFFEINE_METHODS}

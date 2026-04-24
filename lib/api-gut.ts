@@ -68,7 +68,7 @@ export async function addGutEntry(payload: {
   time: string;
   bristol: number;
   blood: number;
-  discomfort?: boolean;
+  discomfort_hours?: number | null;
   note?: string | null;
 }) {
   return gutRequest<{ ok: boolean; entry: GutEntry }>("/api/gut/entry", {
@@ -86,6 +86,7 @@ export async function updateGutEntry(
     bristol: number;
     blood: number;
     note: string | null;
+    discomfort_hours: number | null;
     discomfort_start: string | null;
     discomfort_end: string | "now" | null;
   }>,

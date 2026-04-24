@@ -76,6 +76,21 @@ class SectionRepository(Generic[T]):
         invalidate(self.directory)
         return target
 
+    def path_of(self, record_id: str, day: str | None = None) -> Path | None:
+        """Locate the file backing a given record id. Used by callers that
+        need to update in place without renaming the file."""
+        if not self.directory.exists():
+            return None
+        glob = self.schema.glob_for_day(day) if day else self.schema.glob
+        for path in sorted(self.directory.glob(glob)):
+            try:
+                record = self._parse_path(path)
+            except Exception:
+                continue
+            if record is not None and self.schema.record_id(record) == record_id:
+                return path
+        return None
+
     def delete(self, record_id: str, day: str | None = None) -> bool:
         if not self.directory.exists():
             return False
