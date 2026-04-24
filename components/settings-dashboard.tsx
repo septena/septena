@@ -931,6 +931,17 @@ export function SettingsDashboard() {
         </Card>
 
         <SaveRow saving={saving} saved={saved} onSave={handleSave} />
+
+        <footer className="pt-6 pb-2 text-center text-xs text-muted-foreground">
+          <a
+            href="https://septena.app"
+            target="_blank"
+            rel="noreferrer"
+            className="hover:text-foreground transition-colors"
+          >
+            Septena · septena.app
+          </a>
+        </footer>
       </div>
     </>
   );
