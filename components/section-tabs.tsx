@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Suspense } from "react";
+import { Suspense, useRef, useState } from "react";
 import { DateNav } from "@/components/date-nav";
 import { SeptenaMark } from "@/components/septena-mark";
 import { useNavSections } from "@/hooks/use-sections";
@@ -14,6 +14,22 @@ export function SectionTabs() {
   const toHref = useDemoHref();
   const homeHref = toHref("/septena");
   const homeActive = pathname === homeHref;
+  const markRef = useRef<HTMLSpanElement>(null);
+  const spinRef = useRef(0);
+  const [colorActive, setColorActive] = useState(false);
+  const handleHomeClick = () => {
+    const el = markRef.current;
+    if (!el) return;
+    setColorActive(true);
+    window.setTimeout(() => {
+      spinRef.current += 360;
+      el.style.transition = "transform 1000ms cubic-bezier(0.22, 1, 0.36, 1)";
+      el.style.transform = `rotate(${spinRef.current}deg)`;
+    }, 200);
+    window.setTimeout(() => {
+      setColorActive(false);
+    }, 1300);
+  };
 
   return (
     <nav className="sticky top-0 z-40 w-full border-b border-border bg-background/80 pt-[env(safe-area-inset-top)] backdrop-blur">
@@ -22,17 +38,18 @@ export function SectionTabs() {
           href={homeHref}
           aria-label="Home"
           title="Home"
+          onClick={handleHomeClick}
           className={`group inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-3 py-1.5 text-sm font-semibold text-foreground transition-colors ${
             homeActive ? "border-foreground/20 bg-muted" : "border-border"
           }`}
         >
-          <span className="relative inline-flex h-3.5 w-3.5">
+          <span ref={markRef} className="relative inline-flex h-3.5 w-3.5">
             <SeptenaMark
-              className={`absolute inset-0 h-3.5 w-3.5 transition-opacity ${homeActive ? "opacity-0" : "group-hover:opacity-0"}`}
+              className={`absolute inset-0 h-3.5 w-3.5 transition-opacity duration-500 ${colorActive ? "opacity-0" : "opacity-100"}`}
               variant="currentColor"
             />
             <SeptenaMark
-              className={`absolute inset-0 h-3.5 w-3.5 transition-opacity ${homeActive ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}
+              className={`absolute inset-0 h-3.5 w-3.5 transition-opacity duration-500 ${colorActive ? "opacity-100" : "opacity-0"}`}
               variant="spectrum"
             />
           </span>

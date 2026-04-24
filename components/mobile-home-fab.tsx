@@ -27,8 +27,11 @@ export function MobileHomeFab() {
   const toHref = useDemoHref();
   const [menuOpen, setMenuOpen] = useState(false);
   const [pressed, setPressed] = useState(false);
+  const [spinning, setSpinning] = useState(false);
   const longPressFired = useRef(false);
   const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const markWrapRef = useRef<HTMLSpanElement>(null);
+  const spinRef = useRef(0);
 
   const clearPressTimer = useCallback(() => {
     if (pressTimer.current) {
@@ -70,8 +73,22 @@ export function MobileHomeFab() {
   const handlePointerUp = () => {
     clearPressTimer();
     if (longPressFired.current) return;
-    // Short tap → navigate home.
+    if (menuOpen) {
+      setMenuOpen(false);
+      return;
+    }
+    // Short tap → kick off navigation immediately; color swap + spin play alongside.
     router.push(toHref("/septena"));
+    setSpinning(true);
+    const el = markWrapRef.current;
+    if (el) {
+      window.setTimeout(() => {
+        spinRef.current += 360;
+        el.style.transition = "transform 1000ms cubic-bezier(0.22, 1, 0.36, 1)";
+        el.style.transform = `rotate(${spinRef.current}deg)`;
+      }, 200);
+    }
+    window.setTimeout(() => setSpinning(false), 1300);
   };
 
   const handlePointerLeave = () => {
@@ -165,7 +182,9 @@ export function MobileHomeFab() {
             <path d="M12 5v14M5 12h14" />
           </svg>
         ) : (
-          <SeptenaMark className="h-8 w-8 transition-transform" variant={pressed || menuOpen ? "spectrum" : "currentColor"} />
+          <span ref={markWrapRef} className="inline-flex h-8 w-8">
+            <SeptenaMark className="h-8 w-8" variant={pressed || menuOpen || spinning ? "spectrum" : "currentColor"} />
+          </span>
         )}
       </button>
     </>
