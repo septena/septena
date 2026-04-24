@@ -73,11 +73,20 @@ export class BackendUnreachableError extends Error {
   }
 }
 
+/** Demo mode is detected synchronously from the URL — no window flag, no
+ *  Next.js Script timing. The previous approach used a `beforeInteractive`
+ *  Script in the (demo) layout, but that strategy is only honored in the
+ *  root layout under App Router; everywhere else it degrades to a normally
+ *  injected <script> that races hydration. The result was a flash of empty
+ *  state on first demo load while early SWR fetches went to the real
+ *  backend before the flag was set. Reading `location.pathname` is
+ *  guaranteed available the moment any client code runs. */
+function isDemoPath(): boolean {
+  return typeof window !== "undefined" && window.location.pathname.startsWith("/demo");
+}
+
 async function request<T>(path: string, opts?: RequestInit): Promise<T> {
-  if (
-    typeof window !== "undefined" &&
-    (window as unknown as { __SEPTENA_DEMO__?: boolean }).__SEPTENA_DEMO__
-  ) {
+  if (isDemoPath()) {
     const { matchDemoFixture } = await import("./demo-fixtures");
     return matchDemoFixture(path, opts) as T;
   }

@@ -29,11 +29,16 @@ const FALLBACK: AppConfig = {
  *  instead — it already combines the /api/sections `enabled` flag with
  *  user-defined section order from settings.yaml. */
 export function useAppConfig(): AppConfig {
-  const { data } = useSWR<AppConfig>("app-config", getAppConfig, {
+  const { data, error } = useSWR<AppConfig>("app-config", getAppConfig, {
     revalidateOnFocus: false,
     // Config is set by env vars at server boot — never changes at runtime.
     revalidateIfStale: false,
     dedupingInterval: Infinity,
   });
-  return data ?? FALLBACK;
+  if (data) return data;
+  // On real fetch errors (backend unreachable), drop the optimistic
+  // `data_has_sections: true` so OnboardingGate / BackendStatusBanner can
+  // surface the outage instead of rendering an empty shell.
+  if (error) return { ...FALLBACK, data_exists: false, data_has_sections: false };
+  return FALLBACK;
 }
