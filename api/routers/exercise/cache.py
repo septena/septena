@@ -51,6 +51,7 @@ def _parse_entry(path: Path) -> Dict[str, Any] | None:
         "source": frontmatter.get("source") or "",
         "file": path.name,
         "concluded_at": frontmatter.get("concluded_at") or "",
+        "logged_at": frontmatter.get("logged_at") or "",
         "duration_min": _normalize_number(frontmatter.get("duration_min")),
         "distance_m": _normalize_number(frontmatter.get("distance_m")),
         "level": _normalize_number(frontmatter.get("level")),

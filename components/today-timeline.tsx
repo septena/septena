@@ -203,7 +203,7 @@ export function TodayTimeline() {
           <>
             <div
               className="absolute top-1 bottom-1 rounded-l-full bg-muted-foreground/10"
-              style={{ left: 0, width: `${pct(wakeHour)}%` }}
+              style={{ left: "4px", width: `calc(${pct(wakeHour)}% - 4px)` }}
               title={`Asleep until ${todayOura?.wake_time}`}
             />
             <div
@@ -239,7 +239,7 @@ export function TodayTimeline() {
           return (
             <div
               key={i}
-              className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full ring-2 ring-background"
+              className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full ring-1 ring-background"
               style={{
                 left: `${pct(c.hour)}%`,
                 width: `${size}px`,

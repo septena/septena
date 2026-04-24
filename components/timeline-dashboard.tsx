@@ -9,6 +9,7 @@ import {
   getCannabisDay,
   getCaffeineDay,
   getEntries,
+  getExerciseConfig,
   getHealthCache,
   getHabitDay,
   getChores,
@@ -117,6 +118,21 @@ export function TimelineDashboard() {
     { refreshInterval: 30_000 },
   );
 
+  // Exercise taxonomy — lets us label the training event by its dominant
+  // group (upper / lower / cardio / mobility / core) instead of whichever
+  // exercise happened to land first alphabetically.
+  const { data: exerciseConfig } = useSWR("training-config", getExerciseConfig, {
+    revalidateOnFocus: false,
+  });
+  const exerciseGroup = (name: string): string => {
+    const key = name.toLowerCase();
+    const resolved = exerciseConfig?.aliases?.[key] ?? key;
+    const ex = exerciseConfig?.exercises?.find((x) => x.name.toLowerCase() === resolved);
+    if (!ex) return "strength";
+    if (ex.type === "strength") return ex.subgroup || "upper";
+    return ex.type;
+  };
+
   const events: Event[] = [];
 
   // Nutrition — via universal /events contract
@@ -137,15 +153,38 @@ export function TimelineDashboard() {
     events.push({ hour: h, timeStr: c.time ?? "—", color: caffeineColor, label: c.method ?? "caffeine", source: "caffeine" });
   }
 
-  // Training
-  const seenExerciseTimes = new Set<string>();
+  // Training — one event per session (grouped by concluded_at). Classify
+  // each exercise through the training-config taxonomy and pick the
+  // dominant group for the label. Log files don't carry a session field,
+  // so inferring from the exercise mix is the only reliable source.
+  const trainingBySession = new Map<string, { exercises: Set<string> }>();
   for (const e of Array.isArray(data?.training) ? data!.training : []) {
     if (e.date !== today || !e.concluded_at) continue;
     const hhmm = e.concluded_at.slice(11, 16);
-    if (seenExerciseTimes.has(hhmm)) continue;
-    seenExerciseTimes.add(hhmm);
+    const bucket = trainingBySession.get(hhmm) ?? { exercises: new Set() };
+    if (e.exercise) bucket.exercises.add(e.exercise);
+    trainingBySession.set(hhmm, bucket);
+  }
+  const groupTitle: Record<string, string> = {
+    upper: "Upper",
+    lower: "Lower",
+    cardio: "Cardio",
+    mobility: "Mobility",
+    core: "Core",
+    strength: "Strength",
+  };
+  for (const [hhmm, bucket] of trainingBySession) {
     const h = parseHHMM(hhmm);
-    events.push({ hour: h, timeStr: hhmm, color: trainingColor, label: e.session || e.exercise || "training", source: "training" });
+    const counts: Record<string, number> = {};
+    for (const ex of bucket.exercises) {
+      const g = exerciseGroup(ex);
+      counts[g] = (counts[g] ?? 0) + 1;
+    }
+    const dominant = Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0];
+    const n = bucket.exercises.size;
+    const base = dominant ? groupTitle[dominant] ?? "Training" : "Training";
+    const label = `${base} · ${n} ${n === 1 ? "exercise" : "exercises"}`;
+    events.push({ hour: h, timeStr: hhmm, color: trainingColor, label, source: "training" });
   }
 
   // Habits

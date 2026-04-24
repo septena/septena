@@ -6,17 +6,20 @@ import { Bar, BarChart, CartesianGrid, Line, LineChart, ReferenceLine, Tooltip, 
 
 import {
   getEntries,
+  getExerciseConfig,
   getProgression,
   getStats,
   getNextWorkout,
   getSummary,
   getCardioHistory,
   type ExerciseEntry,
+  type ExerciseConfig,
   type ProgressionPoint,
   type Stats,
 } from "@/lib/api";
 import { computePRs } from "@/lib/pr";
-import { cn } from "@/lib/utils";
+import { cn, titleCase } from "@/lib/utils";
+import { DifficultyGlyph, LevelGlyph } from "@/components/intensity-glyph";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent, type ChartConfig } from "@/components/ui/chart";
 import {
@@ -504,7 +507,7 @@ export function TrainingDashboard() {
         <Card>
             <CardHeader className="flex flex-row items-start justify-between gap-4">
               <div>
-                <CardTitle className="text-base">{META_LABEL[state.selectedExercise] ?? state.selectedExercise ?? "Select an exercise"}</CardTitle>
+                <CardTitle className="text-base">{META_LABEL[state.selectedExercise] ?? (state.selectedExercise ? titleCase(state.selectedExercise) : "Select an exercise")}</CardTitle>
                 <CardDescription>{chartSubtitle(state.selectedExercise, selectedKind)}</CardDescription>
               </div>
               <select
@@ -640,8 +643,16 @@ export function TrainingDashboard() {
                   {state.loading ? "Loading chart…" : "No data available for this exercise yet."}
                 </div>
               )}
+            </CardContent>
+          </Card>
 
-              <div className="mt-4 flex flex-col gap-4 border-t pt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Exercise Type</CardTitle>
+              <CardDescription>Pick an exercise to chart</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-col gap-4">
                 {(() => {
                   // Pill grouping mirrors the backend classification. Unknown
                   // (not yet in config) falls into Strength, same as the
@@ -712,7 +723,7 @@ export function TrainingDashboard() {
                                   }
                                 }}
                               >
-                                {META_LABEL[name] ?? name}
+                                {META_LABEL[name] ?? titleCase(name)}
                                 <span
                                   className="ml-1.5 rounded-full px-1.5 py-0.5 text-xs"
                                   style={
@@ -738,104 +749,195 @@ export function TrainingDashboard() {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>
-                {isMeta(state.selectedExercise)
-                  ? `Per-session totals (${metaRows.length})`
-                  : `All sessions (${state.progression.length})`}
-              </CardTitle>
-              <CardDescription>
-                {isMeta(state.selectedExercise)
-                  ? "Aggregate per training day, newest first."
-                  : "Every logged entry for this exercise, newest first."}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="px-0 sm:px-6">
-              <div className="overflow-x-auto">
-                {isMeta(state.selectedExercise) ? (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Date</TableHead>
-                        <TableHead>{state.selectedExercise === META_STRENGTH ? "Total volume" : "Total minutes"}</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {metaRows.length > 0 ? (
-                        metaRows.map((row) => (
-                          <TableRow key={row.date}>
-                            <TableCell>{formatDate(row.date)}</TableCell>
-                            <TableCell>{formatValue(row.total, state.selectedExercise, selectedKind)}</TableCell>
-                          </TableRow>
-                        ))
-                      ) : (
-                        <TableRow>
-                          <TableCell colSpan={2} className="text-center text-muted-foreground">
-                            {state.loading ? "Loading…" : "No sessions in this window."}
-                          </TableCell>
-                        </TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
-                ) : (
-                <Table>
-                  <TableHeader>
-                    {isCardioView ? (
-                      <TableRow>
-                        <TableHead>Date</TableHead>
-                        <TableHead>{metricKind(state.selectedExercise, selectedKind) === "pace" ? "Pace" : "Duration"}</TableHead>
-                        <TableHead>Distance</TableHead>
-                        <TableHead>Level</TableHead>
-                      </TableRow>
-                    ) : (
-                      <TableRow>
-                        <TableHead>Date</TableHead>
-                        <TableHead>Weight</TableHead>
-                        <TableHead>Sets</TableHead>
-                        <TableHead>Reps</TableHead>
-                        <TableHead>Difficulty</TableHead>
-                      </TableRow>
-                    )}
-                  </TableHeader>
-                  <TableBody>
-                    {recentSessions.length > 0 ? (
-                      recentSessions.map((item, i) => {
-                        const value = metricValue(state.selectedExercise, selectedKind, item);
-                        if (isCardioView) {
-                          return (
-                            <TableRow key={`${item.date}-${i}`}>
-                              <TableCell>{formatDate(item.date)}</TableCell>
-                              <TableCell>{formatValue(value, state.selectedExercise, selectedKind)}</TableCell>
-                              <TableCell>{item.distance_m != null ? `${item.distance_m} m` : "—"}</TableCell>
-                              <TableCell>{item.level ?? "—"}</TableCell>
-                            </TableRow>
-                          );
-                        }
-                        return (
-                          <TableRow key={`${item.date}-${item.weight}-${i}`}>
-                            <TableCell>{formatDate(item.date)}</TableCell>
-                            <TableCell>{formatValue(value, state.selectedExercise, selectedKind)}</TableCell>
-                            <TableCell>{item.sets ?? "—"}</TableCell>
-                            <TableCell>{item.reps ?? "—"}</TableCell>
-                            <TableCell>{item.difficulty || "medium"}</TableCell>
-                          </TableRow>
-                        );
-                      })
-                    ) : (
-                      <TableRow>
-                        <TableCell colSpan={isCardioView ? 4 : 5} className="text-center text-muted-foreground">
-                          {state.loading ? "Loading sessions…" : "No sessions found."}
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+          <RecentTrainingSessions entries={state.allEntries} />
         </div>
       </>
     );
   }
+
+// ── Recent sessions list ─────────────────────────────────────────────────────
+// Mirrors the nutrition RecentEntriesList: sessions grouped by day, with the
+// contained exercises as sub-items. Session time comes from concluded_at.
+// Session title is inferred from the dominant group among the session's
+// exercises (same logic as the timeline event label).
+
+type SessionGroup = {
+  concludedAt: string;   // "YYYY-MM-DDTHH:MM:SS" (or date when time missing)
+  date: string;
+  time: string | null;   // "HH:MM"
+  entries: ExerciseEntry[];
+};
+
+const GROUP_TITLE: Record<string, string> = {
+  upper: "Upper",
+  lower: "Lower",
+  cardio: "Cardio",
+  mobility: "Mobility",
+  core: "Core",
+  strength: "Strength",
+};
+
+function groupByConcluded(entries: ExerciseEntry[]): SessionGroup[] {
+  const map = new Map<string, SessionGroup>();
+  for (const e of entries) {
+    const key = e.concluded_at || e.date;
+    const bucket = map.get(key) ?? {
+      concludedAt: key,
+      date: e.date,
+      time: e.concluded_at ? e.concluded_at.slice(11, 16) : null,
+      entries: [],
+    };
+    bucket.entries.push(e);
+    map.set(key, bucket);
+  }
+  return [...map.values()].sort((a, b) => b.concludedAt.localeCompare(a.concludedAt));
+}
+
+function inferSessionTitle(entries: ExerciseEntry[], config: ExerciseConfig | undefined): string {
+  if (!config) return "Training";
+  const counts: Record<string, number> = {};
+  for (const e of entries) {
+    const raw = (e.exercise ?? "").toLowerCase();
+    const resolved = config.aliases?.[raw] ?? raw;
+    const ex = config.exercises?.find((x) => x.name.toLowerCase() === resolved);
+    let group = "strength";
+    if (ex) {
+      if (ex.type === "strength") group = ex.subgroup || "upper";
+      else group = ex.type;
+    }
+    counts[group] = (counts[group] ?? 0) + 1;
+  }
+  const dominant = Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0];
+  return dominant ? GROUP_TITLE[dominant] ?? "Training" : "Training";
+}
+
+function RecentTrainingSessions({ entries }: { entries: ExerciseEntry[] }) {
+  const { data: config } = useSWR("training-config", getExerciseConfig, {
+    revalidateOnFocus: false,
+  });
+  const sessions = useMemo(() => groupByConcluded(entries), [entries]);
+
+  if (sessions.length === 0) {
+    return null;
+  }
+
+  return (
+    <Card className="mt-6">
+      <CardHeader>
+        <CardTitle>Recent sessions</CardTitle>
+        <CardDescription>{sessions.length} sessions · grouped by day</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <ul className="divide-y divide-border">
+          {sessions.reduce<React.ReactNode[]>((rows, s, i) => {
+            const prev = sessions[i - 1];
+            if (i === 0 || (prev && prev.date !== s.date)) {
+              const [y, m, d] = s.date.split("-").map(Number);
+              const dayLabel = new Date(y!, m! - 1, d!).toLocaleDateString(undefined, {
+                weekday: "long",
+                month: "long",
+                day: "numeric",
+              });
+              rows.push(
+                <li key={`sep-${s.date}`} className="flex justify-center py-2">
+                  <span className="text-xs font-medium text-muted-foreground">{dayLabel}</span>
+                </li>,
+              );
+            }
+            const title = inferSessionTitle(s.entries, config);
+            // Sort sub-items chronologically by logged_at (set when each
+            // entry is POSTed individually during the live session). Falls
+            // back to alphabetical for legacy entries without logged_at.
+            const sortedEntries = [...s.entries].sort((a, b) => {
+              const la = a.logged_at || "";
+              const lb = b.logged_at || "";
+              if (la && lb) return la.localeCompare(lb);
+              if (la) return -1;
+              if (lb) return 1;
+              return (a.exercise ?? "").localeCompare(b.exercise ?? "");
+            });
+            const exerciseGroups = new Map<string, ExerciseEntry[]>();
+            for (const e of sortedEntries) {
+              const name = e.exercise ?? "—";
+              const arr = exerciseGroups.get(name) ?? [];
+              arr.push(e);
+              exerciseGroups.set(name, arr);
+            }
+            // Session totals — volume for strength (sum of weight×sets×reps),
+            // minutes and distance for cardio entries.
+            let volume = 0;
+            let cardioMin = 0;
+            let cardioM = 0;
+            for (const e of s.entries) {
+              const reps = typeof e.reps === "number" ? e.reps : Number(e.reps) || 0;
+              const sets = typeof e.sets === "number" ? e.sets : Number(e.sets) || 0;
+              const w = e.weight ?? 0;
+              if (w && sets && reps) volume += w * sets * reps;
+              if (e.duration_min) cardioMin += e.duration_min;
+              if (e.distance_m) cardioM += e.distance_m;
+            }
+            // Session duration: first-to-last logged_at. Only meaningful
+            // when at least two entries have logged_at timestamps.
+            const stamps = s.entries.map((e) => e.logged_at).filter((x): x is string => !!x).sort();
+            let durationMin: number | null = null;
+            if (stamps.length >= 2) {
+              const ms = new Date(stamps[stamps.length - 1]!).getTime() - new Date(stamps[0]!).getTime();
+              durationMin = Math.round(ms / 60_000);
+            }
+            const totals: string[] = [];
+            if (durationMin != null && durationMin > 0) totals.push(`${durationMin}min session`);
+            if (volume > 0) totals.push(`${Math.round(volume).toLocaleString()}kg volume`);
+            if (cardioMin > 0) totals.push(`${Math.round(cardioMin)}min cardio`);
+            if (cardioM > 0) totals.push(`${(cardioM / 1000).toFixed(cardioM >= 10000 ? 0 : 1)}km`);
+            rows.push(
+              <li key={s.concludedAt} className="py-3">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-sm font-semibold">
+                    {title}
+                    <span className="ml-2 text-xs font-normal text-muted-foreground">
+                      {s.time ?? "—"} · {exerciseGroups.size} {exerciseGroups.size === 1 ? "exercise" : "exercises"}
+                    </span>
+                  </p>
+                </div>
+                {totals.length > 0 && (
+                  <p className="mt-0.5 text-xs font-medium tabular-nums" style={{ color: "var(--section-accent)" }}>
+                    {totals.join(" · ")}
+                  </p>
+                )}
+                <ul className="mt-1 space-y-0.5 text-xs text-muted-foreground">
+                  {[...exerciseGroups.entries()].map(([name, items]) => {
+                    const first = items[0]!;
+                    const isCardio = first.duration_min != null || first.distance_m != null;
+                    return (
+                      <li key={name} className="flex items-center justify-between gap-2">
+                        <span className="truncate">{titleCase(name)}</span>
+                        <span className="flex shrink-0 items-center gap-1.5 tabular-nums">
+                          {isCardio ? (
+                            <>
+                              {first.duration_min != null && <span>{first.duration_min}min</span>}
+                              {first.distance_m != null && <span>{first.distance_m}m</span>}
+                              <LevelGlyph level={first.level} />
+                            </>
+                          ) : (
+                            <>
+                              {first.weight != null && <span>{first.weight}kg</span>}
+                              {first.sets != null && (
+                                <span>{first.sets}×{first.reps ?? "?"}</span>
+                              )}
+                              <DifficultyGlyph difficulty={first.difficulty} />
+                            </>
+                          )}
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </li>,
+            );
+            return rows;
+          }, [])}
+        </ul>
+      </CardContent>
+    </Card>
+  );
+}

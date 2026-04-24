@@ -49,6 +49,11 @@ async def post_sessions(request: Request) -> Dict[str, Any]:
             "date": date_str,
             "exercise": ex,
             "concluded_at": concluded_at,
+            # Per-entry timestamp at write time — since each set is POSTed
+            # individually as the user logs it, this captures the real
+            # chronological order within a session. The shared concluded_at
+            # alone can't do that.
+            "logged_at": datetime.now().isoformat(timespec="seconds"),
         }
 
         if is_cardio:

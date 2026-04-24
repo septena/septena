@@ -42,6 +42,10 @@ export type ExerciseEntry = {
   // ISO timestamp "YYYY-MM-DDTHH:MM:SS" of session end (written by POST
   // /api/training/sessions). Empty string on legacy entries without a recorded time.
   concluded_at?: string;
+  // ISO timestamp of when this specific entry was written — captures
+  // per-entry chronological order within a session (since concluded_at is
+  // shared across all entries in the same session).
+  logged_at?: string;
 };
 
 export type ProgressionPoint = {
