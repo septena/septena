@@ -2,6 +2,7 @@
 // Swap the import in this file if we ever change toast libraries.
 
 import { toast } from "sonner";
+import { haptic } from "@/lib/haptics";
 
 export type ToastOptions = {
   description?: string;
@@ -9,6 +10,7 @@ export type ToastOptions = {
 };
 
 export function showToast(message: string, opts?: ToastOptions): void {
+  haptic();
   toast.success(message, opts);
 }
 

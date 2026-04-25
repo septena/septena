@@ -23,6 +23,7 @@ import {
   type CannabisEntry,
 } from "@/lib/api";
 import { SectionHeaderAction, SectionHeaderActionButton } from "@/components/section-header-action";
+import { haptic } from "@/lib/haptics";
 import { StatCard } from "@/components/stat-card";
 import { useBarAnimation } from "@/hooks/use-bar-animation";
 
@@ -156,11 +157,13 @@ export function CannabisDashboard() {
   }, []);
 
   const handleEndCapsule = useCallback(async () => {
+    haptic("medium");
     await endCannabisCapsule();
     await mutate();
   }, [mutate]);
 
   const handleStartCapsule = useCallback(async () => {
+    haptic("medium");
     await startCannabisCapsule(lastStrain || null);
     await mutate();
   }, [mutate, lastStrain]);

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useSWRConfig } from "swr";
+import { haptic } from "@/lib/haptics";
 
 // Pull-to-refresh that revalidates all SWR caches when the user drags down
 // from the very top of the document. No full page reload needed.
@@ -15,6 +16,7 @@ export function PullToRefresh() {
   const [refreshing, setRefreshing] = useState(false);
   const startY = useRef<number | null>(null);
   const pullRef = useRef(0);
+  const armedRef = useRef(false);
 
   useEffect(() => {
     function onTouchStart(e: TouchEvent) {
@@ -35,10 +37,19 @@ export function PullToRefresh() {
       const eased = Math.min(MAX, Math.sqrt(dy) * 9);
       pullRef.current = eased;
       setPull(eased);
+      // Single tick the moment we cross the trigger threshold while pulling.
+      if (!armedRef.current && eased >= THRESHOLD) {
+        armedRef.current = true;
+        haptic();
+      } else if (armedRef.current && eased < THRESHOLD) {
+        armedRef.current = false;
+      }
     }
 
     function onTouchEnd() {
+      armedRef.current = false;
       if (pullRef.current >= THRESHOLD) {
+        haptic("medium");
         setRefreshing(true);
         // Revalidate all SWR keys — dashboards re-fetch without a page reload.
         mutate(() => true, undefined, { revalidate: true }).finally(() => {
