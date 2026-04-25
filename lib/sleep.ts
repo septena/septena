@@ -33,7 +33,8 @@ export function idealBedtimeFromOura(
   if (!hours.length) return null;
   hours.sort((a, b) => a - b);
   const mid = Math.floor(hours.length / 2);
-  return hours.length % 2 ? hours[mid] : (hours[mid - 1] + hours[mid]) / 2;
+  const raw = hours.length % 2 ? hours[mid] : (hours[mid - 1] + hours[mid]) / 2;
+  return raw - 1;
 }
 
 export function formatHour(hour: number): string {
