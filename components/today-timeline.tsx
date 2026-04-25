@@ -21,8 +21,10 @@ import { parseHHMM, idealBedtimeFromOura, formatHour } from "@/lib/sleep";
 
 type Dot = { hour: number; color: string; label: string };
 
-export function TodayTimeline() {
-  const { date: today, isToday } = useSelectedDate();
+export function TodayTimeline({ date: dateProp }: { date?: string } = {}) {
+  const selected = useSelectedDate();
+  const today = dateProp ?? selected.date;
+  const isToday = today === selected.today;
   // Pull from the live registry (`/api/sections`) not the static
   // `SECTIONS[key].color` fallback — the static map is the first-paint
   // default; users can override per-section in settings.yaml. Reading

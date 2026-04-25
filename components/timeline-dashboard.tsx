@@ -128,7 +128,7 @@ export function TimelineDashboard() {
         })}
       </div>
 
-      <TimelineWeekView endDate={today} colors={colors} exerciseConfig={exerciseConfig} />
+      <TimelineWeekView endDate={today} />
     </main>
   );
 }
