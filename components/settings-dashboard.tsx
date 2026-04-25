@@ -6,6 +6,12 @@ import { LayoutGrid, PanelTop } from "lucide-react";
 import { useTheme } from "@/components/theme-provider";
 import useSWR, { mutate as globalMutate } from "swr";
 import { useSections, useSectionColor } from "@/hooks/use-sections";
+import { SettingsRenderer } from "@/lib/settings/render";
+import {
+  macrosSchema,
+  toMacrosView,
+  macrosPatch,
+} from "@/lib/settings/schemas/macros";
 import {
   type AppSettings,
   type AppTheme,
@@ -629,45 +635,16 @@ export function SettingsDashboard() {
             <p className="text-xs text-muted-foreground">Daily macros, training, sleep, cannabis.</p>
           </CardHeader>
           <CardContent className="space-y-6 pt-2">
-            <section>
-              <p className="mb-1 text-[10px] uppercase tracking-wide text-muted-foreground">
-                Macros <span className="text-muted-foreground/70">· daily min–max</span>
-              </p>
-              <div className="divide-y divide-border/60">
-                <RangeField
-                  label="Protein"
-                  unit="g"
-                  min={draft.targets.protein_min_g}
-                  max={draft.targets.protein_max_g}
-                  onMinChange={(v) => patchTargets({ protein_min_g: v })}
-                  onMaxChange={(v) => patchTargets({ protein_max_g: v })}
-                />
-                <RangeField
-                  label="Fat"
-                  unit="g"
-                  min={draft.targets.fat_min_g}
-                  max={draft.targets.fat_max_g}
-                  onMinChange={(v) => patchTargets({ fat_min_g: v })}
-                  onMaxChange={(v) => patchTargets({ fat_max_g: v })}
-                />
-                <RangeField
-                  label="Carbs"
-                  unit="g"
-                  min={draft.targets.carbs_min_g}
-                  max={draft.targets.carbs_max_g}
-                  onMinChange={(v) => patchTargets({ carbs_min_g: v })}
-                  onMaxChange={(v) => patchTargets({ carbs_max_g: v })}
-                />
-                <RangeField
-                  label="Kcal"
-                  step={10}
-                  min={draft.targets.kcal_min}
-                  max={draft.targets.kcal_max}
-                  onMinChange={(v) => patchTargets({ kcal_min: v })}
-                  onMaxChange={(v) => patchTargets({ kcal_max: v })}
-                />
-              </div>
-            </section>
+            <SettingsRenderer
+              node={macrosSchema}
+              value={toMacrosView(draft.targets)}
+              color={accent}
+              onChange={(path, next) => {
+                const p = macrosPatch(path, next);
+                if (p) patchTargets(p);
+              }}
+            />
+
 
             <section>
               <p className="mb-1 text-[10px] uppercase tracking-wide text-muted-foreground">Body</p>
