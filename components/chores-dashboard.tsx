@@ -7,6 +7,7 @@ import { CHART_GRID, X_AXIS_DATE, Y_AXIS } from "@/lib/chart-defaults";
 
 import {
   completeChore,
+  uncompleteChore,
   getChores,
   getChoreHistory,
   type Chore,
@@ -109,12 +110,16 @@ export function ChoresDashboard() {
   const total = chores.length;
   const todoTotal = todoList.length;
 
-  async function onComplete(choreId: string) {
+  async function onToggle(choreId: string, isDone: boolean) {
     if (pending.has(choreId)) return;
     setPending((p) => new Set(p).add(choreId));
     HAPTIC();
     try {
-      await completeChore(choreId);
+      if (isDone) {
+        await uncompleteChore(choreId);
+      } else {
+        await completeChore(choreId);
+      }
       HAPTIC();
       mutate();
     } finally {
@@ -238,7 +243,7 @@ export function ChoresDashboard() {
                     done={done}
                     pending={pending.has(c.id)}
                     accent={CHORES_COLOR}
-                    onClick={() => onComplete(c.id)}
+                    onClick={() => onToggle(c.id, done)}
                   />
                 );
               })}

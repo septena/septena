@@ -1072,6 +1072,13 @@ export async function completeChore(choreId: string, opts?: { date?: string; not
   );
 }
 
+export async function uncompleteChore(choreId: string, opts?: { date?: string }) {
+  return postJSON<{ ok: boolean; date: string; chore_id: string; action: "uncomplete" }>(
+    "/api/chores/uncomplete",
+    { chore_id: choreId, date: opts?.date },
+  );
+}
+
 export async function deferChore(choreId: string, mode: ChoreDeferMode) {
   return postJSON<{
     ok: boolean;

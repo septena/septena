@@ -242,6 +242,21 @@ async def chores_complete(request: Request) -> Dict[str, Any]:
     return {"ok": True, "date": day, "chore_id": chore_id, "action": "complete"}
 
 
+@router.post("/uncomplete")
+async def chores_uncomplete(request: Request) -> Dict[str, Any]:
+    """Undo a chore completion by removing the per-day complete event file.
+    Mirrors habits/supplements toggle-off behaviour."""
+    payload = await request.json()
+    chore_id = str(payload.get("chore_id") or "").strip()
+    day = _normalize_date(payload.get("date")) or date.today().isoformat()
+    if not chore_id:
+        raise HTTPException(status_code=400, detail="chore_id is required")
+    path = CHORES_LOG_DIR / f"{day}--{chore_id}--complete.md"
+    if path.exists():
+        path.unlink()
+    return {"ok": True, "date": day, "chore_id": chore_id, "action": "uncomplete"}
+
+
 @router.post("/defer")
 async def chores_defer(request: Request) -> Dict[str, Any]:
     payload = await request.json()
