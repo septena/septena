@@ -37,6 +37,7 @@ class HabitEventSchema:
         "section",
         "habit_id",
         "habit_name",
+        "emoji",
         "bucket",
         "note",
     })
@@ -54,6 +55,7 @@ class HabitEventSchema:
             "section": "habits",
             "habit_id": habit_id,
             "habit_name": str(fm.get("habit_name") or ""),
+            "emoji": str(fm.get("emoji") or ""),
             "bucket": str(fm.get("bucket") or ""),
             "note": fm.get("note"),
         }
@@ -73,6 +75,7 @@ class HabitEventSchema:
             "section": "habits",
             "habit_id": str(record["habit_id"]),
             "habit_name": str(record.get("habit_name") or ""),
+            "emoji": str(record.get("emoji") or "") or None,
             "bucket": str(record.get("bucket") or ""),
             "note": record.get("note") or None,
         })
@@ -284,118 +287,12 @@ class GroceryEventSchema:
         return f"{day}--*.md"
 
 
+# Settings shape & validation moved to `api/storage/settings_schema.py`,
+# driven by `api/settings.schema.json`. Other section schemas (Habit /
+# Supplement / Caffeine / Grocery / Air) and the `deep_merge` helper stay here.
+
 AIR_DAY_ALLOWED_FIELDS = frozenset({"date", "section", "readings"})
 GROCERY_ITEM_ALLOWED_FIELDS = frozenset({"id", "name", "category", "emoji", "low", "last_bought"})
-
-SETTINGS_ALLOWED_TEMPLATE: Dict[str, Any] = {
-    "day_phases": [{
-        "id": None,
-        "label": None,
-        "emoji": None,
-        "start": None,
-        "cutoff": None,
-        "messages": [{"greeting": None, "subtitle": None}],
-    }],
-    "section_order": [],
-    "targets": {
-        "protein_min_g": None,
-        "protein_max_g": None,
-        "fat_min_g": None,
-        "fat_max_g": None,
-        "weight_min_kg": None,
-        "weight_max_kg": None,
-        "fat_min_pct": None,
-        "fat_max_pct": None,
-        "carbs_min_g": None,
-        "carbs_max_g": None,
-        "fiber_min_g": None,
-        "fiber_max_g": None,
-        "kcal_min": None,
-        "kcal_max": None,
-        "z2_weekly_min": None,
-        "sleep_target_h": None,
-        "fasting_min_h": None,
-        "fasting_max_h": None,
-        "evening_hour_24h": None,
-        "post_meal_grace_min": None,
-    },
-    "units": {
-        "weight": None,
-        "distance": None,
-    },
-    "theme": None,
-    "icon_color": None,
-    "animations": {
-        "training_complete": None,
-        "first_meal": None,
-        "histograms_raise": None,
-    },
-    "sections": {
-        "*": {
-            "label": None,
-            "emoji": None,
-            "color": None,
-            "tagline": None,
-            "enabled": None,
-            "show_in_nav": None,
-            "show_on_dashboard": None,
-        },
-    },
-    "weather": {
-        "location": None,
-        "units": None,
-    },
-    "calendar": {
-        "show_all_day": None,
-        "enabled_calendars": [],
-    },
-}
-
-
-def _pick_allowed(data: Any, template: Any) -> Any:
-    if isinstance(template, dict):
-        if not isinstance(data, dict):
-            return {}
-        out: Dict[str, Any] = {}
-        wildcard = template.get("*")
-        for key, value in data.items():
-            if key in template and key != "*":
-                out[key] = _pick_allowed(value, template[key])
-            elif wildcard is not None:
-                out[key] = _pick_allowed(value, wildcard)
-        return out
-    if isinstance(template, list):
-        if not isinstance(data, list):
-            return []
-        if not template:
-            return list(data)
-        return [_pick_allowed(item, template[0]) for item in data]
-    return data
-
-
-def list_unknown_paths(data: Any, template: Any, prefix: str = "") -> list[str]:
-    out: list[str] = []
-    if isinstance(template, dict):
-        if not isinstance(data, dict):
-            return out
-        wildcard = template.get("*")
-        for key, value in data.items():
-            if key in template and key != "*":
-                next_prefix = f"{prefix}.{key}" if prefix else key
-                out.extend(list_unknown_paths(value, template[key], next_prefix))
-            elif wildcard is not None:
-                next_prefix = f"{prefix}.{key}" if prefix else key
-                out.extend(list_unknown_paths(value, wildcard, next_prefix))
-            else:
-                out.append(f"{prefix}.{key}" if prefix else key)
-        return out
-    if isinstance(template, list):
-        if not isinstance(data, list) or not template:
-            return out
-        for item in data:
-            out.extend(list_unknown_paths(item, template[0], f"{prefix}[]"))
-        return out
-    return out
 
 
 def normalize_habit_config(data: Dict[str, Any], phases: Iterable[str]) -> list[Dict[str, Any]]:
@@ -408,12 +305,13 @@ def normalize_habit_config(data: Dict[str, Any], phases: Iterable[str]) -> list[
             continue
         habit_id = str(habit.get("id") or "").strip()
         name = str(habit.get("name") or "").strip()
+        emoji = str(habit.get("emoji") or "").strip()
         bucket = str(habit.get("bucket") or fallback).strip().lower()
         if not habit_id or not name:
             continue
         if bucket not in phase_ids:
             bucket = fallback
-        out.append({"id": habit_id, "name": name, "bucket": bucket})
+        out.append({"id": habit_id, "name": name, "emoji": emoji, "bucket": bucket})
     return out
 
 
@@ -454,15 +352,6 @@ def merge_grocery_item(existing: Dict[str, Any], patch: Dict[str, Any]) -> Dict[
     merged = dict(existing)
     merged.update(patch)
     return merged
-
-
-def sanitize_settings(data: Dict[str, Any], defaults: Dict[str, Any]) -> Dict[str, Any]:
-    filtered = _pick_allowed(data, SETTINGS_ALLOWED_TEMPLATE)
-    return deep_merge(defaults, filtered)
-
-
-def filter_settings_patch(data: Dict[str, Any]) -> Dict[str, Any]:
-    return _pick_allowed(data, SETTINGS_ALLOWED_TEMPLATE)
 
 
 def deep_merge(base: Dict[str, Any], overlay: Dict[str, Any]) -> Dict[str, Any]:

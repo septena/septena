@@ -76,9 +76,6 @@ const FIXTURES: Array<{ pattern: RegExp; handler: FixtureHandler }> = [
   { pattern: /^\/api\/health\/apple$/, handler: healthApple },
   { pattern: /^\/api\/health\/combined$/, handler: healthCombined },
   { pattern: /^\/api\/health\/cache$/, handler: healthCombined },
-  // ── Weather / Calendar ───────────────────────────────────────────────
-  { pattern: /^\/api\/weather$/, handler: weather },
-  { pattern: /^\/api\/calendar$/, handler: calendar },
   // ── Settings / Meta ──────────────────────────────────────────────────
   { pattern: /^\/api\/settings$/, handler: settings },
   { pattern: /^\/api\/meta$/, handler: meta },
@@ -1122,83 +1119,6 @@ function healthCombined(url: URL) {
   };
 }
 
-// ─── Weather / Calendar fixtures ───────────────────────────────────────────
-
-function weather() {
-  const icons = ["sun", "partly", "cloud", "partly", "rain", "partly", "sun"] as const;
-  const highs = [18, 19, 17, 16, 14, 17, 20];
-  const lows = [9, 10, 9, 8, 7, 9, 11];
-  const weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-  const daily = [];
-  for (let i = 0; i < 7; i++) {
-    const date = addDays(DEMO_TODAY, i);
-    const wd = new Date(date + "T00:00:00Z").getUTCDay();
-    daily.push({
-      date,
-      weekday: weekdays[wd],
-      high: highs[i],
-      low: lows[i],
-      label: ["Sunny", "Partly cloudy", "Cloudy", "Partly cloudy", "Rain", "Partly cloudy", "Sunny"][i],
-      icon: icons[i],
-      precip_pct: i === 4 ? 70 : 10,
-    });
-  }
-  return {
-    location: "Copenhagen",
-    units: "metric",
-    temp_unit: "°C",
-    current: {
-      temperature: 16,
-      humidity: 58,
-      wind_kmh: 12,
-      code: 1,
-      label: "Partly cloudy",
-      icon: "partly",
-    },
-    daily,
-  };
-}
-
-function calendar() {
-  // Two events today, one tomorrow. All-day and time-bound.
-  const events = [
-    {
-      title: "Team standup",
-      start: `${DEMO_TODAY}T09:30:00`,
-      end: `${DEMO_TODAY}T09:45:00`,
-      calendar: "Work",
-      all_day: false,
-      location: "",
-    },
-    {
-      title: "Lunch with J.",
-      start: `${DEMO_TODAY}T13:00:00`,
-      end: `${DEMO_TODAY}T14:00:00`,
-      calendar: "Personal",
-      all_day: false,
-      location: "Café Perch",
-    },
-    {
-      title: "Physio",
-      start: `${addDays(DEMO_TODAY, 1)}T17:00:00`,
-      end: `${addDays(DEMO_TODAY, 1)}T17:45:00`,
-      calendar: "Personal",
-      all_day: false,
-      location: "",
-    },
-  ];
-  return {
-    today: DEMO_TODAY,
-    today_count: 2,
-    events,
-    calendars: [
-      { title: "Work", source: "demo" },
-      { title: "Personal", source: "demo" },
-    ],
-    error: null,
-  };
-}
-
 // ─── Settings / Meta fixtures ──────────────────────────────────────────────
 
 function settings() {
@@ -1224,7 +1144,6 @@ function settings() {
       histograms_raise: true,
     },
     sections: {},
-    icon_color: "#3b82f6",
   };
 }
 

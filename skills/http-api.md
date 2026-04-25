@@ -129,13 +129,6 @@ Identical shape to Habits — `/config`, `/day/{day}`, `/history`, `/toggle`,
 
 Per-source skills: [`skills/integrations/sleep.md`](integrations/sleep.md), [`body.md`](integrations/body.md), [`health.md`](integrations/health.md).
 
-## Optional tiles
-
-| Method & Path | Purpose |
-|---|---|
-| `GET /api/weather` | Today's weather if `settings.weather.location` is configured |
-| `GET /api/calendar` | Today's + upcoming events from macOS Calendar (returns `{error}` when the helper is unavailable; no fallback data) |
-
 ## Conventions
 
 - **All dates are ISO strings.** `YYYY-MM-DD` for dates, full ISO for

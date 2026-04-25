@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import {
-  CalendarClock,
   Check,
   ChevronRight,
   Circle,
@@ -24,9 +23,9 @@ import { SectionTheme } from "@/components/section-theme";
 import { TaskRow } from "@/components/tasks";
 import {
   completeChore,
+  completeTask,
   toggleHabit,
   toggleSupplement,
-  type CalendarEvent,
   type SectionMeta,
 } from "@/lib/api";
 import { SECTIONS, type SectionKey } from "@/lib/sections";
@@ -104,20 +103,9 @@ function NextActionRow({
       ? <SkipButton color={color} primary={primary} onClick={() => onSkip(action)} />
       : null;
 
-  // Section-colored left rail. Reads as a visual key for which area the
-  // suggestion belongs to without needing per-section emojis on every row.
-  const rail = (
-    <div
-      aria-hidden
-      className="w-1 shrink-0 self-stretch rounded-full"
-      style={{ backgroundColor: color }}
-    />
-  );
-
   if (action.task) {
     return (
       <div className="flex min-w-0 items-stretch gap-2">
-        {rail}
         <div className="min-w-0 flex-1">
           <TaskRow
             label={action.title}
@@ -139,7 +127,6 @@ function NextActionRow({
   const Icon = action.href ? Dumbbell : Plus;
   return (
     <div className="flex min-w-0 items-stretch gap-2">
-      {!primary && rail}
       <button
         type="button"
         disabled={pending}
@@ -273,6 +260,9 @@ export function NextDashboard() {
       } else if (action.task.type === "supplement") {
         await toggleSupplement(selectedDate, action.task.id, !action.task.done);
         revalidateAfterLog("supplements");
+      } else if (action.task.type === "task") {
+        await completeTask(action.task.id);
+        revalidateAfterLog("tasks");
       } else {
         await completeChore(action.task.id, { date: selectedDate });
         revalidateAfterLog("chores");
@@ -368,32 +358,6 @@ export function NextDashboard() {
           <section className="rounded-2xl border border-border bg-background p-4 shadow-sm">
             <div className="mb-3 flex items-center justify-between gap-3">
               <div className="flex min-w-0 items-center gap-2">
-                <CalendarClock className="h-4 w-4" style={{ color: colorMap.get("calendar") ?? nextAccent }} />
-                <h2 className="truncate text-sm font-semibold">Upcoming</h2>
-              </div>
-              <Link href="/septena/calendar" className="text-xs text-muted-foreground hover:text-foreground">
-                Calendar
-              </Link>
-            </div>
-            {computed.upcoming.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No upcoming events today.</p>
-            ) : (
-              <div className="space-y-2">
-                {computed.upcoming.map((event: CalendarEvent, idx: number) => (
-                  <div key={`${event.start}-${idx}`} className="flex min-w-0 items-center gap-3 rounded-xl border border-border bg-card px-3 py-2.5 text-sm">
-                    <span className="w-12 shrink-0 text-xs tabular-nums text-muted-foreground">
-                      {event.all_day ? "all-day" : eventTime(event.start)}
-                    </span>
-                    <span className="min-w-0 flex-1 truncate font-medium">{event.title}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </section>
-
-          <section className="rounded-2xl border border-border bg-background p-4 shadow-sm">
-            <div className="mb-3 flex items-center justify-between gap-3">
-              <div className="flex min-w-0 items-center gap-2">
                 <Check className="h-4 w-4" style={{ color: nextAccent }} />
                 <h2 className="truncate text-sm font-semibold">Done Today</h2>
               </div>
@@ -406,25 +370,16 @@ export function NextDashboard() {
                 {computed.done.map((action) => {
                   const accent = colorMap.get(action.section) ?? nextAccent;
                   return (
-                    <div key={action.id} className="flex min-w-0 items-stretch gap-2">
-                      <div
-                        aria-hidden
-                        className="w-1 shrink-0 self-stretch rounded-full"
-                        style={{ backgroundColor: accent }}
-                      />
-                      <div className="flex min-w-0 flex-1 items-center gap-3 rounded-xl border border-border bg-card px-3 py-2.5 text-sm">
-                        <span
-                          className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-white"
-                          style={{ backgroundColor: accent }}
-                        >
-                          <Check className="h-3.5 w-3.5" />
-                        </span>
-                        <span className="min-w-0 flex-1">
-                          <span className="block truncate font-medium">{action.title}</span>
-                          <span className="block text-xs text-muted-foreground">{action.detail}</span>
-                        </span>
-                      </div>
-                    </div>
+                    <TaskRow
+                      key={action.id}
+                      label={action.title}
+                      emoji={action.emoji}
+                      sublabel={action.detail}
+                      done
+                      pending={false}
+                      accent={accent}
+                      onClick={() => {}}
+                    />
                   );
                 })}
               </div>

@@ -1,6 +1,6 @@
 ---
 name: septena-settings
-description: Read and update Septena's app-level configuration — macro/cardio/sleep targets, section order, theme, units, animations, per-section enable/disable, and optional-tile config (weather, calendar). Single YAML file, partial writes OK.
+description: Read and update Septena's app-level configuration — macro/cardio/sleep targets, section order, theme, units, animations, and per-section enable/disable. Single YAML file, partial writes OK.
 ---
 
 # Septena · Settings
@@ -32,8 +32,6 @@ section_order:
   - health
   - sleep
   - body
-  - weather
-  - calendar
 
 # Daily targets. Numbers can be plain integers or floats.
 targets:
@@ -78,14 +76,6 @@ sections:
     tagline: "Meals, macros & fasting"
     enabled: true         # optional explicit override
 
-# Per-tile config for optional tiles.
-weather:
-  location: ""            # human-readable city name; empty = unconfigured
-  units: celsius          # celsius | fahrenheit
-
-calendar:
-  show_all_day: true      # include birthdays / holidays / multi-day blocks
-  enabled_calendars: null # null = show all; list of titles = explicit allowlist
 ```
 
 ## How to read / write
@@ -122,9 +112,6 @@ from scratch or from the template at `examples/data/Settings/settings.yaml`.
 | `false` | Always disabled, even if the folder exists |
 | *(unset)* | Auto: enabled iff the data folder exists (or the integration token is present for sleep/body/health) |
 
-Weather and Calendar default to `enabled: false` — they need explicit
-user opt-in (+ location config for weather).
-
 ## Example interactions
 
 - **"Set my protein target to 140-160g"** → `PUT /api/settings` with
@@ -141,5 +128,3 @@ user opt-in (+ location config for weather).
 - **"Disable Cannabis"** → `{"sections": {"cannabis": {"enabled":
   false}}}` — the folder can stay untouched in the data folder, it just
   won't show in nav.
-- **"Enable Weather with my location"** → `{"sections": {"weather":
-  {"enabled": true}}, "weather": {"location": "Amsterdam"}}`.

@@ -5,7 +5,6 @@ import useSWR from "swr";
 import {
   getCaffeineDay,
   getCaffeineSessions,
-  getCalendar,
   getChores,
   getEntries,
   getHabitDay,
@@ -13,10 +12,13 @@ import {
   getNutritionEntries,
   getSettings,
   getSupplementDay,
+  getTasks,
   type HabitDay,
   type HabitDayItem,
   type SupplementDay,
   type SupplementItem,
+  type Task,
+  type TaskListResponse,
 } from "@/lib/api";
 import { DEFAULT_DAY_PHASES, activePhaseId, isPastPhase, timeLeftInPhase } from "@/lib/day-phases";
 import { addDaysISO, daysAgoLocalISO } from "@/lib/date-utils";
@@ -26,10 +28,27 @@ const HISTORY_DAYS = 14;
 const VISIBLE_QUEUE = 5;
 const VISIBLE_LATER = 6;
 
+/**
+ * Sections that produce action cards in the Next view. Each is toggleable via
+ * `settings.sections.<key>.include_in_next` (default true). Other sections
+ * (nutrition, caffeine) feed Next as ambient signals only.
+ */
+export const NEXT_CONTRIBUTORS = ["habits", "supplements", "chores", "training", "tasks"] as const;
+export type NextContributor = (typeof NEXT_CONTRIBUTORS)[number];
+
+function includeInNext(
+  settings: Awaited<ReturnType<typeof getSettings>> | null,
+  key: NextContributor,
+): boolean {
+  const meta = settings?.sections?.[key] as { include_in_next?: boolean } | undefined;
+  return meta?.include_in_next !== false;
+}
+
 export type ActionTask =
   | { type: "habit"; id: string; done: boolean }
   | { type: "supplement"; id: string; done: boolean }
-  | { type: "chore"; id: string };
+  | { type: "chore"; id: string }
+  | { type: "task"; id: string };
 
 export type ModalKey = "nutrition" | "caffeine";
 
@@ -61,8 +80,8 @@ export type NextData = {
   nutritionEntries: Awaited<ReturnType<typeof getNutritionEntries>>;
   caffeineToday: Awaited<ReturnType<typeof getCaffeineDay>> | null;
   caffeineSessions: Awaited<ReturnType<typeof getCaffeineSessions>> | null;
-  calendar: Awaited<ReturnType<typeof getCalendar>> | null;
   settings: Awaited<ReturnType<typeof getSettings>> | null;
+  tasks: TaskListResponse | null;
 };
 
 export function parseHHMM(value: string | null | undefined): number | null {
@@ -100,13 +119,6 @@ async function fallbackAfter<T>(promise: Promise<T>, fallback: T, ms = 2500): Pr
   } finally {
     if (timer) clearTimeout(timer);
   }
-}
-
-function localDay(iso: string): string {
-  const d = new Date(iso);
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${d.getFullYear()}-${m}-${day}`;
 }
 
 function daysAgoLabel(days: number | null | undefined): string {
@@ -173,7 +185,6 @@ export type ComputedNext = {
   queue: NextAction[];
   later: NextAction[];
   done: NextAction[];
-  upcoming: NonNullable<NextData["calendar"]>["events"];
   activePhase: ReturnType<typeof DEFAULT_DAY_PHASES.find> | undefined;
   remaining: number;
   totalNow: number;
@@ -261,28 +272,38 @@ export function useNextActions(selectedDate: string, isToday: boolean) {
     const historyDates = Array.from({ length: HISTORY_DAYS }, (_, i) =>
       addDaysISO(selectedDate, i - (HISTORY_DAYS - 1)),
     );
+    // Settings drives include_in_next gating, so we resolve it first and only
+    // fetch a contributor's data when its toggle is on. Non-contributor
+    // sources (nutrition/caffeine) feed timing signals — they're not
+    // toggleable and always fetch.
+    const settings = await fallbackAfter(getSettings(), null);
+    const enabled = (key: NextContributor) => includeInNext(settings, key);
     const [
       habitDays,
       supplementDays,
       chores,
       workout,
       trainingEntries,
+      tasks,
       nutritionEntries,
       caffeineToday,
       caffeineSessions,
-      calendar,
-      settings,
     ] = await Promise.all([
-      Promise.all(historyDates.map((day) => fallbackAfter(getHabitDay(day), null))),
-      Promise.all(historyDates.map((day) => fallbackAfter(getSupplementDay(day), null))),
-      fallbackAfter(getChores(), null),
-      fallbackAfter(getNextWorkout(), null),
-      fallbackAfter(getEntries(daysAgoLocalISO(30)), []),
+      enabled("habits")
+        ? Promise.all(historyDates.map((day) => fallbackAfter(getHabitDay(day), null)))
+        : Promise.resolve([] as Array<HabitDay | null>),
+      enabled("supplements")
+        ? Promise.all(historyDates.map((day) => fallbackAfter(getSupplementDay(day), null)))
+        : Promise.resolve([] as Array<SupplementDay | null>),
+      enabled("chores") ? fallbackAfter(getChores(), null) : Promise.resolve(null),
+      enabled("training") ? fallbackAfter(getNextWorkout(), null) : Promise.resolve(null),
+      enabled("training") ? fallbackAfter(getEntries(daysAgoLocalISO(30)), []) : Promise.resolve([]),
+      enabled("tasks")
+        ? fallbackAfter(getTasks("today"), null as TaskListResponse | null)
+        : Promise.resolve(null as TaskListResponse | null),
       fallbackAfter(getNutritionEntries(daysAgoLocalISO(14)), []),
       fallbackAfter(getCaffeineDay(selectedDate), null),
       fallbackAfter(getCaffeineSessions(14), null),
-      fallbackAfter(getCalendar(), null),
-      fallbackAfter(getSettings(), null),
     ]);
     return {
       today: selectedDate,
@@ -296,8 +317,8 @@ export function useNextActions(selectedDate: string, isToday: boolean) {
       nutritionEntries,
       caffeineToday,
       caffeineSessions,
-      calendar,
       settings,
+      tasks,
     };
   }, { refreshInterval: 60_000 });
 
@@ -325,6 +346,7 @@ export function useNextActions(selectedDate: string, isToday: boolean) {
         id: `habit:${habit.id}`,
         section: "habits",
         title: habit.name,
+        emoji: habit.emoji,
         detail: currentPhase
           ? [phase?.label ?? habit.bucket, left].filter(Boolean).join(" · ")
           : past
@@ -436,6 +458,47 @@ export function useNextActions(selectedDate: string, isToday: boolean) {
       });
     }
 
+    const taskList = data?.tasks;
+    if (taskList) {
+      const seen = new Set<string>();
+      const pushTask = (task: Task, source: "today" | "review") => {
+        if (seen.has(task.id)) return;
+        seen.add(task.id);
+        if (task.status === "done") {
+          done.push({
+            id: `task:${task.id}`,
+            section: "tasks",
+            title: task.title,
+            detail: "Done today",
+            score: 0,
+            bucket: "done",
+            task: { type: "task", id: task.id },
+          });
+          return;
+        }
+        const isReview = source === "review";
+        actions.push({
+          id: `task:${task.id}`,
+          section: "tasks",
+          title: task.title,
+          detail: isReview
+            ? task.scheduled
+              ? `Scheduled ${task.scheduled}`
+              : "Scheduled earlier"
+            : task.project
+              ? `Project · ${task.project}`
+              : task.area
+                ? `Area · ${task.area}`
+                : "Today",
+          score: isReview ? 35 : 80,
+          bucket: "now",
+          task: { type: "task", id: task.id },
+        });
+      };
+      for (const task of taskList.items ?? []) pushTask(task, "today");
+      for (const task of taskList.review ?? []) pushTask(task, "review");
+    }
+
     const firstMealUsual = median(firstDailyTimes(data?.nutritionEntries ?? [], selectedDate));
     const hasMealToday = (data?.nutritionEntries ?? []).some((entry) => entry.date === selectedDate);
     if (!hasMealToday && isToday && firstMealUsual != null && nowMinutes >= firstMealUsual - 45) {
@@ -478,16 +541,11 @@ export function useNextActions(selectedDate: string, isToday: boolean) {
       .sort((a, b) => b.score - a.score)
       .slice(0, VISIBLE_LATER);
 
-    const upcoming = (data?.calendar?.events ?? [])
-      .filter((event) => localDay(event.start) === selectedDate && (event.all_day || new Date(event.start) >= now))
-      .slice(0, 4);
-
     return {
       primary,
       queue,
       later,
       done: done.slice(0, 8),
-      upcoming,
       activePhase: activePhaseMeta,
       remaining: sortedNow.length,
       totalNow: sortedNow.length,

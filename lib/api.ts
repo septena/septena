@@ -437,6 +437,7 @@ export type HabitBucket = string;
 export type HabitConfigItem = {
   id: string;
   name: string;
+  emoji: string;
   bucket: HabitBucket;
 };
 
@@ -481,11 +482,11 @@ export async function getHabitConfig() {
   }>("/api/habits/config");
 }
 
-export async function addHabit(name: string, bucket: string) {
-  return postJSON<{ ok: boolean; id: string; name: string; bucket: string; skipped?: boolean }>("/api/habits/new", { name, bucket });
+export async function addHabit(name: string, bucket: string, emoji?: string) {
+  return postJSON<{ ok: boolean; id: string; name: string; emoji: string; bucket: string; skipped?: boolean }>("/api/habits/new", { name, bucket, emoji: emoji ?? "" });
 }
 
-export async function updateHabit(id: string, patch: { name?: string; bucket?: string }) {
+export async function updateHabit(id: string, patch: { name?: string; bucket?: string; emoji?: string }) {
   return putJSON<{ ok: boolean }>("/api/habits/update", { id, ...patch });
 }
 
@@ -1300,7 +1301,7 @@ export type SourceMeta = {
   oldest?: string | null;
   last_modified?: string | null;
   dir?: string;
-  /** Set to "live" for sections that fetch live data (calendar, weather). */
+  /** Set to "live" for sections that fetch live data. */
   status?: string;
   sources?: Record<string, {
     label: string;
@@ -1364,26 +1365,23 @@ export type SectionSetting = {
   enabled?: boolean;
   show_in_nav?: boolean;
   show_on_dashboard?: boolean;
-};
-
-export type WeatherUnits = "celsius" | "fahrenheit";
-
-export type WeatherSettings = {
-  location: string;
-  units: WeatherUnits;
-};
-
-export type CalendarSettings = {
-  show_all_day: boolean;
-  enabled_calendars: string[] | null;
+  /** Opt-in/out of the Next view. Only meaningful for the canonical
+   *  contributors (habits, supplements, chores, training, tasks).
+   *  Default true; absence on other sections means "not eligible." */
+  include_in_next?: boolean;
 };
 
 export type MacroColorKey = "protein" | "fat" | "carbs" | "fiber" | "kcal" | "fasting";
 
 export type MacroColors = Record<MacroColorKey, string>;
 
+export type ProgressMode = "used" | "left";
+
 export type NutritionSettings = {
   macro_colors: MacroColors;
+  /** How macro tile progress bars render. "used" fills toward the target
+   *  midpoint; "left" fills as remaining-to-max shrinks. Default "used". */
+  progress_mode?: ProgressMode;
 };
 
 export type PhaseMessage = {
@@ -1403,16 +1401,21 @@ export type DayPhase = {
   messages: PhaseMessage[];
 };
 
+export type AppDisplay = {
+  /** Global emoji visibility. When false, emoji collapse from display
+   *  surfaces (nav, headers, lists, greetings). Editor screens always
+   *  render emoji so users can edit them. Default true. */
+  show_emoji: boolean;
+};
+
 export type AppSettings = {
   section_order: string[];
   sections: Record<string, SectionSetting>;
   targets: Targets;
   units: { weight: WeightUnit; distance: DistanceUnit };
   theme: AppTheme;
-  icon_color: string;
   animations: AppAnimations;
-  weather: WeatherSettings;
-  calendar: CalendarSettings;
+  display: AppDisplay;
   nutrition: NutritionSettings;
   day_phases: DayPhase[];
 };
@@ -1451,64 +1454,3 @@ export async function getSections(): Promise<SectionMeta[]> {
   return request<SectionMeta[]>("/api/sections");
 }
 
-// ── Weather ─────────────────────────────────────────────────────────────────
-
-export type WeatherIcon =
-  | "sun" | "partly" | "cloud" | "fog" | "rain" | "snow" | "storm";
-
-export type WeatherDay = {
-  date: string;
-  weekday: string;
-  high: number | null;
-  low: number | null;
-  label: string;
-  icon: WeatherIcon;
-  precip_pct: number | null;
-};
-
-export type WeatherResponse = {
-  location: string;
-  units: WeatherUnits;
-  temp_unit: string;
-  current: {
-    temperature: number | null;
-    humidity: number | null;
-    wind_kmh: number | null;
-    code: number;
-    label: string;
-    icon: WeatherIcon;
-  };
-  daily: WeatherDay[];
-};
-
-export async function getWeather() {
-  return request<WeatherResponse>("/api/weather");
-}
-
-// ── Calendar ────────────────────────────────────────────────────────────────
-
-export type CalendarEvent = {
-  title: string;
-  start: string;
-  end: string;
-  calendar: string;
-  all_day: boolean;
-  location: string;
-};
-
-export type CalendarInfo = {
-  title: string;
-  source: string;
-};
-
-export type CalendarResponse = {
-  today: string;
-  today_count: number;
-  events: CalendarEvent[];
-  calendars: CalendarInfo[];
-  error: string | null;
-};
-
-export async function getCalendar() {
-  return request<CalendarResponse>("/api/calendar");
-}

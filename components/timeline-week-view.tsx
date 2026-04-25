@@ -12,7 +12,6 @@ import {
   getSupplementDay,
   getHealthWithings,
   getHealthOura,
-  getCalendar,
 } from "@/lib/api";
 import type { OuraRow, SectionEvent, WithingsRow } from "@/lib/api";
 import { getGutDay } from "@/lib/api-gut";
@@ -54,7 +53,6 @@ async function fetchDayData(date: string): Promise<TimelineDayData> {
     getSupplementDay(date),
     getHealthWithings(1, date),
     getHealthOura(1, date),
-    getCalendar(),
     getGutDay(date),
   ]);
   return {
@@ -68,8 +66,7 @@ async function fetchDayData(date: string): Promise<TimelineDayData> {
     supplements: results[7].status === "fulfilled" ? (results[7].value as TimelineDayData["supplements"]) : null,
     withings: results[8].status === "fulfilled" ? (results[8].value as { withings: WithingsRow[] }).withings : [],
     oura: results[9].status === "fulfilled" ? (results[9].value as { oura: OuraRow[] }).oura : [],
-    calendar: results[10].status === "fulfilled" ? (results[10].value as TimelineDayData["calendar"]) : null,
-    gut: results[11].status === "fulfilled" ? (results[11].value as TimelineDayData["gut"]) : null,
+    gut: results[10].status === "fulfilled" ? (results[10].value as TimelineDayData["gut"]) : null,
   };
 }
 

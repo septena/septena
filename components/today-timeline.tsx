@@ -3,6 +3,7 @@
 import useSWR from "swr";
 import { useEffect, useState } from "react";
 import { useSectionColor } from "@/hooks/use-sections";
+import { useMacroColors, useFastingTarget } from "@/lib/macro-targets";
 import {
   getNutritionEntries,
   getCannabisDay,
@@ -12,7 +13,6 @@ import {
   getHabitDay,
   getChores,
   getSupplementDay,
-  getCalendar,
 } from "@/lib/api";
 import { getGutDay } from "@/lib/api-gut";
 import { useSelectedDate } from "@/hooks/use-selected-date";
@@ -36,7 +36,8 @@ export function TodayTimeline() {
   const supplementsColor = useSectionColor("supplements");
   const choresColor = useSectionColor("chores");
   const gutColor = useSectionColor("gut");
-  const calendarColor = useSectionColor("calendar");
+  const fastingColor = useMacroColors().fasting;
+  const fastingTarget = useFastingTarget();
 
   const { data } = useSWR(
     ["today-timeline", today],
@@ -47,7 +48,7 @@ export function TodayTimeline() {
       //   - getHealthCache() serves the on-disk snapshot with no upstream API
       //     calls, so it returns instantly — we only need the latest oura row
       //     for wake_time.
-      const [nutrition, cannabis, caffeine, training, health, habits, chores, supplements, gut, calendar] = await Promise.all([
+      const [nutrition, cannabis, caffeine, training, health, habits, chores, supplements, gut] = await Promise.all([
         getNutritionEntries(today).catch(() => []),
         getCannabisDay(today).catch(() => ({ entries: [] as { time: string }[] })),
         getCaffeineDay(today).catch(() => ({ entries: [] as { time: string; method: string }[] })),
@@ -57,9 +58,8 @@ export function TodayTimeline() {
         getChores().catch(() => null),
         getSupplementDay(today).catch(() => null),
         getGutDay(today).catch(() => null),
-        getCalendar().catch(() => null),
       ]);
-      return { nutrition, cannabis, caffeine, training, health, habits, chores, supplements, gut, calendar };
+      return { nutrition, cannabis, caffeine, training, health, habits, chores, supplements, gut };
     },
     { refreshInterval: 60_000, revalidateOnFocus: false },
   );
@@ -128,15 +128,6 @@ export function TodayTimeline() {
     if (h == null) continue;
     dots.push({ hour: h, color: gutColor, label: `${g.time} · Bristol ${g.bristol}` });
   }
-  // Calendar — dot at each event start, merged into the main dot stream.
-  for (const ev of data?.calendar?.events ?? []) {
-    if (ev.all_day) continue;
-    if (!ev.start?.startsWith(today)) continue;
-    const sh = parseHHMM(ev.start.slice(11, 16));
-    if (sh == null) continue;
-    dots.push({ hour: sh, color: calendarColor, label: `${ev.start.slice(11, 16)} · ${ev.title}` });
-  }
-
   // Cluster dots by (color, ~10min bucket) so multiple entries of the same
   // section close in time render as a single larger dot (e.g. a meal logged as
   // several food items). Different sections at the same time stay separate.
@@ -169,6 +160,22 @@ export function TodayTimeline() {
   const nowHour = now.getHours() + now.getMinutes() / 60;
   const pct = (h: number) => (h / 24) * 100;
 
+  // Fasting bands — the gaps between days. From midnight to today's first
+  // meal is the tail of yesterday's overnight fast; from today's last meal
+  // to midnight is the lead-in to tomorrow's. Tinted in the fasting accent.
+  const todayMealHours = (data?.nutrition ?? [])
+    .filter((n) => n.date === today)
+    .map((n) => parseHHMM(n.time))
+    .filter((h): h is number => h != null)
+    .sort((a, b) => a - b);
+  const firstMealHour = todayMealHours[0];
+  // Fast officially starts at firstMeal + (24 - fasting_min_h) — i.e. once
+  // the longest acceptable eating window closes. Using the *min* fasting
+  // target gives the *max* eating window, so the band only appears once
+  // we've clearly crossed into fasting (not just "no recent meal").
+  const fastStartHour =
+    firstMealHour != null ? Math.min(24, firstMealHour + (24 - fastingTarget.min)) : null;
+
   return (
     <div className="mb-6">
       <div className="mb-1.5 flex items-baseline justify-between px-1">
@@ -179,6 +186,38 @@ export function TodayTimeline() {
         </p>
       </div>
       <div className="relative h-10 rounded-full border border-border bg-muted/40">
+        {/* Fasting stripes — drawn only in the awake window (clipped by
+            wake on the left and ideal bedtime on the right) so they never
+            sit "under" the sleep shading. Thin and fully opaque so they
+            read as a deliberate marker, not a wash. */}
+        {(() => {
+          const leftStart = wakeHour ?? 0;
+          const leftEnd = firstMealHour;
+          if (leftEnd != null && leftEnd > leftStart) {
+            return (
+              <div
+                className="absolute top-1/2 -translate-y-1/2 h-0.5 rounded-full"
+                style={{ left: `${pct(leftStart)}%`, width: `${pct(leftEnd - leftStart)}%`, backgroundColor: fastingColor }}
+                title="Overnight fast"
+              />
+            );
+          }
+          return null;
+        })()}
+        {(() => {
+          const rightStart = fastStartHour;
+          const rightEnd = Math.min(nowHour, moonInRange && moonHour != null ? moonHour : 24);
+          if (rightStart != null && rightStart < rightEnd) {
+            return (
+              <div
+                className="absolute top-1/2 -translate-y-1/2 h-0.5 rounded-full"
+                style={{ left: `${pct(rightStart)}%`, width: `${pct(rightEnd - rightStart)}%`, backgroundColor: fastingColor }}
+                title={`Fasting from ${formatHour(rightStart)} (${fastingTarget.min}h target)`}
+              />
+            );
+          }
+          return null;
+        })()}
         {/* Hour ticks */}
         {[6, 12, 18].map((h) => (
           <div

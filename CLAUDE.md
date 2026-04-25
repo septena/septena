@@ -11,7 +11,6 @@ Septena is a local-first personal health command center. Multiple areas of life,
 - **Supplements** — daily stack + streaks
 - **Cannabis / Caffeine** — consumption logs with strains / beans / methods
 - **Health / Sleep / Body** — read-only views of HRV, sleep stages, weight, body fat from Oura / Withings / Health Auto Export
-- **Weather / Calendar** — optional ambient tiles (Open-Meteo + macOS Calendar); off by default
 - **Insights** — cross-section correlations (WIP)
 
 **Canonical data:** All structured data lives as plain YAML files under `~/Documents/septena-data/<Section>/` (override with `$SEPTENA_DATA_DIR`). Each section has its own folder containing any per-section config YAML plus a `Log/` subfolder with one file per event. Every event shares a universal frontmatter core — `date`, `id`, `section` (plus `time` when the event has a moment) — with section-specific fields added flat. Health/Sleep/Body are the exceptions — they read Oura, Withings, and Health Auto Export data directly. No separate database.
@@ -29,7 +28,6 @@ septena/                              # Next.js frontend :7777
     cannabis/page.tsx, caffeine/page.tsx
     health/page.tsx, sleep/page.tsx, body/page.tsx   → read-only metric views (share /api/health)
     insights/page.tsx                 → cross-section correlations (WIP)
-    weather/page.tsx, calendar/page.tsx → optional ambient tiles
     settings/page.tsx                 → global settings UI
     globals.css                       → shared styles
   components/
@@ -58,8 +56,6 @@ septena/                              # Next.js frontend :7777
       caffeine.py                     → /api/caffeine/*
       chores.py                       → /api/chores/*
       health.py                       → /api/health/* (Oura + Withings + Apple HAE)
-      weather.py                      → /api/weather (Open-Meteo + geocoding cache)
-      calendar.py                     → /api/calendar (macOS Calendar via osascript)
       settings.py                     → /api/settings + DEFAULT_SETTINGS
       sections.py                     → /api/sections (merges wiring + settings metadata)
       meta.py                         → /api/config, /api/meta (cross-section freshness)
@@ -78,7 +74,7 @@ Two halves: the wiring (stable, code) and the metadata (user-editable, settings)
 
 `GET /api/sections` merges both halves, ordered by `settings.section_order`, with `enabled` defaulting to data-folder-presence + integration reachability (see `api/paths.py:available_sections`) and user-explicit overrides winning when present.
 
-Registered keys: `next, training, nutrition, habits, chores, tasks, groceries, supplements, cannabis, caffeine, gut, health, sleep, body, weather, calendar, air`. Two of these are **derived views** rather than data-bearing sections — they have empty `apiBase`/`dataDir` and synthesize from existing endpoints: `next` (time-aware "what to do now") and `correlations` (path `/insights`, the cross-section correlations WIP).
+Registered keys: `next, training, nutrition, habits, chores, tasks, groceries, supplements, cannabis, caffeine, gut, health, sleep, body, air`. Two of these are **derived views** rather than data-bearing sections — they have empty `apiBase`/`dataDir` and synthesize from existing endpoints: `next` (time-aware "what to do now") and `correlations` (path `/insights`, the cross-section correlations WIP).
 
 ## Backend routes
 

@@ -202,10 +202,4 @@ def get_meta() -> Dict[str, Any]:
 
     sources["health"] = {"label": "Health", "sources": health_sub}
 
-    # Calendar — live macOS Calendar, not file-backed
-    sources["calendar"] = {"label": "Calendar", "status": "live", "files": None}
-
-    # Weather — live Open-Meteo, not file-backed
-    sources["weather"] = {"label": "Weather", "status": "live", "files": None}
-
     return {"sources": sources}

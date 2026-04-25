@@ -17,7 +17,6 @@ import {
   getSupplementDay,
   getHealthWithings,
   getHealthOura,
-  getCalendar,
   getAirDay,
 } from "@/lib/api";
 import type { OuraRow, SectionEvent, WithingsRow } from "@/lib/api";
@@ -43,7 +42,6 @@ export function TimelineDashboard() {
     sleep: useSectionColor("sleep"),
     body: useSectionColor("body"),
     chores: useSectionColor("chores"),
-    calendar: useSectionColor("calendar"),
     gut: useSectionColor("gut"),
   };
 
@@ -61,7 +59,6 @@ export function TimelineDashboard() {
         getSupplementDay(today),
         getHealthWithings(1, today),
         getHealthOura(1, today),
-        getCalendar(),
         getAirDay(today),
         getGutDay(today),
       ]);
@@ -76,8 +73,7 @@ export function TimelineDashboard() {
         supplements: results[7].status === "fulfilled" ? (results[7].value as TimelineDayData["supplements"]) : null,
         withings: results[8].status === "fulfilled" ? (results[8].value as { withings: WithingsRow[] }).withings : [],
         oura: results[9].status === "fulfilled" ? (results[9].value as { oura: OuraRow[] }).oura : [],
-        calendar: results[10].status === "fulfilled" ? (results[10].value as TimelineDayData["calendar"]) : null,
-        gut: results[12].status === "fulfilled" ? (results[12].value as TimelineDayData["gut"]) : null,
+        gut: results[11].status === "fulfilled" ? (results[11].value as TimelineDayData["gut"]) : null,
       };
     },
     { refreshInterval: 30_000 },

@@ -1,4 +1,4 @@
-import type { CalendarEvent, OuraRow, SectionEvent, WithingsRow } from "@/lib/api";
+import type { OuraRow, SectionEvent, WithingsRow } from "@/lib/api";
 import { idealBedtimeFromOura, formatHour } from "@/lib/sleep";
 
 export type TimelineEvent = {
@@ -20,7 +20,6 @@ export type TimelineColors = {
   sleep: string;
   body: string;
   chores: string;
-  calendar: string;
   gut: string;
 };
 
@@ -35,7 +34,6 @@ export type TimelineDayData = {
   supplements: { items?: { done?: boolean; time?: string; name?: string }[] } | null;
   withings: WithingsRow[];
   oura: OuraRow[];
-  calendar: { events?: CalendarEvent[] } | null;
   gut: { entries?: { time: string; bristol: number }[] } | null;
 };
 
@@ -108,11 +106,11 @@ export function buildEvents(
   }
 
   for (const c of data.cannabis?.entries ?? []) {
-    events.push({ hour: parseHHMM(c.time), timeStr: c.time ?? "—", color: colors.cannabis, label: "cannabis", source: "cannabis" });
+    events.push({ hour: parseHHMM(c.time), timeStr: c.time ?? "—", color: colors.cannabis, label: c.strain ?? "cannabis", source: "cannabis" });
   }
 
   for (const c of data.caffeine?.entries ?? []) {
-    events.push({ hour: parseHHMM(c.time), timeStr: c.time ?? "—", color: colors.caffeine, label: c.method ?? "caffeine", source: "caffeine" });
+    events.push({ hour: parseHHMM(c.time), timeStr: c.time ?? "—", color: colors.caffeine, label: c.beans ?? c.method ?? "caffeine", source: "caffeine" });
   }
 
   const trainingBySession = new Map<string, { exercises: Set<string> }>();
@@ -157,16 +155,6 @@ export function buildEvents(
   for (const c of data.chores?.chores ?? []) {
     if (c.last_completed !== date || !c.last_completed_time) continue;
     events.push({ hour: parseHHMM(c.last_completed_time), timeStr: c.last_completed_time, color: colors.chores, label: c.name ?? "", source: "chores" });
-  }
-
-  for (const ev of data.calendar?.events ?? []) {
-    if (localDay(ev.start) !== date) continue;
-    if (ev.all_day) {
-      events.push({ hour: -0.5, timeStr: "all-day", color: colors.calendar, label: ev.title, source: "calendar" });
-      continue;
-    }
-    const timeStr = localTime(ev.start);
-    events.push({ hour: parseHHMM(timeStr), timeStr, color: colors.calendar, label: ev.title, source: "calendar" });
   }
 
   const ouraRows = data.health?.oura ?? data.oura ?? [];

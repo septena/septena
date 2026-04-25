@@ -14,8 +14,6 @@ const AirDashboard         = dynamic(() => import("@/components/air-dashboard").
 const HealthDashboard      = dynamic(() => import("@/components/health-dashboard").then((m) => m.HealthDashboard));
 const SleepDashboard       = dynamic(() => import("@/components/sleep-dashboard").then((m) => m.SleepDashboard));
 const BodyDashboard        = dynamic(() => import("@/components/body-dashboard").then((m) => m.BodyDashboard));
-const WeatherDashboard     = dynamic(() => import("@/components/weather-dashboard").then((m) => m.WeatherDashboard));
-const CalendarDashboard    = dynamic(() => import("@/components/calendar-dashboard").then((m) => m.CalendarDashboard));
 const TimelineDashboard    = dynamic(() => import("@/components/timeline-dashboard").then((m) => m.TimelineDashboard));
 const NextDashboard        = dynamic(() => import("@/components/next-dashboard").then((m) => m.NextDashboard));
 const InsightsDashboard    = dynamic(() => import("@/components/insights-dashboard").then((m) => m.InsightsDashboard));
@@ -36,8 +34,6 @@ const WIRED: Record<string, React.ComponentType> = {
   health:      HealthDashboard,
   sleep:       SleepDashboard,
   body:        BodyDashboard,
-  weather:     WeatherDashboard,
-  calendar:    CalendarDashboard,
   timeline:    TimelineDashboard,
   next:        NextDashboard,
   insights:    InsightsDashboard,

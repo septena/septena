@@ -149,16 +149,6 @@
     "tagline": "Weight, body fat & trends",
     "emoji": "\u2696\ufe0f"
   },
-  "weather": {
-    "key": "weather",
-    "label": "Weather",
-    "path": "/septena/weather",
-    "apiBase": "/api/weather",
-    "dataDir": "",
-    "color": "hsl(205,75%,50%)",
-    "tagline": "Today's conditions & forecast",
-    "emoji": "\u2600\ufe0f"
-  },
   "air": {
     "key": "air",
     "label": "Air",
@@ -169,16 +159,6 @@
     "color": "hsl(190,70%,45%)",
     "tagline": "CO\u2082, temperature & humidity",
     "emoji": "\ud83c\udf2c\ufe0f"
-  },
-  "calendar": {
-    "key": "calendar",
-    "label": "Calendar",
-    "path": "/septena/calendar",
-    "apiBase": "/api/calendar",
-    "dataDir": "",
-    "color": "hsl(290,55%,55%)",
-    "tagline": "Today's events at a glance",
-    "emoji": "\ud83d\udcc5"
   },
   "correlations": {
     "key": "correlations",
