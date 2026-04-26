@@ -4,11 +4,14 @@ type Props = {
   href: string;
   label: string;
   className?: string;
+  direction?: "back" | "forward";
 };
 
-// Pill-style back button. Shared by PageHeader's `back` prop and by pages
-// that render their own headers (e.g. training session flows).
-export function BackLink({ href, label, className }: Props) {
+// Pill-style nav button. Default is a back arrow (used by PageHeader's `back`
+// prop and pages with their own headers). Pass direction="forward" to point
+// the other way — used by SectionStatusBar links.
+export function BackLink({ href, label, className, direction = "back" }: Props) {
+  const arrow = direction === "back" ? "←" : "→";
   return (
     <Link
       href={href}
@@ -17,8 +20,9 @@ export function BackLink({ href, label, className }: Props) {
         (className ? ` ${className}` : "")
       }
     >
-      <span aria-hidden>←</span>
+      {direction === "back" && <span aria-hidden>{arrow}</span>}
       <span>{label}</span>
+      {direction === "forward" && <span aria-hidden>{arrow}</span>}
     </Link>
   );
 }

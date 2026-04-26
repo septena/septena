@@ -565,7 +565,7 @@ export function TrainingDashboard() {
                         const isWeightPR = p.date === prDates.weightDate;
                         const isVolumePR = p.date === prDates.volumeDate;
                         return (
-                          <div className="rounded-lg border bg-background px-3 py-2 text-xs shadow-md">
+                          <div className="rounded-lg border bg-card px-3 py-2 text-xs shadow-md">
                             <p className="font-medium">{formatDate(p.date)}</p>
                             <p className="tabular-nums text-muted-foreground">
                               {formatValue(p.metric, state.selectedExercise, selectedKind)}

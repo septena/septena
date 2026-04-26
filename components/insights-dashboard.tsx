@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import useSWR from "swr";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { SectionHeaderAction, SectionHeaderActionButton } from "@/components/section-header-action";
 import { Scatter, ScatterChart, CartesianGrid, XAxis, YAxis, ZAxis, ReferenceLine, Tooltip } from "recharts";
 import { ChartContainer, type ChartConfig } from "@/components/ui/chart";
 import { CHART_GRID_FULL } from "@/lib/chart-defaults";
@@ -234,9 +234,9 @@ function CopyReportButton({ text }: { text: string }) {
     }
   };
   return (
-    <Button variant="outline" size="sm" onClick={onClick} className="shrink-0">
+    <SectionHeaderActionButton onClick={onClick}>
       {copied ? "Copied ✓" : "Copy Report"}
-    </Button>
+    </SectionHeaderActionButton>
   );
 }
 
@@ -361,7 +361,7 @@ function InsightChart({ title, xLabel, yLabel, data, color, xUnit, yUnit, yDomai
                 if (!payload?.length) return null;
                 const p = payload[0].payload;
                 return (
-                  <div className="rounded-lg border border-border bg-background px-3 py-1.5 text-xs shadow-sm">
+                  <div className="rounded-lg border border-border bg-card px-3 py-1.5 text-xs shadow-sm">
                     <p className="font-medium">{p.date}</p>
                     <p>{xLabel}: {fmt(p.x)}{xUnit ? ` ${xUnit}` : ""}</p>
                     <p>{yLabel}: {fmt(p.y)}{yUnit ? ` ${yUnit}` : ""}</p>
@@ -1054,15 +1054,16 @@ export function InsightsDashboard() {
 
   return (
     <>
-      <section className="mb-6 flex items-start justify-between gap-4">
-        <p className="text-sm text-muted-foreground">
-          Cross-section correlations over the last 30 days. Each dot is one day.
-          Charts are tiered by confidence: Trusted signals clear n≥{MIN_N},
-          |r|≥{STRONG_R}, monotonic buckets, and match the physiological prior.
-          Everything else is Exploratory — read it, don&apos;t act on it yet.
-        </p>
+      <SectionHeaderAction>
         <CopyReportButton text={reportText} />
-      </section>
+      </SectionHeaderAction>
+
+      <p className="mb-6 text-sm text-muted-foreground">
+        Cross-section correlations over the last 30 days. Each dot is one day.
+        Charts are tiered by confidence: Trusted signals clear n≥{MIN_N},
+        |r|≥{STRONG_R}, monotonic buckets, and match the physiological prior.
+        Everything else is Exploratory — read it, don&apos;t act on it yet.
+      </p>
 
       {supplementSleepRows.length > 0 && (
         <Card className="mb-4">
@@ -1151,7 +1152,7 @@ export function InsightsDashboard() {
       )}
 
       {insufficientCharts.length > 0 && (
-        <details className="mb-6 rounded-md border border-border">
+        <details className="mb-6 rounded-md border border-border bg-card">
           <summary className="cursor-pointer list-none px-4 py-2 text-sm font-medium [&::-webkit-details-marker]:hidden">
             <span className="mr-2">▸</span>
             Not enough data yet ({insufficientCharts.length})

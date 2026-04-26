@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { ArrowRight, Check, Circle, SkipForward } from "lucide-react";
+import { ArrowRight, Check, Circle } from "lucide-react";
 import { Emoji } from "@/components/ui/emoji";
 import { QuickLogModal } from "@/components/quick-log-modal";
 import {
@@ -12,6 +12,7 @@ import {
   revalidateAfterLog,
 } from "@/components/quick-log-forms";
 import { SectionTheme } from "@/components/section-theme";
+import { RowActionsMenu } from "@/components/tasks";
 import { useDemoHref } from "@/hooks/use-demo-href";
 import { useSelectedDate } from "@/hooks/use-selected-date";
 import { useSectionColor, useSections } from "@/hooks/use-sections";
@@ -53,16 +54,18 @@ function PrimaryButton({
     else if (action.href) onNavigate(action.href);
   };
   return (
-    <div className="flex min-w-0 items-stretch gap-2">
+    <div
+      className={cn(
+        "flex min-w-0 items-stretch overflow-hidden rounded-xl text-white transition-transform active:scale-[0.99]",
+        pending && "opacity-60",
+      )}
+      style={{ backgroundColor: color }}
+    >
       <button
         type="button"
         disabled={pending}
         onClick={onClick}
-        className={cn(
-          "flex min-w-0 flex-1 items-center gap-3 rounded-xl border border-transparent px-4 py-3 text-left text-sm text-white transition-transform active:scale-[0.99]",
-          pending && "opacity-60",
-        )}
-        style={{ backgroundColor: color }}
+        className="flex min-w-0 flex-1 items-center gap-3 px-4 py-3 text-left text-sm"
       >
         <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white/20 text-lg">
           {action.emoji ? (
@@ -80,25 +83,21 @@ function PrimaryButton({
           </span>
         </span>
       </button>
-      <button
-        type="button"
-        disabled={pending}
+      <div
+        className="flex shrink-0 items-center"
         onClick={(e) => {
           e.preventDefault();
           e.stopPropagation();
-          onSkip(action);
         }}
-        title="Skip — leaves it undone, picks the next item"
-        aria-label="Skip"
-        className={cn(
-          "flex shrink-0 items-center justify-center gap-1.5 rounded-xl border border-border bg-card px-3 text-xs font-medium text-muted-foreground transition-colors hover:border-[color:var(--action-accent)] hover:text-foreground",
-          pending && "opacity-60",
-        )}
-        style={{ ["--action-accent" as string]: color } as React.CSSProperties}
       >
-        <SkipForward className="h-3.5 w-3.5" />
-        <span className="hidden sm:inline">Skip</span>
-      </button>
+        <RowActionsMenu
+          tone="on-accent"
+          disabled={pending}
+          actions={[
+            { label: "Skip for now", onSelect: () => onSkip(action) },
+          ]}
+        />
+      </div>
     </div>
   );
 }
@@ -160,7 +159,7 @@ export function NextWidget() {
   return (
     <SectionTheme
       sectionKey="next"
-      className="group relative min-w-0 w-full rounded-2xl border border-border bg-background shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
+      className="group relative min-w-0 w-full rounded-2xl border border-border bg-card shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
     >
       <Link href={toHref("/septena/next")} className="block p-5">
         <div

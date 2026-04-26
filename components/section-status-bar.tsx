@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { getCaffeineHistory, getCannabisHistory, getChores, getEntries, getGroceries, getHabitHistory, getHealthApple, getHealthOura, getHealthWithings, getNutritionEntries, getNutritionStats, getStats, getSupplementHistory, type Stats } from "@/lib/api";
@@ -9,6 +8,7 @@ import { SECTIONS } from "@/lib/sections";
 import { useSection, useSections } from "@/hooks/use-sections";
 import { useAppConfig } from "@/lib/app-config";
 import { StatusPill } from "@/components/ui/status-pill";
+import { BackLink } from "@/components/back-link";
 import { useLoadTime } from "@/components/load-timer";
 
 type SectionKey = keyof typeof SECTIONS;
@@ -163,19 +163,9 @@ export function SectionStatusBar({ section }: { section: SectionKey }) {
       <p className="font-medium text-foreground">{data.line1}</p>
       <p className="mt-0.5">{data.line2}</p>
       {loadTime && <p className="mt-0.5">{loadTime}</p>}
-      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[11px]">
-        <Link
-          href="/septena/data"
-          className="underline-offset-4 hover:text-foreground hover:underline"
-        >
-          Data sources & freshness →
-        </Link>
-        <Link
-          href={`/septena/settings/${section}`}
-          className="underline-offset-4 hover:text-foreground hover:underline"
-        >
-          {sectionLabel} settings →
-        </Link>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <BackLink href="/septena/data" label="Data sources & freshness" direction="forward" />
+        <BackLink href={`/septena/settings/${section}`} label={`${sectionLabel} settings`} direction="forward" />
       </div>
     </StatusPill>
   );

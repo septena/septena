@@ -2,9 +2,8 @@
 
 import useSWR from "swr";
 import { getMeta, type SourceMeta } from "@/lib/api";
-import { useSection } from "@/hooks/use-sections";
-import { SECTIONS, type SectionKey } from "@/lib/sections";
-import { useSectionColor } from "@/hooks/use-sections";
+import { useSection, useSections, useSectionColor } from "@/hooks/use-sections";
+import { type SectionKey } from "@/lib/sections";
 import { cn } from "@/lib/utils";
 
 function timeAgo(iso: string | null | undefined): string {
@@ -97,7 +96,7 @@ function HealthSubRow({ sub }: { sub: { label: string; status?: string; last_mod
   const f = sub.last_modified ? freshness(sub.last_modified) : ok ? "fresh" : "missing";
 
   return (
-    <div className="flex items-center gap-3 rounded-lg border border-border/50 bg-muted/20 px-3 py-2">
+    <div className="flex items-center gap-3 rounded-lg border border-border/50 bg-card px-3 py-2">
       <div className="min-w-0 flex-1">
         <p className="text-xs font-medium">{sub.label}</p>
         {sub.detail ? (
@@ -122,6 +121,7 @@ export function DataMeta() {
   // Live color from /api/sections, not the static SECTIONS fallback —
   // honors user customisation in settings.yaml.
   const healthColor = useSectionColor("health");
+  const sections = useSections();
   const { data, error, isLoading } = useSWR("meta", getMeta, { refreshInterval: 60_000 });
 
   if (isLoading) {
@@ -130,7 +130,7 @@ export function DataMeta() {
         <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-muted-foreground">Data Sources</h2>
         <div className="space-y-2">
           {[...Array(4)].map((_, i) => (
-            <div key={i} className="h-14 animate-pulse rounded-xl border border-border bg-muted/30" />
+            <div key={i} className="h-14 animate-pulse rounded-xl border border-border bg-card" />
           ))}
         </div>
       </section>
@@ -140,7 +140,12 @@ export function DataMeta() {
   if (error || !data) return null;
 
   const sources = data.sources;
-  const dataKeys = ["training", "nutrition", "habits", "supplements", "cannabis", "caffeine"];
+  // Derive the on-disk section list from the live registry instead of a
+  // hardcoded array. We want enabled, data-folder-backed sections only —
+  // exclude derived views (no dataDir) and `health` (its own block below).
+  const dataKeys = sections
+    .filter((s) => s.enabled && !!s.dataDir && s.key !== "health" && sources[s.key])
+    .map((s) => s.key);
   const health = sources.health;
 
   return (

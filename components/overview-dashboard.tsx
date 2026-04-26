@@ -1093,8 +1093,18 @@ function MetaActionBar() {
       ),
     },
     {
+      href: "/septena/timeline",
+      label: "Timeline",
+      icon: (
+        <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="12" r="9" />
+          <path d="M12 7v5l3 2" />
+        </svg>
+      ),
+    },
+    {
       href: "/septena/data",
-      label: "Data sources",
+      label: "Data",
       icon: (
         <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
           <ellipse cx="12" cy="5" rx="8" ry="3" />
@@ -1120,7 +1130,7 @@ function MetaActionBar() {
         <Link
           key={a.href}
           href={toHref(a.href)}
-          className="inline-flex items-center gap-2 rounded-full border border-border bg-background px-4 py-2 text-sm font-medium text-muted-foreground shadow-sm transition-colors hover:border-foreground/30 hover:text-foreground"
+          className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-sm font-medium text-muted-foreground shadow-sm transition-colors hover:border-foreground/30 hover:text-foreground"
         >
           {a.icon}
           <span>{a.label}</span>
@@ -1171,7 +1181,7 @@ export function SectionCard({ section, loading, children }: {
   const quickLog = QUICK_LOG[s.key];
   const hasQuickLog = !!openQuickLog && !!quickLog;
   return (
-    <SectionTheme sectionKey={s.key} className="group relative min-w-0 w-full rounded-2xl border border-border bg-background shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md">
+    <SectionTheme sectionKey={s.key} className="group relative min-w-0 w-full rounded-2xl border border-border bg-card shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md">
       <Link href={toHref(s.path)} className="block p-5">
         <div
           className="absolute left-0 top-4 h-8 w-1 rounded-r-full"

@@ -11,7 +11,7 @@ export function Toaster() {
       position="bottom-center"
       toastOptions={{
         classNames: {
-          toast: "rounded-xl border border-border bg-background text-foreground shadow-lg",
+          toast: "rounded-xl border border-border bg-card text-foreground shadow-lg",
         },
       }}
     />

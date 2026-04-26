@@ -11,7 +11,6 @@ import {
   Dumbbell,
   ListChecks,
   Plus,
-  SkipForward,
 } from "lucide-react";
 import { QuickLogModal } from "@/components/quick-log-modal";
 import {
@@ -20,7 +19,7 @@ import {
   revalidateAfterLog,
 } from "@/components/quick-log-forms";
 import { SectionTheme } from "@/components/section-theme";
-import { TaskRow } from "@/components/tasks";
+import { RowActionsMenu, TaskRow, type TaskRowAction } from "@/components/tasks";
 import {
   completeChore,
   completeTask,
@@ -56,29 +55,6 @@ function sectionMeta(sections: SectionMeta[], key: SectionKey): SectionMeta {
   };
 }
 
-function SkipButton({ color, onClick, primary }: { color: string; onClick: () => void; primary?: boolean }) {
-  return (
-    <button
-      type="button"
-      onClick={(e) => {
-        e.stopPropagation();
-        onClick();
-      }}
-      title="Skip — leaves it undone, picks the next item"
-      aria-label="Skip"
-      className={cn(
-        "flex shrink-0 items-center justify-center rounded-lg p-1.5 transition-colors",
-        primary
-          ? "text-white/80 hover:bg-white/20 hover:text-white"
-          : "text-muted-foreground hover:bg-muted hover:text-foreground",
-      )}
-      style={primary ? undefined : ({ ["--action-accent" as string]: color } as React.CSSProperties)}
-    >
-      <SkipForward className="h-4 w-4" />
-    </button>
-  );
-}
-
 function NextActionRow({
   action,
   color,
@@ -98,35 +74,45 @@ function NextActionRow({
   onNavigate: (href: string) => void;
   onSkip?: (action: NextAction) => void;
 }) {
-  const skipNode =
+  const rowActions: TaskRowAction[] | undefined =
     onSkip && action.bucket !== "done"
-      ? <SkipButton color={color} primary={primary} onClick={() => onSkip(action)} />
-      : null;
+      ? [{ label: "Skip for now", onSelect: () => onSkip(action) }]
+      : undefined;
 
   if (action.task) {
     return (
-      <div className="flex min-w-0 items-stretch gap-2">
-        <div className="min-w-0 flex-1">
-          <TaskRow
-            label={action.title}
-            emoji={action.emoji}
-            sublabel={[action.detail, action.reason].filter(Boolean).join(" · ")}
-            sublabelTone={action.detail.includes("late") ? "warn" : undefined}
-            done={action.bucket === "done"}
-            pending={pending}
-            accent={color}
-            muted={action.muted}
-            onClick={() => onComplete(action)}
-          />
-        </div>
-        {skipNode && <div className="flex items-center">{skipNode}</div>}
-      </div>
+      <TaskRow
+        label={action.title}
+        emoji={action.emoji}
+        sublabel={[action.detail, action.reason].filter(Boolean).join(" · ")}
+        sublabelTone={action.detail.includes("late") ? "warn" : undefined}
+        done={action.bucket === "done"}
+        pending={pending}
+        accent={color}
+        muted={action.muted}
+        onClick={() => onComplete(action)}
+        actions={rowActions}
+      />
     );
   }
 
   const Icon = action.href ? Dumbbell : Plus;
   return (
-    <div className="flex min-w-0 items-stretch gap-2">
+    <div
+      className={cn(
+        "flex min-w-0 items-stretch overflow-hidden rounded-xl border transition-colors",
+        primary
+          ? "border-transparent text-white"
+          : "border-border bg-card hover:border-[color:var(--action-accent)]",
+        pending && "opacity-60",
+      )}
+      style={
+        {
+          backgroundColor: primary ? color : undefined,
+          ["--action-accent" as string]: color,
+        } as React.CSSProperties
+      }
+    >
       <button
         type="button"
         disabled={pending}
@@ -134,19 +120,7 @@ function NextActionRow({
           if (action.modal) onOpenModal(action.modal);
           else if (action.href) onNavigate(action.href);
         }}
-        className={cn(
-          "flex min-w-0 flex-1 items-center gap-3 rounded-xl border px-4 py-3 text-left text-sm transition-colors",
-          primary
-            ? "border-transparent text-white"
-            : "border-border bg-card hover:border-[color:var(--action-accent)]",
-          pending && "opacity-60",
-        )}
-        style={
-          {
-            backgroundColor: primary ? color : undefined,
-            ["--action-accent" as string]: color,
-          } as React.CSSProperties
-        }
+        className="flex min-w-0 flex-1 items-center gap-3 px-4 py-3 text-left text-sm"
       >
         <span
           className={cn(
@@ -171,7 +145,15 @@ function NextActionRow({
           {action.buttonLabel ?? "Open"}
         </span>
       </button>
-      {skipNode && <div className="flex items-center">{skipNode}</div>}
+      {rowActions && (
+        <div className="flex shrink-0 items-center">
+          <RowActionsMenu
+            tone={primary ? "on-accent" : "default"}
+            disabled={pending}
+            actions={rowActions}
+          />
+        </div>
+      )}
     </div>
   );
 }
@@ -200,7 +182,7 @@ function ActionPanel({
   onSkip?: (action: NextAction) => void;
 }) {
   return (
-    <section className="rounded-2xl border border-border bg-background p-4 shadow-sm">
+    <section className="rounded-2xl border border-border bg-card p-4 shadow-sm">
       <div className="mb-3 flex items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-2">
           {icon}
@@ -283,11 +265,11 @@ export function NextDashboard() {
   return (
     <SectionTheme sectionKey="next" className="space-y-6">
       {isLoading && !data ? (
-        <div className="rounded-2xl border border-border bg-background p-5 text-sm text-muted-foreground shadow-sm">
+        <div className="rounded-2xl border border-border bg-card p-5 text-sm text-muted-foreground shadow-sm">
           Loading…
         </div>
       ) : computed.primary ? (
-        <section className="rounded-2xl border border-border bg-background p-4 shadow-sm sm:p-5">
+        <section className="rounded-2xl border border-border bg-card p-4 shadow-sm sm:p-5">
           <div className="mb-3 flex items-center justify-between gap-3">
             <div className="flex min-w-0 items-center gap-2">
               <Circle className="h-4 w-4" style={{ color: colorMap.get(computed.primary.section) ?? nextAccent }} />
@@ -309,7 +291,7 @@ export function NextDashboard() {
           />
         </section>
       ) : (
-        <section className="rounded-2xl border border-border bg-background p-5 shadow-sm">
+        <section className="rounded-2xl border border-border bg-card p-5 shadow-sm">
           <div className="flex items-center gap-3">
             <span
               className="flex h-9 w-9 items-center justify-center rounded-full text-white"
@@ -355,7 +337,7 @@ export function NextDashboard() {
         </div>
 
         <div className="space-y-4">
-          <section className="rounded-2xl border border-border bg-background p-4 shadow-sm">
+          <section className="rounded-2xl border border-border bg-card p-4 shadow-sm">
             <div className="mb-3 flex items-center justify-between gap-3">
               <div className="flex min-w-0 items-center gap-2">
                 <Check className="h-4 w-4" style={{ color: nextAccent }} />

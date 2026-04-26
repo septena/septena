@@ -42,7 +42,7 @@ export function SectionTabs() {
           className={`group inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-3 py-1.5 text-sm font-semibold text-foreground transition-colors ${
             homeActive
               ? "border-foreground/30 bg-foreground/10"
-              : "border-border hover:border-foreground/40"
+              : "border-border bg-card/60 hover:border-foreground/40"
           }`}
         >
           <span ref={markRef} className="relative inline-flex h-3.5 w-3.5">
@@ -74,7 +74,7 @@ export function SectionTabs() {
               style={
                 active
                   ? { borderColor: activeBorder, backgroundColor: activeFill, color: section.color }
-                  : { borderColor: "var(--border)", color: "var(--foreground)" }
+                  : { borderColor: "var(--border)", backgroundColor: "color-mix(in oklab, var(--card) 60%, transparent)", color: "var(--foreground)" }
               }
               onMouseEnter={(e) => {
                 if (!active) {

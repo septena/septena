@@ -90,7 +90,7 @@ function StatTile({
   accent: "strength" | "cardio";
 }) {
   return (
-    <div className="rounded-2xl border bg-background p-3 shadow-sm">
+    <div className="rounded-2xl border bg-card p-3 shadow-sm">
       <p
         className="text-[10px] font-semibold uppercase tracking-wider"
         style={{ color: exerciseToneColor(accent) }}
@@ -270,7 +270,7 @@ export default function ActiveSessionPage() {
           </span>
         </div>
 
-        <div className="mb-5 rounded-2xl border bg-background p-5 shadow-sm">
+        <div className="mb-5 rounded-2xl border bg-card p-5 shadow-sm">
           <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">In progress</p>
           <h1 className="mt-1 text-2xl font-semibold tracking-tight">
             {meta.emoji} {meta.label} day
@@ -365,7 +365,7 @@ function EntryCard({
   return (
     <div
       className={cn(
-        "rounded-2xl border bg-background shadow-sm transition-all",
+        "rounded-2xl border bg-card shadow-sm transition-all",
         done && "opacity-70",
         skipped && "opacity-40",
         failed && "border-red-400",

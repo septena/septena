@@ -122,7 +122,7 @@ export default function StartSessionPage() {
           <BackLink href="/septena/training" label="Dashboard" />
         </div>
 
-        <div className="rounded-3xl border bg-background p-6 shadow-sm">
+        <div className="rounded-3xl border bg-card p-6 shadow-sm">
           <p className="text-sm font-medium uppercase tracking-[0.2em] text-muted-foreground">Gym</p>
           <h1 className="mt-1 text-3xl font-semibold tracking-tight sm:text-4xl">Ready to train?</h1>
           <p className="mt-2 text-sm text-muted-foreground">
@@ -223,7 +223,7 @@ export default function StartSessionPage() {
 
         {confirmingDiscard && existingDraft && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-            <div className="max-w-sm rounded-2xl border bg-background p-6 shadow-xl">
+            <div className="max-w-sm rounded-2xl border bg-card p-6 shadow-xl">
               <h2 className="text-lg font-semibold">Discard unfinished session?</h2>
               <p className="mt-2 text-sm text-muted-foreground">
                 You have a {draftMeta?.label.toLowerCase() ?? ""} session in progress

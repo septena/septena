@@ -251,7 +251,7 @@ export default function SessionDonePage() {
           </div>
         )}
 
-        <div className="mt-6 rounded-2xl border bg-background p-5 shadow-sm">
+        <div className="mt-6 rounded-2xl border bg-card p-5 shadow-sm">
           <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             Logged
           </p>
@@ -335,7 +335,7 @@ function StatTile({
   return (
     <div
       className={
-        "rounded-2xl border bg-background p-4 shadow-sm " +
+        "rounded-2xl border bg-card p-4 shadow-sm " +
         (accent ? "border-[color:var(--section-accent-shade-2)] bg-[color:var(--section-accent-soft)]" : "")
       }
     >
