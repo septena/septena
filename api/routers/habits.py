@@ -63,7 +63,8 @@ async def habits_new(request: Request) -> Dict[str, Any]:
         raise HTTPException(status_code=400, detail="name is required")
     if bucket not in phases:
         raise HTTPException(status_code=400, detail=f"bucket must be one of {phases}")
-    return habits_service.add_habit(name=name, bucket=bucket)
+    emoji = str(payload.get("emoji") or "").strip()
+    return habits_service.add_habit(name=name, bucket=bucket, emoji=emoji)
 
 
 @router.put("/update")
@@ -77,8 +78,9 @@ async def habits_update(request: Request) -> Dict[str, Any]:
     phases = _phase_ids()
     if bucket and bucket not in phases:
         raise HTTPException(status_code=400, detail=f"bucket must be one of {phases}")
+    emoji = str(payload.get("emoji")) if "emoji" in payload else None
     try:
-        return habits_service.update_habit(habit_id=habit_id, name=name, bucket=bucket)
+        return habits_service.update_habit(habit_id=habit_id, name=name, bucket=bucket, emoji=emoji)
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail="habits-config.yaml not found") from None
     except KeyError:
@@ -98,3 +100,8 @@ def habits_delete(habit_id: str) -> Dict[str, Any]:
 @router.get("/history")
 def habits_history(days: int = 30) -> Dict[str, Any]:
     return habits_service.habits_history(days=days)
+
+
+@router.get("/range")
+def habits_range(days: int = 14) -> Dict[str, Any]:
+    return habits_service.habits_range(days=days)

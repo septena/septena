@@ -14,6 +14,9 @@ import {
 } from "@/lib/api";
 import {
   DEFAULT_DAY_PHASES,
+  DEFAULT_DAY_PHASE_BOUNDARIES,
+  DEFAULT_DAY_END,
+  resolvePhases,
   isPastCutoff as isPhaseCutoffPast,
   isPastPhase,
   isFuturePhase,
@@ -24,19 +27,20 @@ import { TaskGroup, TaskRow } from "@/components/tasks";
 import { ChecklistStats, ChecklistChart } from "@/components/checklist-primitives";
 import { shortDate, computeStreak } from "@/lib/date-utils";
 import { SECTION_ACCENT_SHADE_3 } from "@/lib/section-colors";
+import { SectionHeaderAction, SectionHeaderActionButton } from "@/components/section-header-action";
+import { QuickLogModal } from "@/components/quick-log-modal";
+import { HabitsQuickLog } from "@/components/quick-log-forms";
+import { useCelebrate } from "@/components/confetti";
+import { haptic } from "@/lib/haptics";
 
 const HABITS_COLOR = "var(--section-accent)";
-
-const HAPTIC = () => {
-  try {
-    navigator.vibrate?.(8);
-  } catch {}
-};
 
 export function HabitsDashboard() {
   const [pending, setPending] = useState<Set<string>>(new Set());
   const { date: selectedDate } = useSelectedDate();
   const [optimisticDay, setOptimisticDay] = useState<HabitDay | null>(null);
+  const [logOpen, setLogOpen] = useState(false);
+  const { celebrate, node: confettiNode } = useCelebrate();
 
   const { data, error, isLoading, mutate } = useSWR(
     ["habits", selectedDate],
@@ -48,7 +52,14 @@ export function HabitsDashboard() {
   );
 
   const { data: settings } = useSWR("settings", getSettings);
-  const phases = settings?.day_phases ?? DEFAULT_DAY_PHASES;
+  const phases = useMemo(
+    () => resolvePhases(
+      settings?.day_phases ?? DEFAULT_DAY_PHASES,
+      settings?.day_phase_boundaries ?? DEFAULT_DAY_PHASE_BOUNDARIES,
+      settings?.day_end ?? DEFAULT_DAY_END,
+    ),
+    [settings],
+  );
   const phaseById = useMemo(
     () => Object.fromEntries(phases.map((p) => [p.id, p])),
     [phases],
@@ -78,12 +89,19 @@ export function HabitsDashboard() {
       done_count,
       percent: day.total ? Math.round((100 * done_count) / day.total) : 0,
     });
-    HAPTIC();
+    if (day.total > 0 && day.done_count < day.total && done_count === day.total) {
+      celebrate({
+        message: "Habits complete",
+        description: `${day.total} of ${day.total} done for today`,
+        confetti: settings?.animations?.habits_complete ?? true,
+      });
+    }
+    haptic();
     setPending((p) => new Set(p).add(habit.id));
 
     try {
       await toggleHabit(selectedDate, habit.id, nextDone);
-      HAPTIC();
+      haptic();
       mutate();
     } catch {
       setOptimisticDay(prevDay);
@@ -104,6 +122,21 @@ export function HabitsDashboard() {
 
   return (
     <>
+      {confettiNode}
+      <SectionHeaderAction>
+        <SectionHeaderActionButton color={HABITS_COLOR} onClick={() => setLogOpen(true)}>
+          + Log
+        </SectionHeaderActionButton>
+      </SectionHeaderAction>
+
+      <QuickLogModal
+        open={logOpen}
+        onClose={() => setLogOpen(false)}
+        title="Habits"
+        accent={HABITS_COLOR}
+      >
+        <HabitsQuickLog />
+      </QuickLogModal>
 
       {error && (
         <Card className="mb-4 border-red-500/30 bg-red-500/10">
@@ -162,6 +195,7 @@ export function HabitsDashboard() {
                     <TaskRow
                       key={h.id}
                       label={h.name}
+                      emoji={h.emoji}
                       sublabel={h.done && h.time ? h.time : undefined}
                       done={h.done}
                       pending={pending.has(h.id)}

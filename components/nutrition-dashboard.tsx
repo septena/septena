@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import useSWR from "swr";
+import useSWR, { mutate as globalMutate } from "swr";
 import { Bar, BarChart, CartesianGrid, Cell, ReferenceArea, ReferenceLine, Tooltip, XAxis, YAxis } from "recharts";
 import { Pencil, Copy } from "lucide-react";
 
@@ -9,6 +9,8 @@ import {
   getNutritionEntries,
   getNutritionStats,
   getSettings,
+  saveSettings,
+  type AppSettings,
   saveNutritionEntry,
   updateNutritionEntry,
   deleteNutritionEntry,
@@ -25,9 +27,13 @@ import { showToast, showError } from "@/lib/toast";
 import { todayLocalISO, daysAgoLocalISO, addDaysISO, nowHHMM, shortDate, formatWeekdayTick } from "@/lib/date-utils";
 import { useSelectedDate } from "@/hooks/use-selected-date";
 import { computeFastingState, isBreakingFast, useFastingConfig } from "@/lib/fasting";
-import { useMacroTargets, useMacroColors, useFastingTarget, useFiberTarget, progressTowardRange, type MacroKey, type MacroTarget } from "@/lib/macro-targets";
+import { useMacroTargets, useMacroColors, useFastingTarget, useFiberTarget, progressTowardRange, useProgressMode, macroTileNumbers, type MacroKey, type MacroTarget } from "@/lib/macro-targets";
 import { StatCard } from "@/components/stat-card";
 import { useBarAnimation } from "@/hooks/use-bar-animation";
+import { Emoji } from "@/components/ui/emoji";
+import { SectionHeaderAction, SectionHeaderActionButton } from "@/components/section-header-action";
+import { QuickLogModal } from "@/components/quick-log-modal";
+import { NutritionQuickLog } from "@/components/quick-log-forms";
 
 const NUTRITION_COLOR = "var(--section-accent)";
 
@@ -58,8 +64,20 @@ function NutritionDashboardInner() {
   const stats = data?.stats ?? null;
   const loading = isLoading && !data;
   const [celebrating, setCelebrating] = useState(false);
+  const [logOpen, setLogOpen] = useState(false);
   const { data: settings } = useSWR("settings", getSettings);
   const firstMealAnimationEnabled = settings?.animations?.first_meal ?? true;
+  const progressMode = useProgressMode();
+  const toggleProgressMode = () => {
+    const next = progressMode === "used" ? "left" : "used";
+    globalMutate(
+      "settings",
+      (cur: AppSettings | undefined) =>
+        cur ? { ...cur, nutrition: { ...(cur.nutrition ?? { macro_colors: {} as never }), progress_mode: next } } : cur,
+      { revalidate: false },
+    );
+    saveSettings({ nutrition: { progress_mode: next } as never }).then(() => globalMutate("settings"));
+  };
 
   const todayEntries = useMemo(
     () => entries.filter((e) => e.date === selectedDate).sort((a, b) => a.time.localeCompare(b.time)),
@@ -93,51 +111,83 @@ function NutritionDashboardInner() {
 
   return (
     <>
+      <SectionHeaderAction>
+        <SectionHeaderActionButton color={NUTRITION_COLOR} onClick={() => setLogOpen(true)}>
+          + Log
+        </SectionHeaderActionButton>
+      </SectionHeaderAction>
+
+      <QuickLogModal
+        open={logOpen}
+        onClose={() => setLogOpen(false)}
+        title="Log Meal"
+        accent={NUTRITION_COLOR}
+      >
+        <NutritionQuickLog onDone={() => setLogOpen(false)} />
+      </QuickLogModal>
+
       {error && (
         <Card className="mb-4 border-red-500/30 bg-red-500/10">
           <CardContent className="py-3 text-sm text-red-700 dark:text-red-300">{error instanceof Error ? error.message : String(error)}</CardContent>
         </Card>
       )}
 
-      {!loading && (
-        <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-6">
+      <div className="xl:grid xl:grid-cols-5 xl:gap-6 xl:items-start">
+      <div className="xl:col-span-3">
+      {!loading && (() => {
+        const mode = progressMode;
+        const tile = (consumed: number, t: typeof targets.protein) =>
+          macroTileNumbers(consumed, t, mode);
+        const p = tile(todayProtein, targets.protein);
+        const f = tile(todayFat, targets.fat);
+        const c = tile(todayCarbs, targets.carbs);
+        const fi = tile(todayFiber, fiberTarget);
+        const k = tile(todayKcal, targets.kcal);
+        const round = (v: number | null) => (v == null ? null : Math.round(v));
+        return (
+        <div
+          className="mb-6 grid grid-cols-3 gap-4 lg:grid-cols-6 cursor-pointer select-none"
+          onClick={toggleProgressMode}
+          title={`Tap to switch to "${mode === "used" ? "left" : "used"}"`}
+        >
         <StatCard
-          label="Protein"
-          value={todayProtein > 0 ? Math.round(todayProtein) : null}
+          label={mode === "left" ? "Protein left" : "Protein"}
+          value={round(p.value)}
           unit="g"
-          progress={progressTowardRange(todayProtein, targets.protein)}
+          progress={p.progress}
           color={targets.protein.color}
         />
         <StatCard
-          label="Fat"
-          value={todayFat > 0 ? Math.round(todayFat) : null}
+          label={mode === "left" ? "Fat left" : "Fat"}
+          value={round(f.value)}
           unit="g"
-          progress={progressTowardRange(todayFat, targets.fat)}
+          progress={f.progress}
           color={targets.fat.color}
         />
         <StatCard
-          label="Carbs"
-          value={todayCarbs > 0 ? Math.round(todayCarbs) : null}
+          label={mode === "left" ? "Carbs left" : "Carbs"}
+          value={round(c.value)}
           unit="g"
-          progress={progressTowardRange(todayCarbs, targets.carbs)}
+          progress={c.progress}
           color={targets.carbs.color}
         />
         <StatCard
-          label="Fiber"
-          value={todayFiber > 0 ? Math.round(todayFiber) : null}
+          label={mode === "left" ? "Fiber left" : "Fiber"}
+          value={round(fi.value)}
           unit="g"
-          progress={progressTowardRange(todayFiber, fiberTarget)}
+          progress={fi.progress}
           color={fiberTarget.color}
         />
         <StatCard
-          label="Kcal"
-          value={todayKcal > 0 ? Math.round(todayKcal) : null}
-          progress={progressTowardRange(todayKcal, targets.kcal)}
+          label={mode === "left" ? "Kcal left" : "Kcal"}
+          value={round(k.value)}
+          progress={k.progress}
           color={targets.kcal.color}
         />
         <FastingStatCard stats={stats} />
         </div>
-      )}
+        );
+      })()}
 
       {/* Macro + fasting charts */}
       {!loading && (
@@ -150,7 +200,9 @@ function NutritionDashboardInner() {
         <FastingCard stats={stats} />
         </div>
       )}
+      </div>
 
+      <div className="xl:col-span-2">
       <RecentEntriesList
         entries={recentEntries}
         fasting={stats?.fasting ?? []}
@@ -162,6 +214,8 @@ function NutritionDashboardInner() {
           if (firstMealAnimationEnabled) setCelebrating(true);
         }}
       />
+      </div>
+      </div>
 
 
       {celebrating && <BreakFastCelebration onDone={() => setCelebrating(false)} />}
@@ -514,7 +568,7 @@ function RecentEntriesList({ entries, fasting, loading, todayMealCount, onDuplic
                       {/* Row 1: title (first food) + time + action buttons */}
                       <div className="flex items-center justify-between gap-2">
                         <p className="flex min-w-0 items-center gap-2 text-sm font-semibold">
-                          {e.emoji?.trim() && <span>{e.emoji?.trim()}</span>}
+                          <Emoji>{e.emoji?.trim()}</Emoji>
                           <span className="truncate">{e.foods[0]}</span>
                           <span className="shrink-0 text-xs font-normal text-muted-foreground">{e.time || e.date}</span>
                         </p>
@@ -641,12 +695,12 @@ function MacroChartCard({
       <CardContent className="px-4">
         <ChartContainer
           config={{ [dataKey]: { label: `${target.label}${unit ? ` (${unit})` : ""}`, color: target.color } }}
-          className="h-[200px] w-full overflow-hidden"
+          className="h-[130px] w-full overflow-hidden"
         >
           <BarChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
             <CartesianGrid {...CHART_GRID} />
             <XAxis dataKey="date" tickLine={false} axisLine={false} interval={0} fontSize={11}
-              tickFormatter={(v: string) => formatWeekdayTick(v)} />
+              tickFormatter={(v: string) => formatWeekdayTick(v).charAt(0)} />
             <YAxis
               tickLine={false}
               axisLine={false}
@@ -689,7 +743,8 @@ function MacroChartCard({
 function FastingStatCard({ stats }: { stats: NutritionStats | null }) {
   const fastingTarget = useFastingTarget();
   const fastingConfig = useFastingConfig();
-  const nutritionColor = "var(--section-accent)";
+  const macroColors = useMacroColors();
+  const nutritionColor = macroColors.fasting;
   const today = todayLocalISO();
   const todayFast = (stats?.fasting ?? []).find((f) => f.date === today);
   const fastHours = todayFast?.hours;
@@ -748,12 +803,12 @@ function FiberChartCard({
       <CardContent className="px-4">
         <ChartContainer
           config={{ [dataKey]: { label: `${target.label} (${unit})`, color: target.color } }}
-          className="h-[200px] w-full overflow-hidden"
+          className="h-[130px] w-full overflow-hidden"
         >
           <BarChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
             <CartesianGrid {...CHART_GRID} />
             <XAxis dataKey="date" tickLine={false} axisLine={false} interval={0} fontSize={11}
-              tickFormatter={(v: string) => formatWeekdayTick(v)} />
+              tickFormatter={(v: string) => formatWeekdayTick(v).charAt(0)} />
             <YAxis
               tickLine={false}
               axisLine={false}
@@ -854,11 +909,11 @@ function FastingCard({ stats }: { stats: NutritionStats | null }) {
         </CardDescription>
       </CardHeader>
       <CardContent className="px-4">
-        <ChartContainer config={fastingChartConfig} className="h-[200px] w-full overflow-hidden">
+        <ChartContainer config={fastingChartConfig} className="h-[130px] w-full overflow-hidden">
           <BarChart data={chartData.slice(-7)} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
             <CartesianGrid {...CHART_GRID} />
             <XAxis dataKey="date" tickLine={false} axisLine={false} interval={0} fontSize={11}
-              tickFormatter={(v: string) => formatWeekdayTick(v)} />
+              tickFormatter={(v: string) => formatWeekdayTick(v).charAt(0)} />
             <YAxis tickLine={false} axisLine={false} domain={[0, Math.ceil(fastingTarget.max / 0.85)]} width={36} fontSize={11} tickFormatter={(v: number) => `${v}h`} />
             <ReferenceArea y1={fastingTarget.min} y2={fastingTarget.max} fill={nutritionColor} fillOpacity={0.12} stroke="none" />
             <ReferenceLine y={fastingTarget.min} stroke={nutritionColor} strokeDasharray="4 4" strokeOpacity={0.6} />

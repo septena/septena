@@ -10,82 +10,12 @@ import {
   SECTION_ACCENT,
   SECTION_ACCENT_SHADE_1,
   SECTION_ACCENT_SHADE_2,
-  SECTION_ACCENT_SHADE_3,
-  SECTION_ACCENT_SOFT,
   SECTION_ACCENT_STRONG,
 } from "@/lib/section-colors";
 import { SESSION_META, isCardio, type SessionType } from "@/lib/session-templates";
 import { getEntries, getSettings } from "@/lib/api";
 import { computePRs, type ExercisePR } from "@/lib/pr";
-
-// ─── Confetti ────────────────────────────────────────────────────────────
-// Hand-rolled. No dependency. 60 particles, section palette, CSS keyframes.
-
-const CONFETTI_COUNT = 70;
-const COLORS = [
-  SECTION_ACCENT_SHADE_1,
-  SECTION_ACCENT_SHADE_2,
-  SECTION_ACCENT_SHADE_3,
-  SECTION_ACCENT_STRONG,
-  SECTION_ACCENT_SOFT,
-];
-
-type Particle = {
-  id: number;
-  left: number;
-  delay: number;
-  duration: number;
-  drift: number;
-  rotate: number;
-  color: string;
-  size: number;
-};
-
-function Confetti() {
-  const [particles] = useState<Particle[]>(
-    () =>
-      Array.from({ length: CONFETTI_COUNT }, (_, i) => ({
-        id: i,
-        left: Math.random() * 100, // vw
-        delay: Math.random() * 0.4, // s
-        duration: 2.2 + Math.random() * 1.8, // s
-        drift: (Math.random() - 0.5) * 120, // px horizontal drift
-        rotate: (Math.random() - 0.5) * 720, // deg
-        color: COLORS[Math.floor(Math.random() * COLORS.length)],
-        size: 6 + Math.random() * 8, // px
-      })),
-  );
-
-  return (
-    <>
-      <style>{`
-        @keyframes fall {
-          0%   { transform: translate3d(0, -10vh, 0) rotate(0deg); opacity: 1; }
-          85%  { opacity: 1; }
-          100% { transform: translate3d(var(--drift), 110vh, 0) rotate(var(--rot)); opacity: 0; }
-        }
-      `}</style>
-      <div className="pointer-events-none fixed inset-0 z-40 overflow-hidden">
-        {particles.map((p) => (
-          <span
-            key={p.id}
-            className="absolute block rounded-sm"
-            style={{
-              left: `${p.left}vw`,
-              top: 0,
-              width: `${p.size}px`,
-              height: `${p.size * 0.4}px`,
-              backgroundColor: p.color,
-              animation: `fall ${p.duration}s ${p.delay}s cubic-bezier(.2,.6,.3,1) forwards`,
-              ["--drift" as string]: `${p.drift}px`,
-              ["--rot" as string]: `${p.rotate}deg`,
-            }}
-          />
-        ))}
-      </div>
-    </>
-  );
-}
+import { Confetti } from "@/components/confetti";
 
 // ─── Stats ───────────────────────────────────────────────────────────────
 

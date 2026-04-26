@@ -52,6 +52,7 @@ def write_habit_event(
         "section": "habits",
         "habit_id": habit["id"],
         "habit_name": habit["name"],
+        "emoji": habit.get("emoji") or "",
         "bucket": habit["bucket"],
         "note": note or None,
     }
@@ -127,7 +128,7 @@ def _write_habits_config(data: Dict[str, Any], header: str) -> None:
     )
 
 
-def add_habit(name: str, bucket: str) -> Dict[str, Any]:
+def add_habit(name: str, bucket: str, emoji: str = "") -> Dict[str, Any]:
     phases = _phase_ids()
     fallback = phases[0] if phases else "morning"
     normalized_bucket = bucket or fallback
@@ -136,17 +137,17 @@ def add_habit(name: str, bucket: str) -> Dict[str, Any]:
     habits: List[Dict[str, Any]] = data.get("habits") or []
     for habit in habits:
         if str(habit.get("name", "")).strip() == name and str(habit.get("bucket", "")).strip() == normalized_bucket:
-            return {"ok": True, "id": habit["id"], "name": name, "bucket": normalized_bucket, "skipped": True}
+            return {"ok": True, "id": habit["id"], "name": name, "emoji": habit.get("emoji", ""), "bucket": normalized_bucket, "skipped": True}
     from api.parsing import _slugify
 
     new_id = _slugify(name)
-    habits.append({"id": new_id, "name": name, "bucket": normalized_bucket})
+    habits.append({"id": new_id, "name": name, "emoji": emoji, "bucket": normalized_bucket})
     data["habits"] = habits
     _write_habits_config(data, document.header)
-    return {"ok": True, "id": new_id, "name": name, "bucket": normalized_bucket}
+    return {"ok": True, "id": new_id, "name": name, "emoji": emoji, "bucket": normalized_bucket}
 
 
-def update_habit(habit_id: str, name: str, bucket: str) -> Dict[str, Any]:
+def update_habit(habit_id: str, name: str, bucket: str, emoji: str | None = None) -> Dict[str, Any]:
     if not paths.HABITS_CONFIG_PATH.exists():
         raise FileNotFoundError(paths.HABITS_CONFIG_PATH)
     document = read_yaml_document(paths.HABITS_CONFIG_PATH, default={})
@@ -162,6 +163,8 @@ def update_habit(habit_id: str, name: str, bucket: str) -> Dict[str, Any]:
                 habit["name"] = name
             if bucket:
                 habit["bucket"] = bucket
+            if emoji is not None:
+                habit["emoji"] = emoji
             break
     if not found:
         raise KeyError(habit_id)
@@ -201,3 +204,18 @@ def habits_history(days: int = 30) -> Dict[str, Any]:
             "percent": round(100 * done / total) if total else 0,
         })
     return {"daily": daily, "total": total}
+
+
+def habits_range(days: int = 14) -> Dict[str, Any]:
+    """Return full HabitDay records for the trailing `days` ending today.
+
+    Mirrors `habits_day` per date so consumers (e.g. the Next widget) can
+    compute per-habit completion-time medians without fanning out one HTTP
+    request per day.
+    """
+    today = date.today()
+    records: List[Dict[str, Any]] = []
+    for offset in range(days - 1, -1, -1):
+        day = (today - timedelta(days=offset)).isoformat()
+        records.append(habits_day(day))
+    return {"days": records}

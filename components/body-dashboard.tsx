@@ -27,6 +27,59 @@ const fatConfig = {
   fat_pct: { label: "Body Fat (%)", color: SECTION_ACCENT_SHADE_2 },
 } satisfies ChartConfig;
 
+function linearTrend(rows: WithingsRow[], key: "weight_kg" | "fat_pct", projectDays = 7) {
+  if (rows.length === 0) return null;
+  const pts = rows
+    .map((r, i) => ({ i, y: r[key] as number | null }))
+    .filter((p): p is { i: number; y: number } => p.y != null);
+  if (pts.length < 3) return null;
+  const n = pts.length;
+  const sumX = pts.reduce((s, p) => s + p.i, 0);
+  const sumY = pts.reduce((s, p) => s + p.y, 0);
+  const sumXY = pts.reduce((s, p) => s + p.i * p.y, 0);
+  const sumXX = pts.reduce((s, p) => s + p.i * p.i, 0);
+  const denom = n * sumXX - sumX * sumX;
+  if (denom === 0) return null;
+  const slope = (n * sumXY - sumX * sumY) / denom;
+  const intercept = (sumY - slope * sumX) / n;
+  const last = rows[rows.length - 1].date;
+  const [y, m, d] = last.split("-").map(Number);
+  const future: string[] = [];
+  for (let k = 1; k <= projectDays; k++) {
+    const dt = new Date(y, m - 1, d + k);
+    future.push(`${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`);
+  }
+  return { slope, intercept, lastIndex: rows.length - 1, future };
+}
+
+function buildTrendData(rows: WithingsRow[], key: "weight_kg" | "fat_pct", trendKey: string, projectDays = 7) {
+  const trend = linearTrend(rows, key, projectDays);
+  if (!trend) return { data: rows as Array<Record<string, unknown>>, hasTrend: false, projectedValue: null as number | null, slope: 0, projectDays };
+  const actuals = rows.map((r, i) => ({
+    ...r,
+    [trendKey]: trend.slope * i + trend.intercept,
+  }));
+  const projected = trend.future.map((date, k) => ({
+    date,
+    [key]: null,
+    [trendKey]: trend.slope * (trend.lastIndex + 1 + k) + trend.intercept,
+  }));
+  const projectedValue = trend.slope * (trend.lastIndex + projectDays) + trend.intercept;
+  return { data: [...actuals, ...projected], hasTrend: true, projectedValue, slope: trend.slope, projectDays };
+}
+
+function targetEta(current: number | null, slope: number, min: number | undefined, max: number | undefined): string | null {
+  if (current == null || min == null || max == null || !isFinite(slope) || Math.abs(slope) < 1e-4) return null;
+  if (current >= min && current <= max) return "in target";
+  const goal = current > max ? max : min;
+  const days = (goal - current) / slope;
+  if (days <= 0 || !isFinite(days)) return null;
+  if (days > 365) return ">1y to target";
+  if (days < 14) return `${Math.round(days)}d to target`;
+  if (days < 90) return `${Math.round(days / 7)}w to target`;
+  return `${Math.round(days / 30)}mo to target`;
+}
+
 const boneConfig = {
   bone_mineral_kg: { label: "Bone (kg)", color: SECTION_ACCENT_SHADE_3 },
 } satisfies ChartConfig;
@@ -87,6 +140,8 @@ export function BodyDashboard() {
   const withingsWithSpo2 = useMemo(() => withingsRows.filter(r => r.spo2_pct != null), [withingsRows]);
   const withingsWithPulse = useMemo(() => withingsRows.filter(r => r.pulse_wave_mps != null), [withingsRows]);
   const withingsWithFatRatio = useMemo(() => withingsRows.filter(r => r.fat_ratio_pct != null), [withingsRows]);
+  const weightChart = useMemo(() => buildTrendData(withingsWithWeight, "weight_kg", "weight_kg_trend"), [withingsWithWeight]);
+  const fatChart = useMemo(() => buildTrendData(withingsWithFat, "fat_pct", "fat_pct_trend"), [withingsWithFat]);
   const weekDividers = useMemo(() => {
     const out: string[] = [];
     for (const r of withingsWithWeight) {
@@ -165,17 +220,34 @@ export function BodyDashboard() {
         {withingsWithWeight.length > 0 && (
           <Card>
             <CardHeader>
-              <CardTitle>Weight <span className="text-xs font-normal" style={{ color: COLOR }}>{targets?.weight_min_kg && targets?.weight_max_kg ? `${targets.weight_min_kg}–${targets.weight_max_kg} kg` : ""}</span></CardTitle>
+              <CardTitle>
+                Weight{" "}
+                <span className="text-xs font-normal" style={{ color: COLOR }}>{targets?.weight_min_kg && targets?.weight_max_kg ? `${targets.weight_min_kg}–${targets.weight_max_kg} kg` : ""}</span>
+                {weightChart.hasTrend && weightChart.projectedValue != null && (
+                  <span className="ml-2 text-xs font-normal text-muted-foreground">
+                    → {weightChart.projectedValue.toFixed(1)} kg in {weightChart.projectDays}d
+                    {(() => {
+                      const eta = targetEta(latestWeight.weight_kg ?? null, weightChart.slope, targets?.weight_min_kg, targets?.weight_max_kg);
+                      return eta ? ` · ${eta}` : "";
+                    })()}
+                  </span>
+                )}
+              </CardTitle>
             </CardHeader>
             <CardContent className="min-w-0 overflow-hidden px-4">
               <ChartContainer config={weightConfig} className="h-[200px] w-full">
-                <LineChart data={withingsWithWeight} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
+                <LineChart data={weightChart.data} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
                   <CartesianGrid {...CHART_GRID} />
                   <XAxis {...WEEKDAY_X_AXIS} />
                   <YAxis {...Y_AXIS} domain={["dataMin - 0.5", "dataMax + 0.5"]}
                     tickFormatter={(v: number) => `${Math.round(v)}`} />
                   <Line type="monotone" dataKey="weight_kg" stroke="var(--color-weight_kg)"
                     strokeWidth={2} dot={{ r: 2.5 }} isAnimationActive={false} />
+                  {weightChart.hasTrend && (
+                    <Line type="linear" dataKey="weight_kg_trend" stroke="var(--color-weight_kg)"
+                      strokeOpacity={0.5} strokeWidth={1.5} strokeDasharray="4 4"
+                      dot={false} isAnimationActive={false} />
+                  )}
                   {weekDividers.map((iso) => (
                     <ReferenceLine key={`w-${iso}`} x={iso} stroke={SECTION_ACCENT_SHADE_3} strokeOpacity={0.45} />
                   ))}
@@ -188,11 +260,23 @@ export function BodyDashboard() {
         {withingsWithFat.length > 0 && (
           <Card>
             <CardHeader>
-              <CardTitle>Body Fat <span className="text-xs font-normal" style={{ color: SECTION_ACCENT_SHADE_2 }}>↓ 10–15%</span></CardTitle>
+              <CardTitle>
+                Body Fat{" "}
+                <span className="text-xs font-normal" style={{ color: SECTION_ACCENT_SHADE_2 }}>↓ 10–15%</span>
+                {fatChart.hasTrend && fatChart.projectedValue != null && (
+                  <span className="ml-2 text-xs font-normal text-muted-foreground">
+                    → {fatChart.projectedValue.toFixed(1)}% in {fatChart.projectDays}d
+                    {(() => {
+                      const eta = targetEta(latestFat.fat_pct ?? null, fatChart.slope, targets?.fat_min_pct, targets?.fat_max_pct);
+                      return eta ? ` · ${eta}` : "";
+                    })()}
+                  </span>
+                )}
+              </CardTitle>
             </CardHeader>
             <CardContent className="min-w-0 overflow-hidden px-4">
               <ChartContainer config={fatConfig} className="h-[200px] w-full">
-                <LineChart data={withingsWithFat} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
+                <LineChart data={fatChart.data} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
                   <CartesianGrid {...CHART_GRID} />
                   <XAxis {...WEEKDAY_X_AXIS} />
                   <YAxis {...Y_AXIS} domain={["dataMin - 1", "dataMax + 1"]}
@@ -200,6 +284,11 @@ export function BodyDashboard() {
                   <ReferenceLine y={15} stroke={SECTION_ACCENT_SHADE_2} strokeDasharray="6 3" strokeOpacity={0.5} />
                   <Line type="monotone" dataKey="fat_pct" stroke="var(--color-fat_pct)"
                     strokeWidth={2} dot={{ r: 2.5 }} isAnimationActive={false} />
+                  {fatChart.hasTrend && (
+                    <Line type="linear" dataKey="fat_pct_trend" stroke="var(--color-fat_pct)"
+                      strokeOpacity={0.5} strokeWidth={1.5} strokeDasharray="4 4"
+                      dot={false} isAnimationActive={false} />
+                  )}
                   {weekDividers.map((iso) => (
                     <ReferenceLine key={`w-${iso}`} x={iso} stroke={SECTION_ACCENT_SHADE_3} strokeOpacity={0.45} />
                   ))}

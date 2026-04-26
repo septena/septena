@@ -89,3 +89,8 @@ def supplements_history(days: int = 30) -> Dict[str, Any]:
 @router.get("/history-by-id")
 def supplements_history_by_id(days: int = 30) -> Dict[str, Any]:
     return supplements_service.supplements_history_by_id(days=days)
+
+
+@router.get("/range")
+def supplements_range(days: int = 14) -> Dict[str, Any]:
+    return supplements_service.supplements_range(days=days)

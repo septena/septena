@@ -197,6 +197,21 @@ def supplements_history(days: int = 30) -> Dict[str, Any]:
     return {"daily": daily, "total": total}
 
 
+def supplements_range(days: int = 14) -> Dict[str, Any]:
+    """Return full SupplementDay records for the trailing `days` ending today.
+
+    Mirrors `supplements_day` per date so consumers (e.g. the Next widget) can
+    compute per-supplement completion-time medians without fanning out one HTTP
+    request per day.
+    """
+    today = date.today()
+    records: List[Dict[str, Any]] = []
+    for offset in range(days - 1, -1, -1):
+        day = (today - timedelta(days=offset)).isoformat()
+        records.append(supplements_day(day))
+    return {"days": records}
+
+
 def supplements_history_by_id(days: int = 30) -> Dict[str, Any]:
     supplements = load_supplements_config()
     today = date.today()

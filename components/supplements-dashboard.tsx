@@ -4,22 +4,31 @@ import { useMemo, useState } from "react";
 import useSWR from "swr";
 
 import {
+  getSettings,
   getSupplementDay,
   getSupplementHistory,
   toggleSupplement,
   type SupplementDay,
   type SupplementItem,
 } from "@/lib/api";
+import { useCelebrate } from "@/components/confetti";
 import { Card, CardContent } from "@/components/ui/card";
 import { TaskGroup, TaskRow } from "@/components/tasks";
 import { ChecklistStats, ChecklistChart } from "@/components/checklist-primitives";
 import { computeStreak } from "@/lib/date-utils";
 import { useSelectedDate } from "@/hooks/use-selected-date";
+import { SectionHeaderAction, SectionHeaderActionButton } from "@/components/section-header-action";
+import { QuickLogModal } from "@/components/quick-log-modal";
+import { SupplementsQuickLog } from "@/components/quick-log-forms";
+import { haptic } from "@/lib/haptics";
 
 export function SupplementsDashboard() {
   const SUPPLEMENTS_COLOR = "var(--section-accent)";
   const [pending, setPending] = useState<Set<string>>(new Set());
   const [optimisticDay, setOptimisticDay] = useState<SupplementDay | null>(null);
+  const [logOpen, setLogOpen] = useState(false);
+  const { celebrate, node: confettiNode } = useCelebrate();
+  const { data: settings } = useSWR("settings", getSettings);
 
   const { date: selectedDate } = useSelectedDate();
 
@@ -52,10 +61,19 @@ export function SupplementsDashboard() {
       done_count,
       percent: day.total ? Math.round((100 * done_count) / day.total) : 0,
     });
+    if (day.total > 0 && day.done_count < day.total && done_count === day.total) {
+      celebrate({
+        message: "Supplements complete",
+        description: `${day.total} of ${day.total} taken today`,
+        confetti: settings?.animations?.supplements_complete ?? true,
+      });
+    }
+    haptic();
     setPending((p) => new Set(p).add(item.id));
 
     try {
       await toggleSupplement(selectedDate, item.id, nextDone);
+      haptic();
       mutate();
     } catch {
       setOptimisticDay(prevDay);
@@ -76,6 +94,22 @@ export function SupplementsDashboard() {
 
   return (
     <>
+      {confettiNode}
+      <SectionHeaderAction>
+        <SectionHeaderActionButton color={SUPPLEMENTS_COLOR} onClick={() => setLogOpen(true)}>
+          + Log
+        </SectionHeaderActionButton>
+      </SectionHeaderAction>
+
+      <QuickLogModal
+        open={logOpen}
+        onClose={() => setLogOpen(false)}
+        title="Supplements"
+        accent={SUPPLEMENTS_COLOR}
+      >
+        <SupplementsQuickLog />
+      </QuickLogModal>
+
       {error && (
         <Card className="mb-4 border-red-500/30 bg-red-500/10">
           <CardContent className="py-3 text-sm text-red-700 dark:text-red-300">{error instanceof Error ? error.message : String(error)}</CardContent>

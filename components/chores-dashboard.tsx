@@ -1,30 +1,31 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import useSWR from "swr";
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import { CHART_GRID, X_AXIS_DATE, Y_AXIS } from "@/lib/chart-defaults";
 
 import {
   completeChore,
+  deferChore,
   uncompleteChore,
   getChores,
   getChoreHistory,
+  getSettings,
   type Chore,
 } from "@/lib/api";
+import { useCelebrate } from "@/components/confetti";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChartContainer, type ChartConfig } from "@/components/ui/chart";
 import { StatCard } from "@/components/stat-card";
-import { TaskGroup, TaskRow } from "@/components/tasks";
+import { TaskGroup, TaskRow, type TaskRowAction } from "@/components/tasks";
 import { shortDate } from "@/lib/date-utils";
 import { useBarAnimation } from "@/hooks/use-bar-animation";
 import { SECTION_ACCENT_STRONG } from "@/lib/section-colors";
-
-const HAPTIC = () => {
-  try {
-    navigator.vibrate?.(8);
-  } catch {}
-};
+import { SectionHeaderAction, SectionHeaderActionButton } from "@/components/section-header-action";
+import { QuickLogModal } from "@/components/quick-log-modal";
+import { ChoresQuickLog } from "@/components/quick-log-forms";
+import { haptic } from "@/lib/haptics";
 
 function relativeDate(iso: string | null | undefined, today: string): string {
   if (!iso) return "—";
@@ -60,7 +61,11 @@ export function ChoresDashboard() {
     metric: { label: "Completions", color: CHORES_COLOR },
   } satisfies ChartConfig;
   const [pending, setPending] = useState<Set<string>>(new Set());
+  const [logOpen, setLogOpen] = useState(false);
   const barAnim = useBarAnimation();
+  const { celebrate, node: confettiNode } = useCelebrate();
+  const { data: settings } = useSWR("settings", getSettings);
+  const prevDoneRef = useRef<{ done: number; total: number } | null>(null);
 
   const { data, error, isLoading, mutate } = useSWR(
     ["chores"],
@@ -110,17 +115,31 @@ export function ChoresDashboard() {
   const total = chores.length;
   const todoTotal = todoList.length;
 
+  useEffect(() => {
+    if (loading) return;
+    const prev = prevDoneRef.current;
+    prevDoneRef.current = { done: doneTodayCount, total: todoTotal };
+    if (!prev) return;
+    if (todoTotal > 0 && prev.done < prev.total && doneTodayCount === todoTotal) {
+      celebrate({
+        message: "Chores complete",
+        description: `${todoTotal} of ${todoTotal} done for today`,
+        confetti: settings?.animations?.chores_complete ?? true,
+      });
+    }
+  }, [doneTodayCount, todoTotal, loading, settings, celebrate]);
+
   async function onToggle(choreId: string, isDone: boolean) {
     if (pending.has(choreId)) return;
     setPending((p) => new Set(p).add(choreId));
-    HAPTIC();
+    haptic();
     try {
       if (isDone) {
         await uncompleteChore(choreId);
       } else {
         await completeChore(choreId);
       }
-      HAPTIC();
+      haptic();
       mutate();
     } finally {
       setPending((p) => {
@@ -129,6 +148,30 @@ export function ChoresDashboard() {
         return next;
       });
     }
+  }
+
+  async function onDefer(choreId: string, mode: "day" | "weekend") {
+    if (pending.has(choreId)) return;
+    setPending((p) => new Set(p).add(choreId));
+    haptic();
+    try {
+      await deferChore(choreId, mode);
+      mutate();
+    } finally {
+      setPending((p) => {
+        const next = new Set(p);
+        next.delete(choreId);
+        return next;
+      });
+    }
+  }
+
+  function rowActionsFor(c: Chore, done: boolean): TaskRowAction[] {
+    if (done) return [];
+    return [
+      { label: "Defer to tomorrow", onSelect: () => onDefer(c.id, "day") },
+      { label: "Defer to weekend", onSelect: () => onDefer(c.id, "weekend") },
+    ];
   }
 
   const chartData = useMemo(
@@ -143,6 +186,22 @@ export function ChoresDashboard() {
 
   return (
     <>
+      {confettiNode}
+      <SectionHeaderAction>
+        <SectionHeaderActionButton color={CHORES_COLOR} onClick={() => setLogOpen(true)}>
+          + Log
+        </SectionHeaderActionButton>
+      </SectionHeaderAction>
+
+      <QuickLogModal
+        open={logOpen}
+        onClose={() => setLogOpen(false)}
+        title="Chores"
+        accent={CHORES_COLOR}
+      >
+        <ChoresQuickLog />
+      </QuickLogModal>
+
       {error && (
         <Card className="mb-4 border-red-500/30 bg-red-500/10">
           <CardContent className="py-3 text-sm text-red-700 dark:text-red-300">
@@ -244,6 +303,7 @@ export function ChoresDashboard() {
                     pending={pending.has(c.id)}
                     accent={CHORES_COLOR}
                     onClick={() => onToggle(c.id, done)}
+                    actions={rowActionsFor(c, done)}
                   />
                 );
               })}

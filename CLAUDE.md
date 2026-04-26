@@ -300,7 +300,7 @@ One block per section, all appended to the same file. See the `// ── {Sectio
 - **Tabs:** sticky top, pill style. Active section tabs use that section's color. The home pill stays neutral and only picks up contextual hover color from the current section.
 - **Cards:** `border-border bg-background` with section-color hover on interactive elements
 - **Charts:** Recharts, section-coloured; see `components/training-dashboard.tsx` for the house style
-- **Fonts:** System stack (no Google Fonts)
+- **Fonts:** Three-axis system loaded via `next/font/google` in `app/layout.tsx`. Inter (`--font-sans`) handles body, nav, buttons, labels — every UI surface by default. Fraunces (`--font-heading`, variable with `SOFT` + `opsz` axes) handles `h1`–`h6` and anything explicitly marked editorial. JetBrains Mono (`--font-mono`) for numerics, tags, time, units — apply `font-mono tabular-nums` to data values.
 - **No hover crosshair** on charts (`cursor={false}`)
 - **Dots always visible** on line charts (`dot={{ r: 4 }}`)
 - **YAxis domain:** `domain={[0, "auto"]}` — prevents axis collapse on sparse data

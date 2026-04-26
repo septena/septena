@@ -16,7 +16,8 @@ if str(ROOT) not in sys.path:
 
 from api.storage.frontmatter import FrontmatterMarkdownCodec
 from api.storage.plain_yaml import PlainYamlDocument, read_yaml_document, write_yaml_document
-from api.storage.schemas import AIR_DAY_ALLOWED_FIELDS, SETTINGS_ALLOWED_TEMPLATE, list_unknown_paths
+from api.storage.schemas import AIR_DAY_ALLOWED_FIELDS
+from api.storage.settings_schema import list_unknown_paths
 
 
 @dataclass
@@ -100,7 +101,8 @@ def _collect_settings(data_dir: Path) -> CleanupFinding | None:
         return None
     document = read_yaml_document(path, default={})
     data = document.data if isinstance(document.data, dict) else {}
-    unknown = [field for field in list_unknown_paths(data, SETTINGS_ALLOWED_TEMPLATE) if field in SAFE_SETTINGS_FIELDS]
+    # list_unknown_paths walks api/settings.schema.json by default.
+    unknown = [field for field in list_unknown_paths(data) if field in SAFE_SETTINGS_FIELDS]
     if unknown:
         return CleanupFinding(path=path, fields=sorted(set(unknown)))
     return None
