@@ -8,10 +8,9 @@ import {
   ChevronRight,
   Circle,
   Clock3,
-  Dumbbell,
   ListChecks,
-  Plus,
 } from "lucide-react";
+import { NextActionIcon } from "@/components/next-action-icon";
 import { QuickLogModal } from "@/components/quick-log-modal";
 import {
   CaffeineQuickLog,
@@ -36,14 +35,6 @@ import {
   type NextAction,
 } from "@/hooks/use-next-actions";
 import { cn } from "@/lib/utils";
-
-function eventTime(iso: string): string {
-  return new Date(iso).toLocaleTimeString("en-GB", {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  });
-}
 
 function sectionMeta(sections: SectionMeta[], key: SectionKey): SectionMeta {
   return sections.find((s) => s.key === key) ?? {
@@ -96,7 +87,6 @@ function NextActionRow({
     );
   }
 
-  const Icon = action.href ? Dumbbell : Plus;
   return (
     <div
       className={cn(
@@ -128,7 +118,7 @@ function NextActionRow({
             primary ? "bg-white/20" : "bg-muted",
           )}
         >
-          <Icon className="h-4 w-4" />
+          <NextActionIcon action={action} className="h-4 w-4" />
         </span>
         <span className="min-w-0 flex-1">
           <span className="block truncate font-semibold">{action.title}</span>

@@ -16,6 +16,10 @@ import { cn } from "@/lib/utils";
 
 const ORDER: SessionType[] = ["upper", "lower", "cardio", "yoga"];
 
+function parseRequestedType(raw: string | null): SessionType | null {
+  return raw && ORDER.includes(raw as SessionType) ? (raw as SessionType) : null;
+}
+
 function formatDaysAgo(n: number | null): string {
   if (n == null) return "never";
   if (n === 0) return "today";
@@ -45,11 +49,14 @@ export default function StartSessionPage() {
 
   useEffect(() => {
     let cancelled = false;
+    const requestedType = typeof window === "undefined"
+      ? null
+      : parseRequestedType(new URLSearchParams(window.location.search).get("type"));
     Promise.all([getNextWorkout(), draft.load()])
       .then(([res, d]) => {
         if (cancelled) return;
         setNext(res);
-        setSelected(res.suggested.type);
+        setSelected(requestedType ?? res.suggested.type);
         setExistingDraft(d);
       })
       .catch((err) => {

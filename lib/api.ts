@@ -1418,6 +1418,12 @@ export type AppDisplay = {
   show_emoji: boolean;
 };
 
+export type AppNextViewSettings = {
+  /** Per-day dismissed action ids for the Next view. Stored in settings so
+   *  skips sync across devices sharing the same data folder. */
+  skipped_by_date: Record<string, string[]>;
+};
+
 export type AppSettings = {
   section_order: string[];
   sections: Record<string, SectionSetting>;
@@ -1427,6 +1433,7 @@ export type AppSettings = {
   eink: boolean;
   animations: AppAnimations;
   display: AppDisplay;
+  next_view: AppNextViewSettings;
   nutrition: NutritionSettings;
   day_phases: DayPhase[];
   /** N-1 internal HH:MM dividers between consecutive phases. */
@@ -1468,4 +1475,3 @@ export type SectionMeta = {
 export async function getSections(): Promise<SectionMeta[]> {
   return request<SectionMeta[]>("/api/sections");
 }
-

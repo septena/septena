@@ -118,6 +118,24 @@
         }
       }
     },
+    "next_view": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "skipped_by_date": {
+          "type": "object",
+          "description": "Per-day dismissed action ids for the Next view. Stored in settings so skips sync across devices sharing the same data folder.",
+          "additionalProperties": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "default": {}
+        }
+      },
+      "default": {
+        "skipped_by_date": {}
+      }
+    },
     "nutrition": {
       "type": "object",
       "additionalProperties": false,

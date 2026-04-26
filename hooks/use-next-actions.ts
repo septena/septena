@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo } from "react";
 import useSWR from "swr";
 import {
+  type AppSettings,
   getCaffeineDay,
   getCaffeineSessions,
   getChores,
@@ -13,6 +14,7 @@ import {
   getSettings,
   getSupplementRange,
   getTasks,
+  saveSettings,
   type HabitDay,
   type HabitDayItem,
   type SupplementDay,
@@ -126,6 +128,14 @@ function daysAgoLabel(days: number | null | undefined): string {
   return `${days}d ago`;
 }
 
+function trainingUrgency(days: number | null | undefined): number {
+  if (days == null) return 32;
+  if (days >= 5) return 34;
+  if (days >= 3) return 24;
+  if (days >= 2) return 14;
+  return 0;
+}
+
 function timingScore(usual: number | null, nowMinutes: number, isToday: boolean): number {
   if (!isToday || usual == null) return 0;
   const diff = nowMinutes - usual;
@@ -188,79 +198,72 @@ export type ComputedNext = {
   totalNow: number;
 };
 
-/**
- * Per-day client-side dismiss list. "Skip" leaves the underlying
- * habit/supplement/chore untouched (it stays undone in its section) but
- * filters it out of the Next picker so the queue surfaces something else.
- * Persisted in localStorage keyed by date so a refresh keeps the same
- * dismissals; rolls over naturally tomorrow.
- */
+const SKIP_RETENTION_DAYS = 30;
+
+function dedupe(values: string[]): string[] {
+  return [...new Set(values)];
+}
+
+function nextSkipsForDate(settings: AppSettings | null | undefined, date: string): string[] {
+  const values = settings?.next_view?.skipped_by_date?.[date];
+  return Array.isArray(values) ? dedupe(values.filter((value): value is string => typeof value === "string")) : [];
+}
+
+function buildNextSkipsPatch(
+  settings: AppSettings | null | undefined,
+  date: string,
+  ids: string[],
+): Pick<AppSettings, "next_view"> {
+  const cutoff = daysAgoLocalISO(SKIP_RETENTION_DAYS);
+  const current = settings?.next_view?.skipped_by_date ?? {};
+  const skipped_by_date: Record<string, string[]> = {};
+  for (const [day, values] of Object.entries(current)) {
+    if (day < cutoff || !Array.isArray(values)) continue;
+    const normalized = dedupe(values.filter((value): value is string => typeof value === "string"));
+    if (normalized.length > 0) skipped_by_date[day] = normalized;
+  }
+  const normalizedIds = dedupe(ids);
+  if (normalizedIds.length > 0) skipped_by_date[date] = normalizedIds;
+  else delete skipped_by_date[date];
+  return { next_view: { skipped_by_date } };
+}
+
 export function useNextSkips(date: string) {
-  const storageKey = `septena:next-skip:${date}`;
-  const [skipped, setSkipped] = useState<Set<string>>(new Set());
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const read = () => {
-      try {
-        const raw = window.localStorage.getItem(storageKey);
-        setSkipped(raw ? new Set(JSON.parse(raw) as string[]) : new Set());
-      } catch {
-        setSkipped(new Set());
-      }
-    };
-    read();
-    // Cross-mount sync: a skip on /next must immediately reach the homepage
-    // widget (and vice versa) without reloading. The native `storage` event
-    // only fires across tabs, so we also dispatch a custom event in the same
-    // tab whenever we write — every mounted instance of this hook reacts.
-    const onStorage = (e: StorageEvent) => {
-      if (e.key === storageKey) read();
-    };
-    const onLocal = (e: Event) => {
-      const detail = (e as CustomEvent<{ key: string }>).detail;
-      if (detail?.key === storageKey) read();
-    };
-    window.addEventListener("storage", onStorage);
-    window.addEventListener("septena:next-skip-change", onLocal);
-    return () => {
-      window.removeEventListener("storage", onStorage);
-      window.removeEventListener("septena:next-skip-change", onLocal);
-    };
-  }, [storageKey]);
-  const persist = useCallback((next: Set<string>) => {
-    if (typeof window === "undefined") return;
-    try {
-      if (next.size === 0) window.localStorage.removeItem(storageKey);
-      else window.localStorage.setItem(storageKey, JSON.stringify([...next]));
-    } catch {
-      /* ignore quota errors */
-    }
-    window.dispatchEvent(
-      new CustomEvent("septena:next-skip-change", { detail: { key: storageKey } }),
+  const { data: settings, mutate } = useSWR("settings", getSettings, { revalidateOnFocus: false });
+  const skippedIds = useMemo(() => nextSkipsForDate(settings, date), [settings, date]);
+  const skipped = useMemo(() => new Set(skippedIds), [skippedIds]);
+
+  const persist = useCallback(async (ids: string[]) => {
+    const optimistic = settings ? { ...settings, ...buildNextSkipsPatch(settings, date, ids) } : null;
+    await mutate(
+      async (current) => {
+        const patch = buildNextSkipsPatch(current ?? settings ?? null, date, ids);
+        const saved = await saveSettings(patch as Partial<AppSettings>);
+        return current ? { ...current, ...saved } : saved;
+      },
+      {
+        optimisticData: optimistic ?? undefined,
+        rollbackOnError: true,
+        revalidate: false,
+      },
     );
-  }, [storageKey]);
+  }, [date, mutate, settings]);
+
   const skip = useCallback((id: string) => {
-    setSkipped((prev) => {
-      if (prev.has(id)) return prev;
-      const next = new Set(prev);
-      next.add(id);
-      persist(next);
-      return next;
-    });
-  }, [persist]);
+    if (skipped.has(id)) return;
+    void persist([...skippedIds, id]);
+  }, [persist, skipped, skippedIds]);
+
   const unskipOne = useCallback((id: string) => {
-    setSkipped((prev) => {
-      if (!prev.has(id)) return prev;
-      const next = new Set(prev);
-      next.delete(id);
-      persist(next);
-      return next;
-    });
-  }, [persist]);
+    if (!skipped.has(id)) return;
+    void persist(skippedIds.filter((item) => item !== id));
+  }, [persist, skipped, skippedIds]);
+
   const clear = useCallback(() => {
-    setSkipped(new Set());
-    persist(new Set());
-  }, [persist]);
+    if (skippedIds.length === 0) return;
+    void persist([]);
+  }, [persist, skippedIds.length]);
+
   return { skipped, skip, unskip: unskipOne, clear };
 }
 
@@ -427,22 +430,25 @@ export function useNextActions(selectedDate: string, isToday: boolean) {
     const trainedToday = (data?.trainingEntries ?? []).some((entry) => entry.date === selectedDate);
     if (data?.workout && !trainedToday && isToday) {
       const type = data.workout.suggested.type;
+      const suggestedGap = data.workout.days_ago[type];
       const usualTraining = median(
         (data.trainingEntries ?? [])
           .filter((entry) => entry.date < selectedDate && entry.concluded_at)
           .map((entry) => parseHHMM(entry.concluded_at?.slice(11, 16)))
           .filter((v): v is number => v != null),
       );
+      const dueNow = suggestedGap == null || suggestedGap >= 2 || usualTraining == null;
+      const bucket = dueNow ? "now" : timingBucket(usualTraining, nowMinutes, isToday);
       actions.push({
         id: "training:suggested",
         section: "training",
         title: data.workout.suggested.label,
         emoji: data.workout.suggested.emoji,
-        detail: `Last ${daysAgoLabel(data.workout.days_ago[type])}`,
+        detail: `Last ${daysAgoLabel(suggestedGap)}`,
         reason: usualTraining != null ? `Usually around ${formatMinutes(usualTraining)}` : "Suggested training day",
-        score: 70 + timingScore(usualTraining, nowMinutes, isToday),
-        bucket: timingBucket(usualTraining, nowMinutes, isToday),
-        href: `/septena/training/session/new?type=${type}`,
+        score: 78 + trainingUrgency(suggestedGap) + timingScore(usualTraining, nowMinutes, isToday),
+        bucket,
+        href: `/septena/training/session/start?type=${type}`,
         buttonLabel: "Start",
       });
     } else if (trainedToday) {

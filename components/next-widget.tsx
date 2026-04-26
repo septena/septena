@@ -3,14 +3,14 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { ArrowRight, Check, Circle } from "lucide-react";
-import { Emoji } from "@/components/ui/emoji";
+import { Check } from "lucide-react";
 import { QuickLogModal } from "@/components/quick-log-modal";
 import {
   CaffeineQuickLog,
   NutritionQuickLog,
   revalidateAfterLog,
 } from "@/components/quick-log-forms";
+import { NextActionIcon } from "@/components/next-action-icon";
 import { SectionTheme } from "@/components/section-theme";
 import { RowActionsMenu } from "@/components/tasks";
 import { useDemoHref } from "@/hooks/use-demo-href";
@@ -68,13 +68,7 @@ function PrimaryButton({
         className="flex min-w-0 flex-1 items-center gap-3 px-4 py-3 text-left text-sm"
       >
         <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white/20 text-lg">
-          {action.emoji ? (
-            <Emoji>{action.emoji}</Emoji>
-          ) : action.task ? (
-            <Circle className="h-4 w-4" />
-          ) : (
-            <ArrowRight className="h-4 w-4" />
-          )}
+          <NextActionIcon action={action} className="h-4 w-4" />
         </span>
         <span className="min-w-0 flex-1">
           <span className="block truncate font-semibold">{action.title}</span>
@@ -185,7 +179,7 @@ export function NextWidget() {
 
         <div className="mt-3">
           <div className="mb-1 flex items-baseline justify-between">
-            <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Today's progress</p>
+            <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Today&apos;s progress</p>
             <p className="text-xs tabular-nums text-muted-foreground">
               {doneCount}/{totalCount || 0}
             </p>
