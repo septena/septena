@@ -1,7 +1,10 @@
 "use client";
 
+import { Menu } from "@base-ui/react/menu";
+
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Emoji } from "@/components/ui/emoji";
 
 // Shared "do the thing today" primitives — one TaskRow and one TaskGroup for
 // every section whose UX is a checklist (habits, supplements, chores, and the
@@ -9,6 +12,18 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 // disappear when completed; they flip to the accent-filled state and stay
 // tappable to undo. Editing the *set* of tasks lives elsewhere (per-section
 // settings page) — there is no add/edit/delete affordance on the row itself.
+//
+// Optional `actions` slot exposes section-specific secondary verbs
+// (defer/reschedule/cancel/move-to-today) through a trailing ⋯ menu, so each
+// section gets the same affordance shape instead of inventing its own button
+// row. Toggle stays the primary tap target.
+
+export type TaskRowAction = {
+  label: string;
+  onSelect: () => void;
+  tone?: "default" | "destructive";
+  disabled?: boolean;
+};
 
 export function TaskRow({
   label,
@@ -20,6 +35,7 @@ export function TaskRow({
   accent,
   onClick,
   muted,
+  actions,
 }: {
   label: string;
   emoji?: string;
@@ -32,14 +48,15 @@ export function TaskRow({
   /** Undone item rendered dimmed + struck-through. Used for habits whose
    *  bucket cutoff has passed without completion. Ignored when `done`. */
   muted?: boolean;
+  /** Secondary actions shown in a trailing ⋯ menu. Omit or pass [] to hide. */
+  actions?: TaskRowAction[];
 }) {
+  const hasActions = !!actions && actions.length > 0;
+
   return (
-    <button
-      type="button"
-      disabled={pending}
-      onClick={onClick}
+    <div
       className={cn(
-        "flex w-full min-w-0 items-center gap-3 rounded-xl border px-4 py-3 text-left text-sm transition-colors",
+        "relative flex w-full min-w-0 items-stretch overflow-hidden rounded-xl border text-sm transition-colors",
         done
           ? "border-transparent text-white"
           : "border-border bg-card hover:border-[color:var(--task-accent)]",
@@ -52,43 +69,114 @@ export function TaskRow({
         } as React.CSSProperties
       }
     >
-      <span
-        className={cn(
-          "flex h-6 w-6 shrink-0 items-center justify-center rounded border text-sm font-bold",
-          done ? "border-white bg-white" : "border-border bg-card",
-        )}
-        style={done ? { color: accent } : undefined}
+      {/* Section-accent "ear" — same vocabulary as the homepage SectionCard
+          and NextWidget tiles. Hidden on done rows where the accent already
+          floods the entire row. */}
+      {!done && (
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-y-0 left-0 z-10 w-1"
+          style={{ backgroundColor: accent }}
+        />
+      )}
+
+      <button
+        type="button"
+        disabled={pending}
+        onClick={onClick}
+        className="flex min-w-0 flex-1 items-center gap-3 px-4 py-3 text-left"
       >
-        {done ? "✓" : ""}
-      </span>
-      <span className="flex min-w-0 flex-1 items-center gap-2">
-        {emoji && <span aria-hidden className="shrink-0">{emoji}</span>}
-        <span className="min-w-0 flex-1">
-          <span
-            className={cn(
-              "block truncate font-medium",
-              muted && !done && "opacity-70",
-            )}
-          >
-            {label}
-          </span>
-          {sublabel && (
+        <span
+          className={cn(
+            "flex h-6 w-6 shrink-0 items-center justify-center rounded border text-sm font-bold",
+            done ? "border-white bg-white" : "border-border bg-card",
+          )}
+          style={done ? { color: accent } : undefined}
+        >
+          {done ? "✓" : ""}
+        </span>
+        <span className="flex min-w-0 flex-1 items-center gap-2">
+          <Emoji className="shrink-0">{emoji}</Emoji>
+          <span className="min-w-0 flex-1">
             <span
               className={cn(
-                "block text-xs",
-                done
-                  ? "text-white/80"
-                  : sublabelTone === "warn"
-                    ? "text-amber-600 dark:text-amber-400"
-                    : "text-muted-foreground",
+                "block truncate font-medium",
+                muted && !done && "opacity-70",
               )}
             >
-              {sublabel}
+              {label}
             </span>
-          )}
+            {sublabel && (
+              <span
+                className={cn(
+                  "block text-xs",
+                  done
+                    ? "text-white/80"
+                    : sublabelTone === "warn"
+                      ? "text-amber-600 dark:text-amber-400"
+                      : "text-muted-foreground",
+                )}
+              >
+                {sublabel}
+              </span>
+            )}
+          </span>
         </span>
-      </span>
-    </button>
+      </button>
+
+      {hasActions && (
+        <TaskRowMenu actions={actions!} done={done} disabled={pending} />
+      )}
+    </div>
+  );
+}
+
+function TaskRowMenu({
+  actions,
+  done,
+  disabled,
+}: {
+  actions: TaskRowAction[];
+  done: boolean;
+  disabled: boolean;
+}) {
+  return (
+    <Menu.Root>
+      <Menu.Trigger
+        disabled={disabled}
+        aria-label="More actions"
+        className={cn(
+          "flex shrink-0 items-center justify-center px-3 text-lg leading-none transition-colors outline-none",
+          done
+            ? "text-white/70 hover:text-white"
+            : "text-muted-foreground hover:text-foreground",
+        )}
+      >
+        ⋯
+      </Menu.Trigger>
+      <Menu.Portal>
+        <Menu.Positioner side="bottom" align="end" sideOffset={4} className="isolate z-50">
+          <Menu.Popup className="min-w-44 rounded-lg bg-popover p-1 text-sm text-popover-foreground shadow-md ring-1 ring-foreground/10 outline-none">
+            {actions.map((action, i) => (
+              <Menu.Item
+                key={i}
+                disabled={action.disabled}
+                onClick={() => action.onSelect()}
+                className={cn(
+                  "flex cursor-default select-none items-center rounded-md px-2.5 py-1.5 outline-none transition-colors",
+                  "data-highlighted:bg-accent data-highlighted:text-accent-foreground",
+                  "data-disabled:pointer-events-none data-disabled:opacity-50",
+                  action.tone === "destructive" &&
+                    "text-destructive data-highlighted:bg-destructive data-highlighted:text-white",
+                )}
+              >
+                {action.label}
+              </Menu.Item>
+            ))}
+          </Menu.Popup>
+        </Menu.Positioner>
+      </Menu.Portal>
+    </Menu.Root>
   );
 }
 
@@ -128,11 +216,7 @@ export function TaskGroup({
   const headerRow = showHeader ? (
     <div className="flex min-w-0 items-center justify-between gap-2">
       <div className="flex min-w-0 items-center gap-2">
-        {emoji && (
-          <span aria-hidden className="shrink-0">
-            {emoji}
-          </span>
-        )}
+        <Emoji className="shrink-0">{emoji}</Emoji>
         <span className="truncate text-base font-medium">{title}</span>
         {nowBadge && (
           <span

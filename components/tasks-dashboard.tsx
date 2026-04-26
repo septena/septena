@@ -8,6 +8,7 @@ import {
   cancelTask,
   completeTask,
   createTask,
+  getSettings,
   getTaskAreas,
   getTaskCounts,
   getTaskHistory,
@@ -19,12 +20,13 @@ import {
   type Task,
   type TaskView,
 } from "@/lib/api";
+import { useCelebrate } from "@/components/confetti";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChartContainer, type ChartConfig } from "@/components/ui/chart";
 import { CHART_GRID, X_AXIS_DATE, Y_AXIS } from "@/lib/chart-defaults";
 import { useBarAnimation } from "@/hooks/use-bar-animation";
 import { StatCard } from "@/components/stat-card";
-import { TaskGroup, TaskRow } from "@/components/tasks";
+import { TaskGroup, TaskRow, type TaskRowAction } from "@/components/tasks";
 import { QuickLogModal } from "@/components/quick-log-modal";
 import { SectionHeaderAction, SectionHeaderActionButton } from "@/components/section-header-action";
 import {
@@ -76,6 +78,9 @@ export function TasksDashboard() {
   // navigation, not on tap.
   const [stickyDone, setStickyDone] = useState<Map<string, Task>>(new Map());
   const previousView = useRef<TaskView>(view);
+  const { celebrate, node: confettiNode } = useCelebrate();
+  const { data: settings } = useSWR("settings", getSettings);
+  const prevTodayPendingRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (previousView.current !== view) {
@@ -112,6 +117,33 @@ export function TasksDashboard() {
     const stuck = Array.from(stickyDone.values()).filter((t) => !apiIds.has(t.id));
     return [...apiItems, ...stuck];
   }, [apiItems, stickyDone]);
+
+  // Today inbox-zero: fire confetti when the last open task in the Today view
+  // gets checked off. Only the Today view counts — other views can hit zero
+  // for unrelated reasons (filtering, navigation).
+  const todayPendingCount = useMemo(
+    () =>
+      view === "today"
+        ? items.filter((t) => t.status !== "done" && t.status !== "cancelled").length
+        : -1,
+    [items, view],
+  );
+  useEffect(() => {
+    if (view !== "today" || loading) {
+      prevTodayPendingRef.current = null;
+      return;
+    }
+    const prev = prevTodayPendingRef.current;
+    prevTodayPendingRef.current = todayPendingCount;
+    if (prev === null) return;
+    if (prev > 0 && todayPendingCount === 0) {
+      celebrate({
+        message: "Today inbox zero",
+        description: prev === 1 ? "1 task done" : `${prev} tasks done`,
+        confetti: settings?.animations?.tasks_today_zero ?? true,
+      });
+    }
+  }, [todayPendingCount, view, loading, settings, celebrate]);
 
   async function withPending(id: string, fn: () => Promise<unknown>) {
     if (pending.has(id)) return;
@@ -160,7 +192,49 @@ export function TasksDashboard() {
   }
 
   async function onReschedule(t: Task, target: string | null) {
-    await withPending(t.id, () => scheduleTask(t.id, target));
+    await withPending(t.id, async () => {
+      await scheduleTask(t.id, target);
+      // If the task was pinned to Today, scheduling it out also drops the flag
+      // so it leaves the Today list rather than stranding it there.
+      if (t.today && target !== todayLocalISO()) {
+        await moveTaskToToday(t.id, false);
+      }
+    });
+  }
+
+  async function onCancel(t: Task) {
+    await withPending(t.id, () => cancelTask(t.id));
+  }
+
+  function rowActionsForToday(t: Task): TaskRowAction[] {
+    if (t.status === "done" || t.status === "cancelled") return [];
+    return [
+      { label: "Reschedule to tomorrow", onSelect: () => onReschedule(t, addDaysISO(today, 1)) },
+      { label: "Reschedule to next week", onSelect: () => onReschedule(t, addDaysISO(today, 7)) },
+      { label: "Move to Someday", onSelect: () => onReschedule(t, null) },
+      { label: "Cancel task", tone: "destructive", onSelect: () => onCancel(t) },
+    ];
+  }
+
+  function rowActionsForReview(t: Task): TaskRowAction[] {
+    return [
+      { label: "Move to Today", onSelect: () => onAcceptToday(t) },
+      { label: "Reschedule to tomorrow", onSelect: () => onReschedule(t, addDaysISO(today, 1)) },
+      { label: "Reschedule to next week", onSelect: () => onReschedule(t, addDaysISO(today, 7)) },
+      { label: "Move to Someday", onSelect: () => onReschedule(t, null) },
+      { label: "Cancel task", tone: "destructive", onSelect: () => onCancel(t) },
+    ];
+  }
+
+  function rowActionsForOther(t: Task): TaskRowAction[] {
+    if (t.status === "done" || t.status === "cancelled") return [];
+    const out: TaskRowAction[] = [];
+    if (!t.today) out.push({ label: "Move to Today", onSelect: () => onAcceptToday(t) });
+    out.push(
+      { label: "Reschedule to tomorrow", onSelect: () => onReschedule(t, addDaysISO(today, 1)) },
+      { label: "Cancel task", tone: "destructive", onSelect: () => onCancel(t) },
+    );
+    return out;
   }
 
   const todayCount = counts?.today_count ?? 0;
@@ -211,6 +285,7 @@ export function TasksDashboard() {
 
   return (
     <>
+      {confettiNode}
       <SectionHeaderAction>
         <SectionHeaderActionButton onClick={() => setCreating(true)}>
           + Add
@@ -270,15 +345,16 @@ export function TasksDashboard() {
                 </p>
                 <div className="space-y-2">
                   {review.map((t) => (
-                    <ReviewRow
+                    <TaskRow
                       key={t.id}
-                      task={t}
-                      today={today}
+                      label={t.title}
+                      sublabel={taskSublabel(t, today)}
+                      sublabelTone="warn"
+                      done={t.status === "done"}
                       pending={pending.has(t.id)}
-                      onAccept={() => onAcceptToday(t)}
-                      onSnooze={() => onReschedule(t, addDaysISO(today, 1))}
-                      onComplete={() => onToggle(t)}
                       accent={ACCENT}
+                      onClick={() => onToggle(t)}
+                      actions={rowActionsForReview(t)}
                     />
                   ))}
                 </div>
@@ -304,6 +380,7 @@ export function TasksDashboard() {
                 pending={pending.has(t.id)}
                 accent={ACCENT}
                 onClick={() => onToggle(t)}
+                actions={rowActionsForToday(t)}
               />
             ))}
           </TaskGroup>
@@ -366,6 +443,7 @@ export function TasksDashboard() {
               pending={pending.has(t.id)}
               accent={ACCENT}
               onClick={() => onToggle(t)}
+              actions={rowActionsForOther(t)}
             />
           ))}
         </TaskGroup>
@@ -547,66 +625,6 @@ function SubNav({
           </button>
         );
       })}
-    </div>
-  );
-}
-
-function ReviewRow({
-  task,
-  today,
-  pending,
-  onAccept,
-  onSnooze,
-  onComplete,
-  accent,
-}: {
-  task: Task;
-  today: string;
-  pending: boolean;
-  onAccept: () => void;
-  onSnooze: () => void;
-  onComplete: () => void;
-  accent: string;
-}) {
-  const sub = taskSublabel(task, today);
-  return (
-    <div
-      className="flex min-w-0 items-center gap-2 rounded-xl border border-border bg-card px-3 py-2.5"
-      style={{ opacity: pending ? 0.6 : 1 }}
-    >
-      <div className="min-w-0 flex-1">
-        <div className="truncate text-sm font-medium">{task.title}</div>
-        {sub && <div className="text-xs text-muted-foreground">{sub}</div>}
-      </div>
-      <div className="flex shrink-0 items-center gap-1">
-        <button
-          type="button"
-          disabled={pending}
-          onClick={onAccept}
-          className="rounded-full border px-2.5 py-1 text-xs font-medium transition-colors hover:bg-muted"
-          style={{ borderColor: accent, color: accent }}
-        >
-          Today
-        </button>
-        <button
-          type="button"
-          disabled={pending}
-          onClick={onSnooze}
-          className="rounded-full border border-border px-2.5 py-1 text-xs font-medium transition-colors hover:bg-muted"
-        >
-          Tomorrow
-        </button>
-        <button
-          type="button"
-          disabled={pending}
-          onClick={onComplete}
-          className="rounded-full border border-border px-2.5 py-1 text-xs font-medium transition-colors hover:bg-muted"
-          aria-label="Complete"
-          title="Complete"
-        >
-          ✓
-        </button>
-      </div>
     </div>
   );
 }
