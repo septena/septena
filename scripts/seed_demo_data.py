@@ -17,6 +17,7 @@ cleanly. It never touches files outside the target data folder.
 from __future__ import annotations
 
 import argparse
+import json
 import random
 import shutil
 import sys
@@ -362,6 +363,204 @@ def seed_chores(cfg: SeedConfig) -> None:
             current += timedelta(days=max(1, c["cadence_days"] + jitter))
 
 
+# ── Tasks ───────────────────────────────────────────────────────────────────
+
+TASK_AREAS = [
+    {"id": "home",   "title": "Home",   "emoji": "🏠"},
+    {"id": "work",   "title": "Work",   "emoji": "💼"},
+    {"id": "health", "title": "Health", "emoji": "🩺"},
+]
+
+# (slug, title, area, status, scheduled_offset, today, completed_offset)
+# scheduled_offset / completed_offset are days FROM today (negative = past).
+TASK_SEEDS = [
+    ("call-the-dentist",       "Call the dentist",            "health", "open",      None, True,  None),
+    ("renew-passport",         "Renew passport",              "home",   "open",      14,   False, None),
+    ("plan-trip-to-lisbon",    "Plan trip to Lisbon",         "home",   "open",      None, False, None),
+    ("review-q2-roadmap",      "Review Q2 roadmap",           "work",   "open",      2,    True,  None),
+    ("write-investor-update",  "Write investor update",       "work",   "open",      5,    False, None),
+    ("schedule-blood-test",    "Schedule blood test",         "health", "open",      None, False, None),
+    ("submit-tax-docs",        "Submit tax docs",             "home",   "open",      -1,   False, None),
+    ("ship-onboarding-doc",    "Ship onboarding doc",         "work",   "done",      None, False, -2),
+    ("pick-up-prescription",   "Pick up prescription",        "health", "done",      None, False, -3),
+    ("draft-talk-outline",     "Draft talk outline",          "work",   "done",      None, False, -5),
+    ("buy-running-shoes",      "Buy running shoes",           "home",   "done",      None, False, -7),
+    ("read-deep-work",         "Read Deep Work",              "home",   "someday",   None, False, None),
+]
+
+
+def seed_tasks(cfg: SeedConfig) -> None:
+    section = cfg.data_dir / "Tasks"
+    items_dir = section / "Items"
+    events_dir = section / "Events"
+    if section.exists():
+        shutil.rmtree(section)
+    section.mkdir(parents=True, exist_ok=True)
+
+    _write_config(section / "Areas.yaml", {"areas": TASK_AREAS})
+
+    today_iso = cfg.today.isoformat()
+    events: list[dict[str, Any]] = []
+
+    for slug, title, area, status, sched_off, today_flag, completed_off in TASK_SEEDS:
+        # Pick a created date that's plausibly before any scheduled/completed.
+        created = cfg.today - timedelta(days=max(7, abs(sched_off or 0), abs(completed_off or 0) + 2))
+        task_id = f"{created.strftime('%Y%m%d')}-{slug}"
+        fm: dict[str, Any] = {
+            "id": task_id,
+            "title": title,
+            "status": status,
+            "section": "tasks",
+            "created": created,
+            "area": area,
+        }
+        if sched_off is not None:
+            fm["scheduled"] = cfg.today + timedelta(days=sched_off)
+        if today_flag:
+            fm["today"] = True
+            fm["today_set_on"] = cfg.today
+        if completed_off is not None:
+            completed_dt = datetime.combine(
+                cfg.today + timedelta(days=completed_off), datetime.min.time()
+            ).replace(hour=14, minute=30)
+            fm["completed_at"] = completed_dt.isoformat(timespec="seconds")
+
+        # Sharded path: Items/YYYY/MM/{id}.md (matches _task_path_for_id).
+        shard = items_dir / created.strftime("%Y") / created.strftime("%m")
+        shard.mkdir(parents=True, exist_ok=True)
+        (shard / f"{task_id}.md").write_text(_dump_frontmatter(fm))
+
+        events.append({
+            "ts": datetime.combine(created, datetime.min.time()).replace(hour=9).isoformat(timespec="seconds"),
+            "date": created.isoformat(),
+            "action": "made",
+            "task_id": task_id,
+            "area": area,
+        })
+        if today_flag:
+            events.append({
+                "ts": f"{today_iso}T08:15:00",
+                "date": today_iso,
+                "action": "today",
+                "task_id": task_id,
+                "area": area,
+            })
+        if completed_off is not None:
+            done_date = (cfg.today + timedelta(days=completed_off)).isoformat()
+            events.append({
+                "ts": f"{done_date}T14:30:00",
+                "date": done_date,
+                "action": "done",
+                "task_id": task_id,
+                "area": area,
+            })
+
+    # Bucket events by YYYY-MM into JSONL files.
+    events_dir.mkdir(parents=True, exist_ok=True)
+    by_month: dict[str, list[dict[str, Any]]] = {}
+    for ev in events:
+        month_key = ev["date"][:7]
+        by_month.setdefault(month_key, []).append(ev)
+    for month_key, batch in by_month.items():
+        batch.sort(key=lambda e: e["ts"])
+        (events_dir / f"{month_key}.jsonl").write_text(
+            "\n".join(json.dumps(e, ensure_ascii=False) for e in batch) + "\n"
+        )
+
+
+# ── Groceries ───────────────────────────────────────────────────────────────
+
+GROCERY_SEEDS = [
+    # (name, category, emoji, low)
+    ("Bananas",       "produce",   "🍌", True),
+    ("Spinach",       "produce",   "🥬", False),
+    ("Apples",        "produce",   "🍎", False),
+    ("Avocado",       "produce",   "🥑", True),
+    ("Whole milk",    "dairy",     "🥛", False),
+    ("Greek yogurt",  "dairy",     "🥣", True),
+    ("Eggs",          "dairy",     "🥚", False),
+    ("Sourdough",     "grains",    "🍞", True),
+    ("Brown rice",    "grains",    "🍚", False),
+    ("Chicken breast","meat",      "🍗", True),
+    ("Salmon fillet", "meat",      "🐟", False),
+    ("Frozen berries","frozen",    "🫐", False),
+    ("Dish soap",     "household", "🧼", False),
+    ("Paper towels",  "household", "🧻", True),
+]
+
+
+def seed_groceries(cfg: SeedConfig) -> None:
+    rnd = random.Random(cfg.seed + 7)
+    section = cfg.data_dir / "Groceries"
+    log_dir = section / "Log"
+    if section.exists():
+        shutil.rmtree(section)
+    section.mkdir(parents=True, exist_ok=True)
+    log_dir.mkdir(parents=True, exist_ok=True)
+
+    items: list[dict[str, Any]] = []
+    for i, (name, category, emoji, low) in enumerate(GROCERY_SEEDS):
+        item_id = f"{i:08x}"
+        last_bought = None if low else (cfg.today - timedelta(days=rnd.randint(1, 6))).isoformat()
+        items.append({
+            "id": item_id,
+            "name": name,
+            "category": category,
+            "emoji": emoji,
+            "low": low,
+            "last_bought": last_bought,
+        })
+
+    _write_config(section / "groceries.yaml", {"items": items})
+
+    # A handful of bought events over the last fortnight so the history chart
+    # has shape. Each item that has a last_bought writes a "bought" event then;
+    # plus a few "needed" toggles for variety.
+    seq_by_day: dict[tuple[str, str, str], int] = {}
+    for item in items:
+        if not item["last_bought"]:
+            continue
+        day = item["last_bought"]
+        time_str = f"{rnd.randint(9, 19):02d}:{rnd.randint(0, 59):02d}"
+        key = (day, item["id"], "bought")
+        seq_by_day[key] = seq_by_day.get(key, 0) + 1
+        seq = f"{seq_by_day[key]:02d}"
+        record = {
+            "date": day,
+            "time": time_str,
+            "id": f"grocery-{day}-{item['id']}-bought-{seq}",
+            "section": "groceries",
+            "item_id": item["id"],
+            "item_name": item["name"],
+            "category": item["category"],
+            "action": "bought",
+        }
+        fname = f"{day}--{item['id']}--bought--{seq}.md"
+        (log_dir / fname).write_text(_dump_frontmatter(record))
+
+    # A few "needed" flips so the section feels alive.
+    for item in items:
+        if not item["low"]:
+            continue
+        day = (cfg.today - timedelta(days=rnd.randint(0, 3))).isoformat()
+        time_str = f"{rnd.randint(8, 22):02d}:{rnd.randint(0, 59):02d}"
+        key = (day, item["id"], "needed")
+        seq_by_day[key] = seq_by_day.get(key, 0) + 1
+        seq = f"{seq_by_day[key]:02d}"
+        record = {
+            "date": day,
+            "time": time_str,
+            "id": f"grocery-{day}-{item['id']}-needed-{seq}",
+            "section": "groceries",
+            "item_id": item["id"],
+            "item_name": item["name"],
+            "category": item["category"],
+            "action": "needed",
+        }
+        fname = f"{day}--{item['id']}--needed--{seq}.md"
+        (log_dir / fname).write_text(_dump_frontmatter(record))
+
+
 # ── Settings + macros ───────────────────────────────────────────────────────
 
 def seed_settings_and_macros(cfg: SeedConfig) -> None:
@@ -375,15 +574,14 @@ def seed_settings_and_macros(cfg: SeedConfig) -> None:
     })
     _write_config(cfg.data_dir / "Settings/settings.yaml", {
         "section_order": [
-            "training", "nutrition", "habits", "supplements",
-            "chores", "caffeine", "sleep", "body", "health",
+            "next", "training", "nutrition", "habits", "supplements",
+            "chores", "tasks", "groceries", "caffeine", "sleep", "body", "health",
         ],
-        # Demo data folder has no data for these — hide from nav + home grid so
-        # screenshots don't include empty tiles. Sleep/body/health are fed
-        # by a pre-seeded health-cache.json (see seed_demo_health).
+        # Cannabis stays hidden in the demo (data is intentionally not seeded).
+        # Air is the owner's personal Aranet sensor — hide from public demo.
         "sections": {
-            "groceries": {"enabled": False},
-            "cannabis":  {"enabled": False},
+            "cannabis": {"enabled": False},
+            "air":      {"enabled": False},
         },
         "animations": {"first_meal": True, "histograms_raise": True},
     })
@@ -433,6 +631,8 @@ def main() -> int:
     seed_supplements(cfg)
     seed_caffeine(cfg)
     seed_chores(cfg)
+    seed_tasks(cfg)
+    seed_groceries(cfg)
     seed_settings_and_macros(cfg)
 
     print("Done.")
