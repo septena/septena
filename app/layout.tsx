@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { Fraunces, Inter, JetBrains_Mono } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ThemeInitScript } from "@/components/theme-init-script";
 import { SWRProvider } from "@/components/swr-provider";
@@ -8,6 +9,25 @@ import { SITE_URL } from "@/lib/site";
 import "./globals.css";
 
 export const dynamic = "force-dynamic";
+
+const fraunces = Fraunces({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-heading",
+  axes: ["SOFT", "opsz"],
+});
+
+const inter = Inter({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-sans",
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-mono",
+});
 
 const DESCRIPTION =
   "A local-first personal health command center. Training, nutrition, habits, sleep, and vitals — stored as plain YAML on your disk, ready for any AI agent you trust.";
@@ -78,7 +98,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en-GB" suppressHydrationWarning>
+    <html lang="en-GB" className={`${inter.variable} ${fraunces.variable} ${jetbrainsMono.variable}`} suppressHydrationWarning>
       <head>
         <ThemeInitScript />
       </head>

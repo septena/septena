@@ -21,6 +21,7 @@ export function PaletteSwatchGrid({
   others?: OtherUsage[];
 }) {
   const [open, setOpen] = useState(false);
+  const [flipUp, setFlipUp] = useState(false);
   const rootRef = useRef<HTMLDivElement | null>(null);
 
   const selected = findSwatchByValue(value);
@@ -37,6 +38,12 @@ export function PaletteSwatchGrid({
   // closed pickers don't add noise on every render.
   useEffect(() => {
     if (!open) return;
+    const trigger = rootRef.current?.querySelector("button");
+    if (trigger) {
+      const rect = trigger.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      setFlipUp(spaceBelow < 220 && rect.top > spaceBelow);
+    }
     function onDoc(ev: MouseEvent) {
       if (!rootRef.current) return;
       if (!rootRef.current.contains(ev.target as Node)) setOpen(false);
@@ -68,7 +75,10 @@ export function PaletteSwatchGrid({
       {open && (
         <div
           role="listbox"
-          className="absolute left-0 top-10 z-50 w-max max-w-[min(320px,calc(100vw-2rem))] rounded-xl border border-border bg-popover p-2 shadow-lg"
+          className={
+            "absolute left-0 z-50 w-max max-w-[min(320px,calc(100vw-2rem))] rounded-xl border border-border bg-popover p-2 shadow-lg " +
+            (flipUp ? "bottom-10" : "top-10")
+          }
         >
           <div className="grid grid-cols-8 gap-1.5">
             {PALETTE.map((s) => {

@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { BackLink } from "@/components/back-link";
+import { Emoji } from "@/components/ui/emoji";
 
 type TitleProps = {
   title: string;
@@ -20,11 +21,7 @@ export function PageHeaderTitle({ title, subtitle, emoji, color, back, refreshin
       {back && <BackLink href={back.href} label={back.label} className="mb-4" />}
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <div className="flex items-baseline gap-3">
-          {emoji && (
-            <span aria-hidden className="text-3xl leading-none sm:text-4xl">
-              {emoji}
-            </span>
-          )}
+          <Emoji className="text-3xl leading-none sm:text-4xl">{emoji}</Emoji>
           <h1
             className="text-3xl font-semibold tracking-tight sm:text-4xl"
             style={color ? { color } : undefined}

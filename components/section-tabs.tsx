@@ -7,13 +7,10 @@ import { DateNav } from "@/components/date-nav";
 import { SeptenaMark } from "@/components/septena-mark";
 import { useNavSections } from "@/hooks/use-sections";
 import { useDemoHref } from "@/hooks/use-demo-href";
-import { SECTIONS } from "@/lib/sections";
 
 export function SectionTabs() {
   const pathname = usePathname();
   const sections = useNavSections();
-  const nextSection = sections.find((section) => section.key === "next") ?? SECTIONS.next;
-  const navSections = sections.filter((section) => section.key !== "next");
   const toHref = useDemoHref();
   const homeHref = toHref("/septena");
   const homeActive = pathname === homeHref;
@@ -58,7 +55,7 @@ export function SectionTabs() {
           </span>
           <span>Septena</span>
         </Link>
-        {[nextSection, ...navSections].map((section) => {
+        {sections.map((section) => {
           const href = toHref(section.path);
           const active = pathname === href || pathname.startsWith(href + "/");
           return (
