@@ -65,6 +65,10 @@ html, body {
 }
 
 :root {
+  --font-sans: "Segoe UI", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-mono: "SFMono-Regular", "SF Mono", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  --font-heading: Iowan Old Style, Charter, Baskerville, "Palatino Linotype", "Book Antiqua", Georgia, serif;
+
   /* Fixed Septena brand palette. The seven-color spectrum identifies the
    * product itself and never mirrors live user section settings. Use the
    * spectrum for the mark/logo and the single brand accent for non-section

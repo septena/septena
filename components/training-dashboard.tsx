@@ -902,6 +902,7 @@ function RecentTrainingSessions({ entries }: { entries: ExerciseEntry[] }) {
 
   async function saveEdit(values: LogEntryValues) {
     if (!editingEntry) return;
+    if (!editingEntry.file) throw new Error("Cannot edit a training entry without a source file.");
     setSaving(true);
     try {
       const numeric = (k: string) => {
@@ -929,6 +930,7 @@ function RecentTrainingSessions({ entries }: { entries: ExerciseEntry[] }) {
 
   async function deleteCurrent() {
     if (!editingEntry) return;
+    if (!editingEntry.file) throw new Error("Cannot delete a training entry without a source file.");
     if (!window.confirm("Delete this entry?")) return;
     setSaving(true);
     try {
