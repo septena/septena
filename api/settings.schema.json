@@ -1,0 +1,174 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://septena.app/settings.schema.json",
+  "title": "Septena Settings",
+  "description": "Single source of truth for `Settings/settings.yaml`. Defaults below seed the in-memory store; the same tree is walked to filter incoming PUT patches (unknown keys are dropped). Backend code reads this file at startup — change a default here and restart.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "section_order": {
+      "type": "array",
+      "items": { "type": "string" },
+      "default": [
+        "next", "training", "nutrition", "habits", "chores", "tasks", "groceries", "supplements",
+        "cannabis", "caffeine", "gut", "health", "sleep", "body",
+        "air", "correlations"
+      ]
+    },
+    "sections": {
+      "type": "object",
+      "description": "Per-section presentation (label/emoji/color/tagline/visibility). Keys are section ids; SECTION_IMMUTABLE (api/routers/sections.py) provides the wiring (path/apiBase/dataDir).",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "label":              { "type": "string" },
+          "emoji":              { "type": "string" },
+          "color":              { "type": "string" },
+          "tagline":            { "type": "string" },
+          "enabled":            { "type": "boolean", "description": "Legacy single-flag visibility. Prefer show_in_nav / show_on_dashboard." },
+          "show_in_nav":        { "type": "boolean" },
+          "show_on_dashboard":  { "type": "boolean" },
+          "include_in_next":    { "type": "boolean" }
+        }
+      },
+      "default": {
+        "next":         { "label": "Next",         "emoji": "⏭️", "color": "#0891b2", "tagline": "Timely actions for today", "show_in_nav": true, "show_on_dashboard": false },
+        "training":     { "label": "Training",     "emoji": "🏋️", "color": "#f97316", "tagline": "Sessions, progressions & PRs", "include_in_next": true },
+        "nutrition":    { "label": "Nutrition",    "emoji": "🍱", "color": "#f59e0b", "tagline": "Meals, macros & fasting" },
+        "habits":       { "label": "Habits",       "emoji": "✅", "color": "#3b82f6", "tagline": "Morning, afternoon & evening routines", "include_in_next": true },
+        "chores":       { "label": "Chores",       "emoji": "🧹", "color": "#0ea5e9", "tagline": "Recurring tasks, deferrable", "include_in_next": true },
+        "tasks":        { "label": "Tasks",        "emoji": "✨", "color": "#8b5cf6", "tagline": "Inbox, projects & today", "include_in_next": true },
+        "groceries":    { "label": "Groceries",    "emoji": "🛒", "color": "#10b981", "tagline": "Smart grocery checklist" },
+        "supplements":  { "label": "Supplements",  "emoji": "💊", "color": "#ec4899", "tagline": "Daily stack & streaks", "include_in_next": true },
+        "cannabis":     { "label": "Cannabis",     "emoji": "🌿", "color": "#22c55e", "tagline": "Log sessions, strains & usage" },
+        "caffeine":     { "label": "Caffeine",     "emoji": "☕", "color": "#f43f5e", "tagline": "V60s, matcha & time of day" },
+        "gut":          { "label": "Gut",          "emoji": "🌀", "color": "#eab308", "tagline": "Bristol, blood & discomfort" },
+        "health":       { "label": "Health",       "emoji": "💓", "color": "#a855f7", "tagline": "HRV, weight & vitals" },
+        "sleep":        { "label": "Sleep",        "emoji": "🌙", "color": "#6366f1", "tagline": "Score, stages & trends" },
+        "body":         { "label": "Body",         "emoji": "⚖️", "color": "#14b8a6", "tagline": "Weight, body fat & trends" },
+        "air":          { "label": "Air",          "emoji": "🌬️", "color": "#84cc16", "tagline": "CO₂, temperature & humidity" },
+        "correlations": { "label": "Insights",     "emoji": "🔗", "color": "#ef4444", "tagline": "Cross-section patterns", "show_in_nav": false, "show_on_dashboard": false }
+      }
+    },
+    "targets": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "protein_min_g":       { "type": "number", "default": 130 },
+        "protein_max_g":       { "type": "number", "default": 150 },
+        "fat_min_g":           { "type": "number", "default": 55 },
+        "fat_max_g":           { "type": "number", "default": 75 },
+        "weight_min_kg":       { "type": "number", "default": 83 },
+        "weight_max_kg":       { "type": "number", "default": 85 },
+        "fat_min_pct":         { "type": "number", "default": 12 },
+        "fat_max_pct":         { "type": "number", "default": 15 },
+        "carbs_min_g":         { "type": "number", "default": 160 },
+        "carbs_max_g":         { "type": "number", "default": 240 },
+        "fiber_min_g":         { "type": "number", "default": 25 },
+        "fiber_max_g":         { "type": "number", "default": 35 },
+        "kcal_min":            { "type": "number", "default": 2000 },
+        "kcal_max":            { "type": "number", "default": 2400 },
+        "z2_weekly_min":       { "type": "number", "default": 150 },
+        "sleep_target_h":      { "type": "number", "default": 8 },
+        "fasting_min_h":       { "type": "number", "default": 14 },
+        "fasting_max_h":       { "type": "number", "default": 16 },
+        "evening_hour_24h":    { "type": "number", "default": 19 },
+        "post_meal_grace_min": { "type": "number", "default": 30 }
+      }
+    },
+    "units": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "weight":   { "type": "string", "enum": ["kg", "lb"], "default": "kg" },
+        "distance": { "type": "string", "enum": ["km", "mi"], "default": "km" }
+      }
+    },
+    "theme": {
+      "type": "string",
+      "enum": ["system", "light", "dark", "eink"],
+      "default": "system"
+    },
+    "animations": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "training_complete": { "type": "boolean", "default": true },
+        "first_meal":        { "type": "boolean", "default": true },
+        "histograms_raise":  { "type": "boolean", "default": true },
+        "habits_complete":   { "type": "boolean", "default": true },
+        "chores_complete":   { "type": "boolean", "default": true },
+        "supplements_complete": { "type": "boolean", "default": true },
+        "tasks_today_zero":  { "type": "boolean", "default": true }
+      }
+    },
+    "display": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "show_emoji": {
+          "type": "boolean",
+          "default": true,
+          "description": "Global emoji visibility. False collapses emoji from display surfaces (nav, headers, lists, greetings); editor screens always render emoji."
+        }
+      }
+    },
+    "nutrition": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "progress_mode": {
+          "type": "string",
+          "enum": ["used", "left"],
+          "default": "used",
+          "description": "Macro tile fill: 'used' fills toward target midpoint, 'left' fills as remaining-to-max shrinks."
+        },
+        "macro_colors": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Picked from lib/palette.ts. Independent of the Nutrition section accent so each macro reads as its own thing on charts and stat tiles.",
+          "properties": {
+            "protein": { "type": "string", "default": "#ef4444" },
+            "fat":     { "type": "string", "default": "#f59e0b" },
+            "carbs":   { "type": "string", "default": "#3b82f6" },
+            "fiber":   { "type": "string", "default": "#10b981" },
+            "kcal":    { "type": "string", "default": "#eab308" },
+            "fasting": { "type": "string", "default": "#8b5cf6" }
+          }
+        }
+      }
+    },
+    "day_phases": {
+      "type": "array",
+      "description": "Phases drive habit buckets and the overview greeting. Boundaries between phases live as a sibling array; each phase carries one greeting plus a rotated subtitle list.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id":        { "type": "string", "description": "Stable id (auto-derived from label slug). Habit configs reference this." },
+          "label":     { "type": "string" },
+          "emoji":     { "type": "string" },
+          "greeting":  { "type": "string", "description": "Phase-wide greeting, e.g. 'Good morning'." },
+          "subtitles": { "type": "array", "items": { "type": "string" }, "description": "Rotated at random per visit." }
+        }
+      },
+      "default": [
+        { "id": "morning",   "label": "Morning",   "emoji": "🌅", "greeting": "Good morning",   "subtitles": ["Start your day strong — check habits and supplements"] },
+        { "id": "afternoon", "label": "Afternoon", "emoji": "☀️", "greeting": "Good afternoon", "subtitles": ["Midday check-in — how's nutrition and training?"] },
+        { "id": "evening",   "label": "Evening",   "emoji": "🌙", "greeting": "Good evening",   "subtitles": ["Wind down — review the day and prep for tomorrow"] }
+      ]
+    },
+    "day_phase_boundaries": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Internal HH:MM dividers between consecutive phases — N-1 entries for N phases.",
+      "default": ["11:00", "17:00"]
+    },
+    "day_end": {
+      "type": "string",
+      "description": "Trailing cutoff (bedtime) for the final phase — habits read as overdue after this.",
+      "default": "22:00"
+    }
+  }
+}

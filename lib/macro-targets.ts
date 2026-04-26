@@ -104,7 +104,42 @@ export function formatRange(t: MacroRange): string {
 /** Progress fraction against the midpoint of the range — gives a useful
  *  "close to target" feel without penalising overshoot within the band. */
 export function progressTowardRange(value: number, t: MacroRange): number {
-  return Math.min(1, value / ((t.min + t.max) / 2));
+  return value / ((t.min + t.max) / 2);
+}
+
+/** Progress fraction in "left" mode: how much of the max budget is still
+ *  available. 1 when nothing eaten yet, 0 when at/over max. */
+export function progressLeftInRange(value: number, t: MacroRange): number {
+  if (t.max <= 0) return 0;
+  return Math.min(1, Math.max(0, (t.max - value) / t.max));
+}
+
+import type { ProgressMode } from "@/lib/api";
+
+/** SWR-backed progress mode preference. */
+export function useProgressMode(): ProgressMode {
+  const { data } = useSWR<AppSettings>("settings", getSettings, {
+    revalidateOnFocus: false,
+  });
+  return data?.nutrition?.progress_mode ?? "used";
+}
+
+/** Resolve {value, progress} for a macro tile based on progress mode.
+ *  "used": show consumed amount, fill toward midpoint.
+ *  "left": show remaining-to-max, fill drains as you eat. */
+export function macroTileNumbers(
+  consumed: number,
+  t: MacroRange,
+  mode: ProgressMode,
+): { value: number | null; progress: number } {
+  if (mode === "left") {
+    const left = Math.max(0, t.max - consumed);
+    return { value: consumed > 0 ? left : t.max, progress: progressLeftInRange(consumed, t) };
+  }
+  return {
+    value: consumed > 0 ? consumed : null,
+    progress: progressTowardRange(consumed, t),
+  };
 }
 
 export type FastingRange = { min: number; max: number };

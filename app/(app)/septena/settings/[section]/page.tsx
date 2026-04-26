@@ -7,15 +7,17 @@ import { useSections } from "@/hooks/use-sections";
 import { getSettings, saveSettings, type AppSettings, type SectionMeta } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/page-header";
-import {
-  ManageCaffeineBeansCard,
-  ManageCannabisStrainsCard,
-  ManageChoresCard,
-  ManageExercisesCard,
-  ManageGroceriesCard,
-  ManageHabitsCard,
-  ManageSupplementsCard,
-} from "@/components/manage-items";
+import { SectionConfigEditor } from "@/components/section-config-editor";
+import { cannabisStrainsDef } from "@/lib/settings/sections/cannabis";
+import { caffeineBeansDef } from "@/lib/settings/sections/caffeine";
+import { supplementsDef } from "@/lib/settings/sections/supplements";
+import { groceriesDef } from "@/lib/settings/sections/groceries";
+import { choresDef } from "@/lib/settings/sections/chores";
+import { makeHabitsDef } from "@/lib/settings/sections/habits";
+import { makeExercisesDef } from "@/lib/settings/sections/exercises";
+import { getExerciseConfig } from "@/lib/api";
+import { useSectionColor } from "@/hooks/use-sections";
+import { useMemo } from "react";
 import { PaletteSwatchGrid } from "@/components/palette-swatch-grid";
 import { ManageMacroColorsCard } from "@/components/manage-macro-colors";
 
@@ -214,14 +216,14 @@ export default function SectionSettingsPage() {
           </CardContent>
         </Card>
 
-        {sectionKey === "training" && <ManageExercisesCard />}
+        {sectionKey === "training" && <ExercisesCard />}
         {sectionKey === "nutrition" && <ManageMacroColorsCard />}
-        {sectionKey === "groceries" && <ManageGroceriesCard />}
-        {sectionKey === "habits" && <ManageHabitsCard />}
-        {sectionKey === "supplements" && <ManageSupplementsCard />}
-        {sectionKey === "chores" && <ManageChoresCard />}
-        {sectionKey === "cannabis" && <ManageCannabisStrainsCard />}
-        {sectionKey === "caffeine" && <ManageCaffeineBeansCard />}
+        {sectionKey === "groceries" && <GroceriesCard />}
+        {sectionKey === "habits" && <HabitsCard />}
+        {sectionKey === "supplements" && <SupplementsCard />}
+        {sectionKey === "chores" && <ChoresCard />}
+        {sectionKey === "cannabis" && <CannabisStrainsCard />}
+        {sectionKey === "caffeine" && <CaffeineBeansCard />}
       </div>
     </>
   );
@@ -234,5 +236,60 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
       {children}
     </label>
   );
+}
+
+/**
+ * Thin wrappers — each pulls the section's accent color from /api/sections
+ * and hands it to the generic <SectionConfigEditor>. Replaces every
+ * Manage{X}Card that used to live in components/manage-items.tsx.
+ *
+ * Habits and exercises use *factory* defs (makeHabitsDef, makeExercisesDef)
+ * because they have dynamic enums (buckets read from settings.day_phases,
+ * types read from /api/training/config).
+ */
+function CannabisStrainsCard() {
+  const color = useSectionColor("cannabis");
+  return <SectionConfigEditor def={cannabisStrainsDef} color={color} title="Manage strains" />;
+}
+
+function CaffeineBeansCard() {
+  const color = useSectionColor("caffeine");
+  return <SectionConfigEditor def={caffeineBeansDef} color={color} title="Manage beans" />;
+}
+
+function SupplementsCard() {
+  const color = useSectionColor("supplements");
+  return <SectionConfigEditor def={supplementsDef} color={color} title="Manage supplements" />;
+}
+
+function GroceriesCard() {
+  const color = useSectionColor("groceries");
+  return <SectionConfigEditor def={groceriesDef} color={color} title="Manage groceries" />;
+}
+
+function ChoresCard() {
+  const color = useSectionColor("chores");
+  return <SectionConfigEditor def={choresDef} color={color} title="Manage chores" />;
+}
+
+function HabitsCard() {
+  const color = useSectionColor("habits");
+  const { data: settings } = useSWR("settings", getSettings);
+  // Bucket options come from settings.day_phases at runtime.
+  const buckets = useMemo(
+    () => (settings?.day_phases ?? []).map((p) => p.id).filter(Boolean),
+    [settings?.day_phases],
+  );
+  const def = useMemo(() => makeHabitsDef(buckets), [buckets]);
+  return <SectionConfigEditor def={def} color={color} title="Manage habits" />;
+}
+
+function ExercisesCard() {
+  const color = useSectionColor("training");
+  // Type options + labels come from /api/training/config at runtime.
+  const { data } = useSWR("training-config", getExerciseConfig);
+  const types = useMemo(() => data?.types ?? [], [data?.types]);
+  const def = useMemo(() => makeExercisesDef(types), [types]);
+  return <SectionConfigEditor def={def} color={color} title="Manage exercises" />;
 }
 

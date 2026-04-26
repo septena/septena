@@ -8,19 +8,20 @@ import useSWR, { mutate as globalMutate } from "swr";
 import { useSections, useSectionColor } from "@/hooks/use-sections";
 import { SettingsRenderer } from "@/lib/settings/render";
 import { setIn } from "@/lib/settings/schema";
+import { indexSchema } from "@/lib/settings/search-index";
+import { SettingsSearch } from "@/components/settings-search";
 import {
   animationsSchema,
-  dayPhasesSchema,
   targetsSchema,
   themeSchema,
   toAnimationsView,
   toTargetsView,
   targetsPatch,
 } from "@/lib/settings/schemas/app";
+import { DayPhasesEditor } from "@/components/day-phases-editor";
 import {
   type AppSettings,
   type AppTheme,
-  type DayPhase,
   getCaffeineConfig,
   getCannabisConfig,
   getChores,
@@ -33,7 +34,11 @@ import {
 } from "@/lib/api";
 import { SECTIONS, type SectionKey } from "@/lib/sections";
 import { NEXT_CONTRIBUTORS, type NextContributor } from "@/hooks/use-next-actions";
-import { DEFAULT_DAY_PHASES } from "@/lib/day-phases";
+import {
+  DEFAULT_DAY_PHASES,
+  DEFAULT_DAY_PHASE_BOUNDARIES,
+  DEFAULT_DAY_END,
+} from "@/lib/day-phases";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/page-header";
 import { cn } from "@/lib/utils";
@@ -229,6 +234,14 @@ export function SettingsDashboard() {
         }
       />
 
+      <SettingsSearch
+        entries={[
+          ...indexSchema("Targets", "card-targets", targetsSchema),
+          ...indexSchema("Theme", "card-theme", themeSchema),
+          ...indexSchema("Animations", "card-animations", animationsSchema),
+        ]}
+      />
+
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {/* Sections — list, reorder, toggle visibility, link to per-section editors. */}
         <Card>
@@ -382,7 +395,7 @@ export function SettingsDashboard() {
         </Card>
 
         {/* Targets — schema-driven; flat YAML keys bridged via targetsPatch(). */}
-        <Card>
+        <Card id="card-targets" className="scroll-mt-4 transition-shadow">
           <CardHeader className="pb-2">
             <CardTitle className="text-base">Targets</CardTitle>
             <p className="text-xs text-muted-foreground">Daily macros, training, sleep, cannabis.</p>
@@ -407,30 +420,38 @@ export function SettingsDashboard() {
          *  app. Schema + API remain so switching on is a UI-only change; also
          *  leaves room for time-zone / locale settings under this heading. */}
 
-        {/* Day phases — morning/afternoon/evening (or custom). Drive habit
-         *  buckets, the overview greeting, and "time left" indicators.
-         *  `messages` is preserved per-item; only the row fields are edited. */}
-        <Card>
+        {/* Times of day — morning/afternoon/evening (or custom). Drives
+         *  habit buckets, the overview greeting, and "time left" indicators.
+         *  Boundaries between phases are stored once as `day_phase_boundaries`
+         *  so adjacent phases can't drift apart. Each phase has one
+         *  greeting and a list of subtitles, rotated at random. */}
+        <Card id="card-day-phases" className="scroll-mt-4 transition-shadow">
           <CardHeader className="pb-2">
-            <CardTitle className="text-base">Day phases</CardTitle>
+            <CardTitle className="text-base">Times of day</CardTitle>
             <p className="text-xs text-muted-foreground">
-              Phases are ordered by start time. Changing a phase id orphans any habit rows
-              that reference it. Edit greeting messages directly in <code className="rounded bg-muted px-1">settings.yaml</code>.
+              Drag the dividers to set when each phase ends. Bedtime is the cutoff for the
+              last phase — habits read as overdue after this.
             </p>
           </CardHeader>
           <CardContent>
-            <SettingsRenderer
-              node={dayPhasesSchema}
-              value={draft.day_phases ?? []}
+            <DayPhasesEditor
+              phases={draft.day_phases ?? []}
+              boundaries={draft.day_phase_boundaries ?? DEFAULT_DAY_PHASE_BOUNDARIES}
+              dayEnd={draft.day_end ?? DEFAULT_DAY_END}
               color={accent}
-              path={["day_phases"]}
-              onChange={setAt}
+              onChange={({ phases, boundaries, dayEnd }) =>
+                patch({
+                  day_phases: phases,
+                  day_phase_boundaries: boundaries,
+                  day_end: dayEnd,
+                })
+              }
             />
           </CardContent>
         </Card>
 
         {/* Theme — schema-driven; instant preview via setTheme side effect. */}
-        <Card>
+        <Card id="card-theme" className="scroll-mt-4 transition-shadow">
           <CardHeader className="pb-2">
             <CardTitle className="text-base">Theme</CardTitle>
           </CardHeader>
@@ -449,7 +470,7 @@ export function SettingsDashboard() {
         </Card>
 
         {/* Animations — schema-driven; coloured per-row by section accent. */}
-        <Card>
+        <Card id="card-animations" className="scroll-mt-4 transition-shadow">
           <CardHeader className="pb-2">
             <CardTitle className="text-base">Animations</CardTitle>
             <p className="text-xs text-muted-foreground">Celebration effects after key moments.</p>
