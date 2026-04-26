@@ -187,7 +187,7 @@ export function TodayTimeline({ date: dateProp }: { date?: string } = {}) {
           {dots.length} {dots.length === 1 ? "event" : "events"}
         </p>
       </div>
-      <div className="relative h-10 rounded-full border border-border bg-muted/40">
+      <div className="relative h-10 rounded-full border border-border bg-card">
         {/* Fasting stripes — drawn only in the awake window (clipped by
             wake on the left and ideal bedtime on the right) so they never
             sit "under" the sleep shading. Thin and fully opaque so they

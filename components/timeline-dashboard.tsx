@@ -27,8 +27,6 @@ import {
   type TimelineColors,
   type TimelineDayData,
 } from "@/lib/timeline-events";
-import { TimelineWeekView } from "@/components/timeline-week-view";
-
 export function TimelineDashboard() {
   const { date: today } = useSelectedDate();
   const toHref = useDemoHref();
@@ -127,8 +125,6 @@ export function TimelineDashboard() {
           );
         })}
       </div>
-
-      <TimelineWeekView endDate={today} />
     </main>
   );
 }
