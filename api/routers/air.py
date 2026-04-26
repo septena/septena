@@ -13,7 +13,7 @@ Health/Sleep/Body (external snapshots, not per-event).
 """
 from __future__ import annotations
 
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -106,6 +106,27 @@ def _day_stats(events: List[Dict[str, Any]]) -> Dict[str, Any]:
     }
 
 
+def _rolling_events(hours: int) -> List[Dict[str, Any]]:
+    """Events from the last N hours, spanning yesterday + today."""
+    now = datetime.now()
+    cutoff = now - timedelta(hours=hours)
+    today = date.today()
+    yesterday = today - timedelta(days=1)
+    out: List[Dict[str, Any]] = []
+    for d in (yesterday, today):
+        for e in _load_day(d.isoformat()):
+            t = str(e.get("time", "")).strip()
+            if not t:
+                continue
+            try:
+                ts = datetime.fromisoformat(f"{d.isoformat()}T{t}")
+            except ValueError:
+                continue
+            if ts >= cutoff:
+                out.append(e)
+    return out
+
+
 @router.get("/summary")
 def air_summary() -> Dict[str, Any]:
     """Latest reading + today's day-stats. Used by the mini-tile on the
@@ -124,6 +145,7 @@ def air_summary() -> Dict[str, Any]:
         "last_reading_at": last_ts,
         "co2_band": _co2_band(co2) if co2 is not None else None,
         "today": _day_stats(today_events),
+        "last_24h": _day_stats(_rolling_events(24)),
     }
 
 
@@ -196,21 +218,37 @@ def air_overnight(days: int = 30) -> Dict[str, Any]:
 
 
 @router.get("/readings")
-def air_readings(days: int = 1) -> Dict[str, Any]:
+def air_readings(days: int = 1, hours: Optional[int] = None) -> Dict[str, Any]:
     """Flat time-series across the last N days for charting. Points are
-    {datetime, co2_ppm, temp_c, humidity_pct}. Ordered oldest-first."""
+    {datetime, co2_ppm, temp_c, humidity_pct}. Ordered oldest-first.
+
+    When `hours` is set, returns a rolling window ending now (spans yesterday
+    + today as needed) and `days` is ignored."""
     today = date.today()
+    if hours is not None:
+        cutoff = datetime.now() - timedelta(hours=hours)
+        day_iter = [today - timedelta(days=1), today]
+    else:
+        cutoff = None
+        day_iter = [today - timedelta(days=offset) for offset in range(days - 1, -1, -1)]
     out: List[Dict[str, Any]] = []
-    for offset in range(days - 1, -1, -1):
-        d = (today - timedelta(days=offset)).isoformat()
-        events = sorted(_load_day(d), key=lambda e: str(e.get("time", "")))
+    for d in day_iter:
+        ds = d.isoformat()
+        events = sorted(_load_day(ds), key=lambda e: str(e.get("time", "")))
         for e in events:
             t = str(e.get("time", "")).strip()
             if not t:
                 continue
+            if cutoff is not None:
+                try:
+                    ts = datetime.fromisoformat(f"{ds}T{t}")
+                except ValueError:
+                    continue
+                if ts < cutoff:
+                    continue
             out.append({
-                "datetime": f"{d}T{t}",
-                "date": d,
+                "datetime": f"{ds}T{t}",
+                "date": ds,
                 "time": t,
                 "co2_ppm": _normalize_number(e.get("co2_ppm")),
                 "temp_c": _normalize_number(e.get("temp_c")),

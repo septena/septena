@@ -2,7 +2,6 @@
 
 import { usePathname } from "next/navigation";
 import { createContext, useContext, useEffect, useRef, useState } from "react";
-import { StatusPill } from "@/components/ui/status-pill";
 
 /** Current perf label: "loaded in Xms". `null` until the browser reports
  *  the first navigation timing. Context lets the value persist across
@@ -49,11 +48,16 @@ export function useLoadTime(): string | null {
   return useContext(LoadTimeContext);
 }
 
-/** Inline status pill showing the current load time. Used on the home
- *  overview; section subpages inline the value into their status bar via
- *  useLoadTime() instead. */
+/** Non-interactive pill matching the homepage MetaActionBar chrome. Section
+ *  subpages inline the value into their status bar via useLoadTime() instead. */
 export function LoadTimer() {
   const label = useLoadTime();
   if (!label) return null;
-  return <StatusPill className="mt-8 text-center">{label}</StatusPill>;
+  return (
+    <div className="mt-8 flex justify-center">
+      <span className="inline-flex items-center rounded-full border border-border bg-card px-4 py-2 text-sm font-medium text-muted-foreground shadow-sm">
+        {label}
+      </span>
+    </div>
+  );
 }

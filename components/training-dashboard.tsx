@@ -815,7 +815,13 @@ function RecentTrainingSessions({ entries }: { entries: ExerciseEntry[] }) {
   const { data: config } = useSWR("training-config", getExerciseConfig, {
     revalidateOnFocus: false,
   });
-  const sessions = useMemo(() => groupByConcluded(entries), [entries]);
+  const sessions = useMemo(() => {
+    const all = groupByConcluded(entries);
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - 14);
+    const cutoffStr = cutoff.toISOString().slice(0, 10);
+    return all.filter((s) => s.date >= cutoffStr);
+  }, [entries]);
 
   if (sessions.length === 0) {
     return null;
@@ -825,7 +831,7 @@ function RecentTrainingSessions({ entries }: { entries: ExerciseEntry[] }) {
     <Card className="mt-6">
       <CardHeader>
         <CardTitle>Recent sessions</CardTitle>
-        <CardDescription>{sessions.length} sessions · grouped by day</CardDescription>
+        <CardDescription>{sessions.length} sessions · last 2 weeks</CardDescription>
       </CardHeader>
       <CardContent>
         <ul className="divide-y divide-border">

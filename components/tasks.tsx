@@ -1,6 +1,7 @@
 "use client";
 
 import { Menu } from "@base-ui/react/menu";
+import { MoreHorizontal } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -125,20 +126,24 @@ export function TaskRow({
       </button>
 
       {hasActions && (
-        <TaskRowMenu actions={actions!} done={done} disabled={pending} />
+        <RowActionsMenu
+          actions={actions!}
+          tone={done ? "on-accent" : "default"}
+          disabled={pending}
+        />
       )}
     </div>
   );
 }
 
-function TaskRowMenu({
+export function RowActionsMenu({
   actions,
-  done,
+  tone = "default",
   disabled,
 }: {
   actions: TaskRowAction[];
-  done: boolean;
-  disabled: boolean;
+  tone?: "default" | "on-accent";
+  disabled?: boolean;
 }) {
   return (
     <Menu.Root>
@@ -146,13 +151,13 @@ function TaskRowMenu({
         disabled={disabled}
         aria-label="More actions"
         className={cn(
-          "flex shrink-0 items-center justify-center px-3 text-lg leading-none transition-colors outline-none",
-          done
-            ? "text-white/70 hover:text-white"
-            : "text-muted-foreground hover:text-foreground",
+          "flex shrink-0 items-center justify-center self-stretch px-3 transition-colors outline-none",
+          tone === "on-accent"
+            ? "text-white hover:bg-white/15"
+            : "text-foreground hover:bg-muted",
         )}
       >
-        ⋯
+        <MoreHorizontal className="h-5 w-5" strokeWidth={2.5} />
       </Menu.Trigger>
       <Menu.Portal>
         <Menu.Positioner side="bottom" align="end" sideOffset={4} className="isolate z-50">

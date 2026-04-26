@@ -48,18 +48,18 @@ export function AirDashboard() {
     co2_ppm: { label: "CO₂ (ppm)", color: COLOR },
   } satisfies ChartConfig;
   const { data: summary, isLoading: sumLoading } = useSWR("air-summary", getAirSummary, { refreshInterval: 60_000 });
-  const { data: readings, isLoading: rLoading } = useSWR("air-readings-1", () => getAirReadings(1), { refreshInterval: 60_000 });
+  const { data: readings, isLoading: rLoading } = useSWR("air-readings-24h", () => getAirReadings({ hours: 24 }), { refreshInterval: 60_000 });
   const { data: history, isLoading: hLoading } = useSWR("air-history-7", () => getAirHistory(7), { refreshInterval: 60_000 });
 
   usePageHeader("air", sumLoading || rLoading || hLoading);
 
-  const today = summary?.today;
+  const last24h = summary?.last_24h;
   const latest = summary?.latest ?? null;
   const band = summary?.co2_band ?? null;
   const bandColor = band ? CO2_BAND_COLOR[band] : COLOR;
 
-  const todaySeries = useMemo<AirTimeSeriesPoint[]>(() => readings?.readings ?? [], [readings]);
-  const hasCo2 = todaySeries.some(p => p.co2_ppm != null);
+  const series24h = useMemo<AirTimeSeriesPoint[]>(() => readings?.readings ?? [], [readings]);
+  const hasCo2 = series24h.some(p => p.co2_ppm != null);
 
   const loading = sumLoading && !summary;
 
@@ -115,28 +115,28 @@ export function AirDashboard() {
           target="40–60%"
         />
         <StatCard
-          label="Today > 1000"
-          value={today?.minutes_over_1000 ?? 0}
+          label="Last 24h > 1000"
+          value={last24h?.minutes_over_1000 ?? 0}
           unit="min"
-          color={today && today.minutes_over_1000 > 0 ? SECTION_ACCENT_STRONG : COLOR}
+          color={last24h && last24h.minutes_over_1000 > 0 ? SECTION_ACCENT_STRONG : COLOR}
           direction="down"
         />
       </div>
 
-      {/* CO2 today */}
+      {/* CO2 last 24h */}
       {hasCo2 && (
         <Card className="mb-4">
           <CardHeader>
             <CardTitle>
-              CO₂ Today{" "}
+              CO₂ Last 24h{" "}
               <span className="text-xs font-normal" style={{ color: COLOR }}>
-                {today?.co2_avg ? `avg ${today.co2_avg} / max ${today.co2_max} ppm` : ""}
+                {last24h?.co2_avg ? `avg ${last24h.co2_avg} / max ${last24h.co2_max} ppm` : ""}
               </span>
             </CardTitle>
           </CardHeader>
           <CardContent className="min-w-0 overflow-hidden px-4">
             <ChartContainer config={co2Config} className="h-[240px] w-full">
-              <LineChart data={todaySeries} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
+              <LineChart data={series24h} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
                 <CartesianGrid {...CHART_GRID} />
                 <XAxis
                   dataKey="datetime"
@@ -167,15 +167,15 @@ export function AirDashboard() {
       )}
 
       {/* Temp + humidity side-by-side */}
-      {todaySeries.length > 0 && (
+      {series24h.length > 0 && (
         <div className="mb-4 grid min-w-0 gap-4 lg:grid-cols-2 [&>*]:min-w-0">
           <Card>
             <CardHeader>
-              <CardTitle>Temperature <span className="text-xs font-normal text-muted-foreground">today</span></CardTitle>
+              <CardTitle>Temperature <span className="text-xs font-normal text-muted-foreground">last 24h</span></CardTitle>
             </CardHeader>
             <CardContent className="min-w-0 overflow-hidden px-4">
               <ChartContainer config={tempConfig} className="h-[160px] w-full">
-                <LineChart data={todaySeries} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
+                <LineChart data={series24h} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
                   <CartesianGrid {...CHART_GRID} />
                   <XAxis dataKey="datetime" tickLine={false} axisLine={false}
                     tickFormatter={(v) => formatHourTick(v as string)} tick={{ fontSize: 10 }} minTickGap={40} />
@@ -190,11 +190,11 @@ export function AirDashboard() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Humidity <span className="text-xs font-normal text-muted-foreground">today</span></CardTitle>
+              <CardTitle>Humidity <span className="text-xs font-normal text-muted-foreground">last 24h</span></CardTitle>
             </CardHeader>
             <CardContent className="min-w-0 overflow-hidden px-4">
               <ChartContainer config={humConfig} className="h-[160px] w-full">
-                <LineChart data={todaySeries} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
+                <LineChart data={series24h} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
                   <CartesianGrid {...CHART_GRID} />
                   <XAxis dataKey="datetime" tickLine={false} axisLine={false}
                     tickFormatter={(v) => formatHourTick(v as string)} tick={{ fontSize: 10 }} minTickGap={40} />

@@ -140,7 +140,7 @@ export default function SectionSettingsPage() {
         back={{ href: "/septena/settings", label: "Settings" }}
       />
 
-      <div className="space-y-4">
+      <div className="mx-auto w-full max-w-2xl space-y-4">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-base">Appearance</CardTitle>

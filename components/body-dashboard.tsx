@@ -27,7 +27,7 @@ const fatConfig = {
   fat_pct: { label: "Body Fat (%)", color: SECTION_ACCENT_SHADE_2 },
 } satisfies ChartConfig;
 
-function linearTrend(rows: WithingsRow[], key: "weight_kg" | "fat_pct", projectDays = 7) {
+function linearTrend(rows: WithingsRow[], key: "weight_kg" | "fat_pct" | "fat_ratio_pct", projectDays = 7) {
   if (rows.length === 0) return null;
   const pts = rows
     .map((r, i) => ({ i, y: r[key] as number | null }))
@@ -52,7 +52,7 @@ function linearTrend(rows: WithingsRow[], key: "weight_kg" | "fat_pct", projectD
   return { slope, intercept, lastIndex: rows.length - 1, future };
 }
 
-function buildTrendData(rows: WithingsRow[], key: "weight_kg" | "fat_pct", trendKey: string, projectDays = 7) {
+function buildTrendData(rows: WithingsRow[], key: "weight_kg" | "fat_pct" | "fat_ratio_pct", trendKey: string, projectDays = 7) {
   const trend = linearTrend(rows, key, projectDays);
   if (!trend) return { data: rows as Array<Record<string, unknown>>, hasTrend: false, projectedValue: null as number | null, slope: 0, projectDays };
   const actuals = rows.map((r, i) => ({
@@ -142,6 +142,7 @@ export function BodyDashboard() {
   const withingsWithFatRatio = useMemo(() => withingsRows.filter(r => r.fat_ratio_pct != null), [withingsRows]);
   const weightChart = useMemo(() => buildTrendData(withingsWithWeight, "weight_kg", "weight_kg_trend"), [withingsWithWeight]);
   const fatChart = useMemo(() => buildTrendData(withingsWithFat, "fat_pct", "fat_pct_trend"), [withingsWithFat]);
+  const fatRatioChart = useMemo(() => buildTrendData(withingsWithFatRatio, "fat_ratio_pct", "fat_ratio_pct_trend"), [withingsWithFatRatio]);
   const weekDividers = useMemo(() => {
     const out: string[] = [];
     for (const r of withingsWithWeight) {
@@ -251,6 +252,15 @@ export function BodyDashboard() {
                   {weekDividers.map((iso) => (
                     <ReferenceLine key={`w-${iso}`} x={iso} stroke={SECTION_ACCENT_SHADE_3} strokeOpacity={0.45} />
                   ))}
+                  {weightChart.hasTrend && withingsWithWeight.length > 0 && (
+                    <ReferenceLine
+                      x={withingsWithWeight[withingsWithWeight.length - 1].date}
+                      stroke={SECTION_ACCENT_STRONG}
+                      strokeOpacity={0.7}
+                      strokeDasharray="2 3"
+                      label={{ value: "Today", position: "top", fontSize: 9, fill: "hsl(var(--muted-foreground))" }}
+                    />
+                  )}
                 </LineChart>
               </ChartContainer>
             </CardContent>
@@ -292,6 +302,59 @@ export function BodyDashboard() {
                   {weekDividers.map((iso) => (
                     <ReferenceLine key={`w-${iso}`} x={iso} stroke={SECTION_ACCENT_SHADE_3} strokeOpacity={0.45} />
                   ))}
+                  {fatChart.hasTrend && withingsWithFat.length > 0 && (
+                    <ReferenceLine
+                      x={withingsWithFat[withingsWithFat.length - 1].date}
+                      stroke={SECTION_ACCENT_STRONG}
+                      strokeOpacity={0.7}
+                      strokeDasharray="2 3"
+                      label={{ value: "Today", position: "top", fontSize: 9, fill: "hsl(var(--muted-foreground))" }}
+                    />
+                  )}
+                </LineChart>
+              </ChartContainer>
+            </CardContent>
+          </Card>
+        )}
+
+        {withingsWithFatRatio.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle>
+                Fat Ratio
+                {fatRatioChart.hasTrend && fatRatioChart.projectedValue != null && (
+                  <span className="ml-2 text-xs font-normal text-muted-foreground">
+                    → {fatRatioChart.projectedValue.toFixed(1)}% in {fatRatioChart.projectDays}d
+                  </span>
+                )}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="min-w-0 overflow-hidden px-4">
+              <ChartContainer config={fatRatioConfig} className="h-[200px] w-full">
+                <LineChart data={fatRatioChart.data} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
+                  <CartesianGrid {...CHART_GRID} />
+                  <XAxis {...WEEKDAY_X_AXIS} />
+                  <YAxis {...Y_AXIS} domain={["dataMin - 0.5", "dataMax + 0.5"]}
+                    tickFormatter={(v: number) => `${Math.round(v)}`} />
+                  <Line type="monotone" dataKey="fat_ratio_pct" stroke="var(--color-fat_ratio_pct)"
+                    strokeWidth={2} dot={{ r: 2.5 }} isAnimationActive={false} />
+                  {fatRatioChart.hasTrend && (
+                    <Line type="linear" dataKey="fat_ratio_pct_trend" stroke="var(--color-fat_ratio_pct)"
+                      strokeOpacity={0.5} strokeWidth={1.5} strokeDasharray="4 4"
+                      dot={false} isAnimationActive={false} />
+                  )}
+                  {weekDividers.map((iso) => (
+                    <ReferenceLine key={`w-${iso}`} x={iso} stroke={SECTION_ACCENT_SHADE_3} strokeOpacity={0.45} />
+                  ))}
+                  {fatRatioChart.hasTrend && withingsWithFatRatio.length > 0 && (
+                    <ReferenceLine
+                      x={withingsWithFatRatio[withingsWithFatRatio.length - 1].date}
+                      stroke={SECTION_ACCENT_STRONG}
+                      strokeOpacity={0.7}
+                      strokeDasharray="2 3"
+                      label={{ value: "Today", position: "top", fontSize: 9, fill: "hsl(var(--muted-foreground))" }}
+                    />
+                  )}
                 </LineChart>
               </ChartContainer>
             </CardContent>
@@ -380,29 +443,6 @@ export function BodyDashboard() {
                   <YAxis {...Y_AXIS}
                     tickFormatter={(v: number) => `${Math.round(v)}`} />
                   <Line type="monotone" dataKey="pulse_wave_mps" stroke="var(--color-pulse_wave_mps)"
-                    strokeWidth={2} dot={{ r: 2.5 }} isAnimationActive={false} />
-                  {weekDividers.map((iso) => (
-                    <ReferenceLine key={`w-${iso}`} x={iso} stroke={SECTION_ACCENT_SHADE_3} strokeOpacity={0.45} />
-                  ))}
-                </LineChart>
-              </ChartContainer>
-            </CardContent>
-          </Card>
-        )}
-
-        {withingsWithFatRatio.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Fat Ratio</CardTitle>
-            </CardHeader>
-            <CardContent className="min-w-0 overflow-hidden px-4">
-              <ChartContainer config={fatRatioConfig} className="h-[200px] w-full">
-                <LineChart data={withingsWithFatRatio} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
-                  <CartesianGrid {...CHART_GRID} />
-                  <XAxis {...WEEKDAY_X_AXIS} />
-                  <YAxis {...Y_AXIS}
-                    tickFormatter={(v: number) => `${Math.round(v)}`} />
-                  <Line type="monotone" dataKey="fat_ratio_pct" stroke="var(--color-fat_ratio_pct)"
                     strokeWidth={2} dot={{ r: 2.5 }} isAnimationActive={false} />
                   {weekDividers.map((iso) => (
                     <ReferenceLine key={`w-${iso}`} x={iso} stroke={SECTION_ACCENT_SHADE_3} strokeOpacity={0.45} />

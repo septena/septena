@@ -318,7 +318,7 @@ export function ChoresDashboard() {
         </CardHeader>
         <CardContent className="px-4">
           <ChartContainer config={chartConfig} className="h-[220px] w-full">
-            <BarChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+            <BarChart data={chartData} margin={{ top: 8, right: 12, left: 4, bottom: 0 }}>
               <CartesianGrid {...CHART_GRID} />
               <XAxis {...X_AXIS_DATE} interval={3} />
               <YAxis
