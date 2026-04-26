@@ -29,7 +29,9 @@ const argv = process.argv.slice(2);
 const has = (flag) => argv.includes(flag);
 const get = (flag) => { const i = argv.indexOf(flag); return i !== -1 ? argv[i + 1] : null; };
 
-const OUT_DIR = get("--out") ?? join(ROOT, "docs", "screenshots");
+// Defaults to public/screenshots/ so the marketing page (`/screenshots/*.png`)
+// picks up new shots immediately. Pass --out to write somewhere else.
+const OUT_DIR = get("--out") ?? join(ROOT, "public", "screenshots");
 const DEMO_DATA = join(tmpdir(), "septena-demo-data");
 const BACKEND_PORT = 17000;
 const FRONTEND_PORT = 17777;
@@ -38,18 +40,23 @@ const KEEP_SERVERS = has("--keep");
 const CACHE_DIR = join(tmpdir(), "septena-demo-cache");
 const HEALTH_CACHE_PATH = join(CACHE_DIR, "health-cache.json");
 
+// Canonical /septena/* URLs. The legacy /training, /nutrition etc. still
+// 307-redirect (see next.config.ts), but screenshotting the redirect target
+// keeps us aligned with what the marketing page actually links to.
 const DEFAULT_SECTIONS = [
-  { slug: "overview", path: "/" },
-  { slug: "exercise", path: "/training" },
-  { slug: "nutrition", path: "/nutrition" },
-  { slug: "habits", path: "/habits" },
-  { slug: "supplements", path: "/supplements" },
-  { slug: "caffeine", path: "/caffeine" },
-  { slug: "chores", path: "/chores" },
-  { slug: "sleep", path: "/sleep" },
-  { slug: "body", path: "/body" },
-  { slug: "health", path: "/health" },
-  { slug: "insights", path: "/insights" },
+  { slug: "overview", path: "/septena" },
+  { slug: "exercise", path: "/septena/training" },
+  { slug: "nutrition", path: "/septena/nutrition" },
+  { slug: "habits", path: "/septena/habits" },
+  { slug: "supplements", path: "/septena/supplements" },
+  { slug: "caffeine", path: "/septena/caffeine" },
+  { slug: "chores", path: "/septena/chores" },
+  { slug: "tasks", path: "/septena/tasks" },
+  { slug: "groceries", path: "/septena/groceries" },
+  { slug: "sleep", path: "/septena/sleep" },
+  { slug: "body", path: "/septena/body" },
+  { slug: "health", path: "/septena/health" },
+  { slug: "insights", path: "/septena/insights" },
 ];
 const SECTIONS = get("--sections")
   ? DEFAULT_SECTIONS.filter((s) => get("--sections").split(",").includes(s.slug))
