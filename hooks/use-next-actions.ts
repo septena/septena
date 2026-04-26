@@ -7,11 +7,11 @@ import {
   getCaffeineSessions,
   getChores,
   getEntries,
-  getHabitDay,
+  getHabitRange,
   getNextWorkout,
   getNutritionEntries,
   getSettings,
-  getSupplementDay,
+  getSupplementRange,
   getTasks,
   type HabitDay,
   type HabitDayItem,
@@ -20,8 +20,16 @@ import {
   type Task,
   type TaskListResponse,
 } from "@/lib/api";
-import { DEFAULT_DAY_PHASES, activePhaseId, isPastPhase, timeLeftInPhase } from "@/lib/day-phases";
-import { addDaysISO, daysAgoLocalISO } from "@/lib/date-utils";
+import {
+  DEFAULT_DAY_PHASES,
+  DEFAULT_DAY_PHASE_BOUNDARIES,
+  DEFAULT_DAY_END,
+  activePhaseId,
+  isPastPhase,
+  resolvePhases,
+  timeLeftInPhase,
+} from "@/lib/day-phases";
+import { daysAgoLocalISO } from "@/lib/date-utils";
 import type { SectionKey } from "@/lib/sections";
 
 const HISTORY_DAYS = 14;
@@ -107,18 +115,8 @@ function median(values: number[]): number | null {
   return sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
 }
 
-async function fallbackAfter<T>(promise: Promise<T>, fallback: T, ms = 2500): Promise<T> {
-  let timer: ReturnType<typeof setTimeout> | null = null;
-  try {
-    return await Promise.race([
-      promise.catch(() => fallback),
-      new Promise<T>((resolve) => {
-        timer = setTimeout(() => resolve(fallback), ms);
-      }),
-    ]);
-  } finally {
-    if (timer) clearTimeout(timer);
-  }
+function orFallback<T>(promise: Promise<T>, fallback: T): Promise<T> {
+  return promise.catch(() => fallback);
 }
 
 function daysAgoLabel(days: number | null | undefined): string {
@@ -269,18 +267,14 @@ export function useNextSkips(date: string) {
 export function useNextActions(selectedDate: string, isToday: boolean) {
   const skips = useNextSkips(selectedDate);
   const swr = useSWR(["next-dashboard", selectedDate], async (): Promise<NextData> => {
-    const historyDates = Array.from({ length: HISTORY_DAYS }, (_, i) =>
-      addDaysISO(selectedDate, i - (HISTORY_DAYS - 1)),
-    );
-    // Settings drives include_in_next gating, so we resolve it first and only
-    // fetch a contributor's data when its toggle is on. Non-contributor
-    // sources (nutrition/caffeine) feed timing signals — they're not
-    // toggleable and always fetch.
-    const settings = await fallbackAfter(getSettings(), null);
-    const enabled = (key: NextContributor) => includeInNext(settings, key);
+    // All sources fan out in a single Promise.all — settings is fetched in
+    // parallel with the rest, and `include_in_next` filtering happens after
+    // the round-trip. Disabled contributors waste one cheap request; in
+    // exchange we shave the settings round-trip off the critical path.
     const [
-      habitDays,
-      supplementDays,
+      settings,
+      habitRange,
+      supplementRange,
       chores,
       workout,
       trainingEntries,
@@ -289,36 +283,36 @@ export function useNextActions(selectedDate: string, isToday: boolean) {
       caffeineToday,
       caffeineSessions,
     ] = await Promise.all([
-      enabled("habits")
-        ? Promise.all(historyDates.map((day) => fallbackAfter(getHabitDay(day), null)))
-        : Promise.resolve([] as Array<HabitDay | null>),
-      enabled("supplements")
-        ? Promise.all(historyDates.map((day) => fallbackAfter(getSupplementDay(day), null)))
-        : Promise.resolve([] as Array<SupplementDay | null>),
-      enabled("chores") ? fallbackAfter(getChores(), null) : Promise.resolve(null),
-      enabled("training") ? fallbackAfter(getNextWorkout(), null) : Promise.resolve(null),
-      enabled("training") ? fallbackAfter(getEntries(daysAgoLocalISO(30)), []) : Promise.resolve([]),
-      enabled("tasks")
-        ? fallbackAfter(getTasks("today"), null as TaskListResponse | null)
-        : Promise.resolve(null as TaskListResponse | null),
-      fallbackAfter(getNutritionEntries(daysAgoLocalISO(14)), []),
-      fallbackAfter(getCaffeineDay(selectedDate), null),
-      fallbackAfter(getCaffeineSessions(14), null),
+      orFallback(getSettings(), null),
+      orFallback(getHabitRange(HISTORY_DAYS), { days: [] as HabitDay[] }),
+      orFallback(getSupplementRange(HISTORY_DAYS), { days: [] as SupplementDay[] }),
+      orFallback(getChores(), null),
+      orFallback(getNextWorkout(), null),
+      orFallback(getEntries(daysAgoLocalISO(30)), []),
+      orFallback(getTasks("today"), null as TaskListResponse | null),
+      orFallback(getNutritionEntries(daysAgoLocalISO(14)), []),
+      orFallback(getCaffeineDay(selectedDate), null),
+      orFallback(getCaffeineSessions(14), null),
     ]);
+    const enabled = (key: NextContributor) => includeInNext(settings, key);
+    const habitDays: Array<HabitDay | null> = enabled("habits") ? habitRange.days : [];
+    const supplementDays: Array<SupplementDay | null> = enabled("supplements")
+      ? supplementRange.days
+      : [];
     return {
       today: selectedDate,
       habitToday: habitDays.at(-1) ?? null,
       habitDays,
       supplementToday: supplementDays.at(-1) ?? null,
       supplementDays,
-      chores,
-      workout,
-      trainingEntries,
+      chores: enabled("chores") ? chores : null,
+      workout: enabled("training") ? workout : null,
+      trainingEntries: enabled("training") ? trainingEntries : [],
       nutritionEntries,
       caffeineToday,
       caffeineSessions,
       settings,
-      tasks,
+      tasks: enabled("tasks") ? tasks : null,
     };
   }, { refreshInterval: 60_000 });
 
@@ -330,7 +324,11 @@ export function useNextActions(selectedDate: string, isToday: boolean) {
     const data = swr.data;
     const actions: NextAction[] = [];
     const done: NextAction[] = [];
-    const phases = data?.settings?.day_phases ?? DEFAULT_DAY_PHASES;
+    const phases = resolvePhases(
+      data?.settings?.day_phases ?? DEFAULT_DAY_PHASES,
+      data?.settings?.day_phase_boundaries ?? DEFAULT_DAY_PHASE_BOUNDARIES,
+      data?.settings?.day_end ?? DEFAULT_DAY_END,
+    );
     const activePhase = activePhaseId(phases, now);
     const activePhaseMeta = phases.find((p) => p.id === activePhase);
 

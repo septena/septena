@@ -43,12 +43,19 @@ import {
   getAirHistory,
   getSettings,
 } from "@/lib/api";
-import { DEFAULT_DAY_PHASES, activePhaseId } from "@/lib/day-phases";
+import {
+  DEFAULT_DAY_PHASES,
+  DEFAULT_DAY_PHASE_BOUNDARIES,
+  DEFAULT_DAY_END,
+  activePhaseId,
+  resolvePhases,
+} from "@/lib/day-phases";
 import { formatWeekdayTick, computeStreak, lastSevenDaysISO } from "@/lib/date-utils";
 import { useSelectedDate } from "@/hooks/use-selected-date";
 import { computeFastingState, useFastingConfig } from "@/lib/fasting";
 import { useMacroTargets, useFastingTarget } from "@/lib/macro-targets";
 import { cn } from "@/lib/utils";
+import { ProgressBar } from "@/components/progress-bar";
 import { QuickLogModal } from "@/components/quick-log-modal";
 import { TodayTimeline } from "@/components/today-timeline";
 import { NextWidget } from "@/components/next-widget";
@@ -150,11 +157,6 @@ function ProgressRow({ label, current, total, unit, color, display }: {
 }) {
   const num = parseFloat(current) || 0;
   const den = parseFloat(total) || 1;
-  const overTarget = num > den;
-  // When over target the bar fills fully and the dot marks where the target
-  // line sits relative to today's value — so 2× target lands the dot at 50%.
-  const pct = overTarget ? 100 : (num / den) * 100;
-  const dotPct = overTarget ? (den / num) * 100 : null;
   return (
     <div className="mt-3">
       <div className="mb-1 flex items-baseline justify-between">
@@ -163,20 +165,7 @@ function ProgressRow({ label, current, total, unit, color, display }: {
           {display ?? `${current}/${total}${unit ?? ""}`}
         </p>
       </div>
-      <div className="relative h-1.5 w-full overflow-hidden rounded-full bg-muted">
-        <div
-          className="h-full rounded-full transition-all"
-          style={{ width: `${pct}%`, backgroundColor: color }}
-        />
-        {dotPct !== null && (
-          <span
-            aria-hidden
-            title="target"
-            className="absolute top-1/2 h-[5px] w-[5px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-white shadow-sm ring-1 ring-black/10"
-            style={{ left: `${dotPct}%` }}
-          />
-        )}
-      </div>
+      <ProgressBar value={num / den} color={color} />
     </div>
   );
 }
@@ -1189,7 +1178,7 @@ export function SectionCard({ section, loading, children }: {
           style={{ backgroundColor: color }}
         />
         <div className="mb-3 pr-10">
-          <h2 className="text-base font-semibold tracking-tight">{s.label}</h2>
+          <h2 className="text-lg font-semibold tracking-tight">{s.label}</h2>
         </div>
         {loading ? (
           <div aria-hidden>
@@ -1248,14 +1237,24 @@ export function SectionCard({ section, loading, children }: {
 
 export function OverviewDashboard() {
   const { data: settings } = useSWR("settings", getSettings, { revalidateOnFocus: false });
-  const phases = settings?.day_phases ?? DEFAULT_DAY_PHASES;
-  // Pick active phase + random message pair once per mount — re-randomising
+  const phases = useMemo(
+    () => resolvePhases(
+      settings?.day_phases ?? DEFAULT_DAY_PHASES,
+      settings?.day_phase_boundaries ?? DEFAULT_DAY_PHASE_BOUNDARIES,
+      settings?.day_end ?? DEFAULT_DAY_END,
+    ),
+    [settings],
+  );
+  // Pick active phase + random subtitle once per mount — re-randomising
   // on every render would make the text flicker on unrelated state changes.
   const { greeting, subtitle } = useMemo(() => {
     const activeId = activePhaseId(phases);
     const phase = phases.find((p) => p.id === activeId) ?? phases[0];
-    const messages = phase?.messages?.length ? phase.messages : [{ greeting: phase?.label ?? "", subtitle: "" }];
-    return messages[Math.floor(Math.random() * messages.length)];
+    const subs = phase?.subtitles?.length ? phase.subtitles : [""];
+    return {
+      greeting: phase?.greeting ?? phase?.label ?? "",
+      subtitle: subs[Math.floor(Math.random() * subs.length)],
+    };
   }, [phases]);
   const router = useRouter();
   const [openKey, setOpenKey] = useState<SectionKey | null>(null);

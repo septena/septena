@@ -502,6 +502,10 @@ export async function getHabitHistory(days = 30) {
   return request<HabitHistory>(`/api/habits/history?days=${days}`);
 }
 
+export async function getHabitRange(days = 14) {
+  return request<{ days: HabitDay[] }>(`/api/habits/range?days=${days}`);
+}
+
 // ── Supplements ─────────────────────────────────────────────────────────
 export type SupplementItem = {
   id: string;
@@ -542,6 +546,10 @@ export async function toggleSupplement(day: string, supplementId: string, done: 
 
 export async function getSupplementHistory(days = 30) {
   return request<SupplementHistory>(`/api/supplements/history?days=${days}`);
+}
+
+export async function getSupplementRange(days = 14) {
+  return request<{ days: SupplementDay[] }>(`/api/supplements/range?days=${days}`);
 }
 
 export type SupplementHistoryByIdDay = { date: string; taken: string[] };
@@ -1352,6 +1360,10 @@ export type AppAnimations = {
   training_complete: boolean;
   first_meal: boolean;
   histograms_raise: boolean;
+  habits_complete: boolean;
+  chores_complete: boolean;
+  supplements_complete: boolean;
+  tasks_today_zero: boolean;
 };
 
 export type SectionSetting = {
@@ -1384,21 +1396,16 @@ export type NutritionSettings = {
   progress_mode?: ProgressMode;
 };
 
-export type PhaseMessage = {
-  greeting: string;
-  subtitle: string;
-};
-
 export type DayPhase = {
+  /** Stable identifier — habit configs reference this. Auto-derived from
+   *  label slug on creation; never auto-renamed. */
   id: string;
   label: string;
   emoji: string;
-  /** HH:MM — when the phase becomes "current". */
-  start: string;
-  /** HH:MM — after this, habits in the phase read as overdue. */
-  cutoff: string;
-  /** Greeting + subtitle pairs shown on the overview; one is picked at random. */
-  messages: PhaseMessage[];
+  /** Single phase-wide greeting, e.g. "Good morning". */
+  greeting: string;
+  /** Rotating subtitle list — one picked at random per visit. */
+  subtitles: string[];
 };
 
 export type AppDisplay = {
@@ -1418,6 +1425,10 @@ export type AppSettings = {
   display: AppDisplay;
   nutrition: NutritionSettings;
   day_phases: DayPhase[];
+  /** N-1 internal HH:MM dividers between consecutive phases. */
+  day_phase_boundaries: string[];
+  /** Trailing cutoff (bedtime) for the final phase. */
+  day_end: string;
 };
 
 export async function getSettings() {

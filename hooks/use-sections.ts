@@ -52,8 +52,7 @@ export function useSections(): SectionMeta[] {
   return buildSectionsFromSettings(settings);
 }
 
-/** Nav-visible sections: enabled only, excluding meta entries like
- *  `correlations` that live on the homepage action row instead of the tab bar.
+/** Nav-visible sections: respects each section's `show_in_nav` flag.
  *  Falls back to the static registry merged with any loaded settings so the
  *  topnav stays populated when /api/sections fails (backend down) or hasn't
  *  resolved yet — an empty nav was indistinguishable from a broken app. */
@@ -61,14 +60,13 @@ export function useNavSections(): SectionMeta[] {
   const { data: registry } = useSWR("sections-registry", getSections, { revalidateOnFocus: false });
   const { data: settings } = useSWR("settings", getSettings, { revalidateOnFocus: false });
   const source = registry && registry.length > 0 ? registry : buildSectionsFromSettings(settings);
-  return source.filter((s) => s.show_in_nav && s.key !== "correlations");
+  return source.filter((s) => s.show_in_nav);
 }
 
-/** Dashboard-grid sections: visible on the home overview. Correlations is
- *  excluded — it lives on the bottom action row. */
+/** Dashboard-grid sections: respects each section's `show_on_dashboard` flag. */
 export function useDashboardSections(): SectionMeta[] {
   const sections = useSections();
-  return sections.filter((s) => s.show_on_dashboard && s.key !== "correlations");
+  return sections.filter((s) => s.show_on_dashboard);
 }
 
 export function useSection(key: SectionKey): SectionMeta | undefined {

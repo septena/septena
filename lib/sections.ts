@@ -48,11 +48,3 @@ export const SECTIONS: Record<SectionKey, Section> = Object.fromEntries(
 ) as Record<SectionKey, Section>;
 
 export const SECTION_LIST: Section[] = Object.values(SECTIONS);
-
-/** Sections shown in chrome (topnav pills, mobile home FAB menu). Excludes
- *  meta pages like "correlations" that live on the homepage bottom action
- *  row instead. Single source of truth for nav parity — if it belongs in
- *  the topnav, it belongs in the FAB menu, and vice versa. */
-export const NAV_SECTION_LIST: Section[] = SECTION_LIST.filter(
-  (s) => s.key !== "correlations",
-);
