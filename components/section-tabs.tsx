@@ -40,7 +40,9 @@ export function SectionTabs() {
           title="Home"
           onClick={handleHomeClick}
           className={`group inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-3 py-1.5 text-sm font-semibold text-foreground transition-colors ${
-            homeActive ? "border-foreground/20 bg-muted" : "border-border"
+            homeActive
+              ? "border-foreground/30 bg-foreground/10"
+              : "border-border hover:border-foreground/40"
           }`}
         >
           <span ref={markRef} className="relative inline-flex h-3.5 w-3.5">
@@ -58,6 +60,12 @@ export function SectionTabs() {
         {sections.map((section) => {
           const href = toHref(section.path);
           const active = pathname === href || pathname.startsWith(href + "/");
+          // Soft tinted active style — colored border + accent text on a 12%
+          // accent fill. Same shape as the home pill (border + tint + text)
+          // and the marketing-page "Read more" pill, so the whole nav reads
+          // as one system instead of jumping from neutral → fully saturated.
+          const activeFill = `color-mix(in oklab, ${section.color} 12%, transparent)`;
+          const activeBorder = `color-mix(in oklab, ${section.color} 60%, transparent)`;
           return (
             <Link
               key={section.key}
@@ -65,7 +73,7 @@ export function SectionTabs() {
               className="group inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-3 py-1.5 text-sm font-medium transition-colors"
               style={
                 active
-                  ? { borderColor: section.color, backgroundColor: section.color, color: "white" }
+                  ? { borderColor: activeBorder, backgroundColor: activeFill, color: section.color }
                   : { borderColor: "var(--border)", color: "var(--foreground)" }
               }
               onMouseEnter={(e) => {
@@ -84,7 +92,7 @@ export function SectionTabs() {
               <span
                 aria-hidden
                 className="h-2 w-2 shrink-0 rounded-full"
-                style={{ backgroundColor: active ? "white" : section.color }}
+                style={{ backgroundColor: section.color }}
               />
               <span>{section.label}</span>
             </Link>
