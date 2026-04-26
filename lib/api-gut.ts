@@ -22,6 +22,7 @@ export type GutEntry = {
   id: string;
   bristol: number;
   blood: number;
+  discomfort_level: "low" | "med" | "high" | null;
   discomfort_start: string | null;
   discomfort_end: string | null;
   discomfort_hours: number | null;
@@ -68,6 +69,7 @@ export async function addGutEntry(payload: {
   time: string;
   bristol: number;
   blood: number;
+  discomfort_level?: "low" | "med" | "high" | null;
   discomfort_hours?: number | null;
   note?: string | null;
 }) {
@@ -86,6 +88,7 @@ export async function updateGutEntry(
     bristol: number;
     blood: number;
     note: string | null;
+    discomfort_level: "low" | "med" | "high" | null;
     discomfort_hours: number | null;
     discomfort_start: string | null;
     discomfort_end: string | "now" | null;

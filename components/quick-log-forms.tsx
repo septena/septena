@@ -864,6 +864,7 @@ export function GutQuickLog({ onDone }: { onDone: () => void }) {
   const [time, setTime] = useState<string>(nowHHMM);
   const [bristol, setBristol] = useState<string>("4");
   const [blood, setBlood] = useState<string>("0");
+  const [discomfortLevel, setDiscomfortLevel] = useState<"low" | "med" | "high" | "">("");
   const [saving, setSaving] = useState(false);
 
   const bristolOpts = useMemo(
@@ -892,6 +893,7 @@ export function GutQuickLog({ onDone }: { onDone: () => void }) {
         time,
         bristol: parseInt(bristol, 10),
         blood: parseInt(blood, 10),
+        discomfort_level: discomfortLevel || null,
       });
       revalidateAfterLog("gut");
       haptic();
@@ -899,7 +901,7 @@ export function GutQuickLog({ onDone }: { onDone: () => void }) {
     } finally {
       setSaving(false);
     }
-  }, [saving, selectedDate, time, bristol, blood, onDone]);
+  }, [saving, selectedDate, time, bristol, blood, discomfortLevel, onDone]);
 
   return (
     <div className="space-y-3">
@@ -919,6 +921,21 @@ export function GutQuickLog({ onDone }: { onDone: () => void }) {
       <div>
         <p className="mb-1 text-[10px] uppercase tracking-wide text-muted-foreground">Blood</p>
         <PillGroup options={bloodOpts} value={blood} onChange={setBlood} accent={accent} />
+      </div>
+
+      <div>
+        <p className="mb-1 text-[10px] uppercase tracking-wide text-muted-foreground">Discomfort amount</p>
+        <PillGroup
+          options={[
+            { value: "", label: "None" },
+            { value: "low", label: "Low" },
+            { value: "med", label: "Med" },
+            { value: "high", label: "High" },
+          ]}
+          value={discomfortLevel}
+          onChange={setDiscomfortLevel}
+          accent={accent}
+        />
       </div>
 
       <SaveBar onCancel={onDone} onSave={handleSave} saving={saving} accent={accent} />

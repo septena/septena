@@ -19,7 +19,6 @@ import {
 import { SectionHeaderAction, SectionHeaderActionButton } from "@/components/section-header-action";
 import { StatCard } from "@/components/stat-card";
 import {
-  todayLocalISO,
   nowHHMM as currentTime,
 } from "@/lib/date-utils";
 import { CHART_GRID, WEEKDAY_X_AXIS, Y_AXIS } from "@/lib/chart-defaults";
@@ -29,6 +28,16 @@ import { SECTION_ACCENT_SHADE_2, SECTION_ACCENT_STRONG } from "@/lib/section-col
 const GUT_COLOR = "var(--section-accent)";
 const BRISTOL_IDS = [1, 2, 3, 4, 5, 6, 7];
 const BLOOD_IDS = [0, 1, 2];
+const DISCOMFORT_LEVELS = [
+  { id: "low", label: "Low" },
+  { id: "med", label: "Med" },
+  { id: "high", label: "High" },
+] as const;
+
+function discomfortLevelLabel(level: "low" | "med" | "high" | null | undefined): string | null {
+  if (!level) return null;
+  return DISCOMFORT_LEVELS.find((item) => item.id === level)?.label ?? level;
+}
 
 const chartConfig = {
   count: { label: "Count", color: GUT_COLOR },
@@ -50,11 +59,11 @@ export function GutDashboard() {
   const [formTime, setFormTime] = useState(currentTime());
   const [formBristol, setFormBristol] = useState<number>(4);
   const [formBlood, setFormBlood] = useState<number>(0);
+  const [formDiscomfortLevel, setFormDiscomfortLevel] = useState<"low" | "med" | "high" | "">("");
   const [formDiscomfortHours, setFormDiscomfortHours] = useState<string>("");
   const [formNote, setFormNote] = useState<string>("");
   const [saving, setSaving] = useState(false);
   const { date: selectedDate } = useSelectedDate();
-  const today = todayLocalISO();
 
   const { data, error, isLoading, mutate } = useSWR(
     ["gut", selectedDate],
@@ -91,6 +100,7 @@ export function GutDashboard() {
     setFormTime(currentTime());
     setFormBristol(4);
     setFormBlood(0);
+    setFormDiscomfortLevel("");
     setFormDiscomfortHours("");
     setFormNote("");
     setEditingId(null);
@@ -108,6 +118,7 @@ export function GutDashboard() {
     setFormTime(entry.time.slice(0, 5));
     setFormBristol(entry.bristol);
     setFormBlood(entry.blood);
+    setFormDiscomfortLevel(entry.discomfort_level ?? "");
     setFormDiscomfortHours(
       entry.discomfort_hours != null && entry.discomfort_hours > 0
         ? String(entry.discomfort_hours)
@@ -135,15 +146,17 @@ export function GutDashboard() {
           time: formTime,
           bristol: formBristol,
           blood: formBlood,
+          discomfort_level: formDiscomfortLevel || null,
           discomfort_hours: hoursPayload,
           note: formNote.trim() || null,
         });
       } else {
         await addGutEntry({
-          date: today,
+          date: selectedDate,
           time: formTime,
           bristol: formBristol,
           blood: formBlood,
+          discomfort_level: formDiscomfortLevel || null,
           discomfort_hours: hoursPayload,
           note: formNote.trim() || null,
         });
@@ -155,12 +168,12 @@ export function GutDashboard() {
       setSaving(false);
     }
   }, [
-    today,
     selectedDate,
     editingId,
     formTime,
     formBristol,
     formBlood,
+    formDiscomfortLevel,
     formDiscomfortHours,
     formNote,
     saving,
@@ -171,9 +184,13 @@ export function GutDashboard() {
   const handleDelete = useCallback(
     async (entryId: string) => {
       await deleteGutEntry(entryId, selectedDate);
+      if (editingId === entryId) {
+        setShowForm(false);
+        resetForm();
+      }
       await mutate();
     },
-    [selectedDate, mutate],
+    [selectedDate, editingId, mutate, resetForm],
   );
 
   // 30-day Bristol distribution
@@ -298,6 +315,41 @@ export function GutDashboard() {
 
             <div>
               <p className="mb-1 text-xs uppercase tracking-wide text-muted-foreground">
+                Discomfort amount
+              </p>
+              <div className="flex gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setFormDiscomfortLevel("")}
+                  className="flex-1 rounded-md border border-border px-3 py-2 text-xs font-medium transition-colors"
+                  style={
+                    formDiscomfortLevel === ""
+                      ? { backgroundColor: GUT_COLOR, color: "white", borderColor: GUT_COLOR }
+                      : undefined
+                  }
+                >
+                  None
+                </button>
+                {DISCOMFORT_LEVELS.map((level) => (
+                  <button
+                    key={level.id}
+                    type="button"
+                    onClick={() => setFormDiscomfortLevel(level.id)}
+                    className="flex-1 rounded-md border border-border px-3 py-2 text-xs font-medium transition-colors"
+                    style={
+                      formDiscomfortLevel === level.id
+                        ? { backgroundColor: GUT_COLOR, color: "white", borderColor: GUT_COLOR }
+                        : undefined
+                    }
+                  >
+                    {level.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <p className="mb-1 text-xs uppercase tracking-wide text-muted-foreground">
                 Discomfort (hours)
               </p>
               <input
@@ -321,6 +373,15 @@ export function GutDashboard() {
             />
 
             <div className="flex gap-2">
+              {editingId && (
+                <button
+                  type="button"
+                  onClick={() => handleDelete(editingId)}
+                  className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2.5 text-sm font-medium text-red-700 hover:bg-red-500/15 dark:text-red-300"
+                >
+                  Delete
+                </button>
+              )}
               <button
                 type="button"
                 onClick={handleCancel}
@@ -403,16 +464,23 @@ export function GutDashboard() {
                             · Discomfort {fmtDuration(entry.discomfort_hours)}
                           </span>
                         )}
+                        {entry.discomfort_level && (
+                          <span className="ml-2 text-muted-foreground">
+                            · Discomfort level: {discomfortLevelLabel(entry.discomfort_level)}
+                          </span>
+                        )}
                       </p>
                       {entry.note && (
                         <p className="mt-0.5 text-xs text-muted-foreground">{entry.note}</p>
                       )}
                     </div>
                     <button
-                      onClick={(e) => { e.stopPropagation(); handleDelete(entry.id); }}
-                      className="shrink-0 text-xs text-muted-foreground hover:text-red-500"
+                      type="button"
+                      aria-label={`Edit ${entry.time.slice(0, 5)} gut event`}
+                      onClick={(e) => { e.stopPropagation(); handleEdit(entry); }}
+                      className="shrink-0 rounded-md px-2 py-1 text-sm text-muted-foreground hover:bg-muted hover:text-foreground"
                     >
-                      ✕
+                      ...
                     </button>
                   </div>
                 </div>

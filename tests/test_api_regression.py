@@ -11,6 +11,7 @@ from fastapi.testclient import TestClient
 import api.app as api_app_module
 import api.paths as paths
 import api.routers.air as air_router
+import api.routers.gut as gut_router
 from api.storage.frontmatter import FrontmatterDocument, FrontmatterMarkdownCodec
 
 
@@ -32,11 +33,15 @@ class ApiRegressionTests(unittest.TestCase):
             "GROCERIES_DIR": self.vault / "Groceries",
             "GROCERIES_PATH": self.vault / "Groceries" / "groceries.yaml",
             "GROCERIES_LOG_DIR": self.vault / "Groceries" / "Log",
+            "GUT_DIR": self.vault / "Gut" / "Log",
+            "GUT_CONFIG_PATH": self.vault / "Gut" / "gut-config.yaml",
             "SETTINGS_DIR": self.vault / "Settings",
             "SETTINGS_PATH": self.vault / "Settings" / "settings.yaml",
         }
         self.patchers = [patch.object(paths, key, value) for key, value in patches.items()]
         self.patchers.append(patch.object(air_router, "AIR_DIR", self.vault / "Air" / "Log"))
+        self.patchers.append(patch.object(gut_router, "GUT_DIR", self.vault / "Gut" / "Log"))
+        self.patchers.append(patch.object(gut_router, "GUT_CONFIG_PATH", self.vault / "Gut" / "gut-config.yaml"))
         self.patchers.append(patch.object(api_app_module.exercise, "load_cache", lambda: None))
         for patcher in self.patchers:
             patcher.start()
@@ -54,6 +59,7 @@ class ApiRegressionTests(unittest.TestCase):
         (self.vault / "Supplements").mkdir(parents=True, exist_ok=True)
         (self.vault / "Supplements" / "Log").mkdir(parents=True, exist_ok=True)
         (self.vault / "Caffeine" / "Log").mkdir(parents=True, exist_ok=True)
+        (self.vault / "Gut" / "Log").mkdir(parents=True, exist_ok=True)
         (self.vault / "Groceries" / "Log").mkdir(parents=True, exist_ok=True)
         (self.vault / "Settings").mkdir(parents=True, exist_ok=True)
         (self.vault / "Air" / "Log").mkdir(parents=True, exist_ok=True)
@@ -147,6 +153,42 @@ class ApiRegressionTests(unittest.TestCase):
         self.assertEqual(day["total_g"], 8.0)
         history = self.client.get("/api/caffeine/history?days=1").json()
         self.assertEqual(history["daily"][0]["sessions"], 1)
+
+    def test_gut_discomfort_level_roundtrips(self) -> None:
+        created = self.client.post("/api/gut/entry", json={
+            "date": self.today,
+            "time": "08:10",
+            "bristol": 4,
+            "blood": 1,
+            "discomfort_level": "high",
+            "discomfort_hours": 1.5,
+            "note": "cramps",
+        })
+        self.assertEqual(created.status_code, 200)
+        entry = created.json()["entry"]
+        self.assertEqual(entry["discomfort_level"], "high")
+        self.assertEqual(entry["discomfort_hours"], 1.5)
+
+        updated = self.client.put(
+            f"/api/gut/entry/{entry['id']}?date={self.today}",
+            json={"discomfort_level": "low"},
+        )
+        self.assertEqual(updated.status_code, 200)
+        self.assertEqual(updated.json()["entry"]["discomfort_level"], "low")
+
+        day = self.client.get(f"/api/gut/day/{self.today}").json()
+        self.assertEqual(day["entries"][0]["discomfort_level"], "low")
+
+    def test_gut_backfills_missing_discomfort_level_to_medium(self) -> None:
+        created = self.client.post("/api/gut/entry", json={
+            "date": self.today,
+            "time": "09:15",
+            "bristol": 3,
+            "blood": 0,
+            "discomfort_hours": 0.5,
+        })
+        self.assertEqual(created.status_code, 200)
+        self.assertEqual(created.json()["entry"]["discomfort_level"], "med")
 
     def test_groceries_list_and_history(self) -> None:
         added = self.client.post("/api/groceries/item", json={

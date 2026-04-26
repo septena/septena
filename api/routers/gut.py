@@ -133,6 +133,12 @@ def _with_derived(event: Dict[str, Any]) -> Dict[str, Any]:
     event["discomfort_open"] = bool(event.get("discomfort_start")) and not event.get(
         "discomfort_end"
     )
+    level = _coerce_discomfort_level(event.get("discomfort_level"))
+    if level is None and (
+        event["discomfort_hours"] is not None or event["discomfort_open"]
+    ):
+        level = "med"
+    event["discomfort_level"] = level
     return event
 
 
@@ -142,6 +148,13 @@ def _coerce_int_in(value: Any, allowed: set[int], default: int) -> int:
     except (TypeError, ValueError):
         return default
     return i if i in allowed else default
+
+
+def _coerce_discomfort_level(value: Any) -> Optional[str]:
+    if value in (None, ""):
+        return None
+    level = str(value).strip().lower()
+    return level if level in {"low", "med", "high"} else None
 
 
 @router.get("/config")
@@ -180,7 +193,7 @@ def gut_day(day: str) -> Dict[str, Any]:
 
 @router.post("/entry")
 async def gut_add_entry(request: Request) -> Dict[str, Any]:
-    """Body: {date, time, bristol, blood?, discomfort?, note?}
+    """Body: {date, time, bristol, blood?, discomfort_level?, discomfort?, note?}
     `discomfort` is a bool — when true, discomfort_start defaults to the
     entry timestamp and discomfort_end is left null (mark resolved later
     via PUT /entry/{id}).
@@ -193,6 +206,7 @@ async def gut_add_entry(request: Request) -> Dict[str, Any]:
 
     bristol = _coerce_int_in(payload.get("bristol"), set(range(1, 8)), 4)
     blood = _coerce_int_in(payload.get("blood"), {0, 1, 2}, 0)
+    discomfort_level = _coerce_discomfort_level(payload.get("discomfort_level"))
     note = str(payload.get("note") or "").strip() or None
 
     start_iso: Optional[str] = None
@@ -213,6 +227,8 @@ async def gut_add_entry(request: Request) -> Dict[str, Any]:
         start_iso = str(payload["discomfort_start"])
     if payload.get("discomfort_end"):
         end_iso = str(payload["discomfort_end"])
+    if discomfort_level is None and (start_iso or end_iso):
+        discomfort_level = "med"
 
     entry_id = str(uuid.uuid4())[:8]
     nn = _next_nn(day)
@@ -223,6 +239,7 @@ async def gut_add_entry(request: Request) -> Dict[str, Any]:
         "section": "gut",
         "bristol": bristol,
         "blood": blood,
+        "discomfort_level": discomfort_level,
         "discomfort_start": start_iso,
         "discomfort_end": end_iso,
         "note": note,
@@ -235,7 +252,7 @@ async def gut_add_entry(request: Request) -> Dict[str, Any]:
 @router.put("/entry/{entry_id}")
 async def gut_update_entry(request: Request, entry_id: str) -> Dict[str, Any]:
     """Edit an entry. Any subset of fields may be supplied:
-    {time, bristol, blood, discomfort_start, discomfort_end, note}.
+    {time, bristol, blood, discomfort_level, discomfort_start, discomfort_end, note}.
     Pass `discomfort_end: "now"` to stamp the current moment.
     """
     params = dict(request.query_params)
@@ -259,6 +276,10 @@ async def gut_update_entry(request: Request, entry_id: str) -> Dict[str, Any]:
         existing["blood"] = _coerce_int_in(
             payload["blood"], {0, 1, 2}, int(existing.get("blood", 0))
         )
+    if "discomfort_level" in payload:
+        existing["discomfort_level"] = _coerce_discomfort_level(
+            payload["discomfort_level"]
+        )
     if "note" in payload:
         n = str(payload["note"] or "").strip()
         existing["note"] = n or None
@@ -270,6 +291,7 @@ async def gut_update_entry(request: Request, entry_id: str) -> Dict[str, Any]:
         if v in (None, "", 0, 0.0):
             existing["discomfort_start"] = None
             existing["discomfort_end"] = None
+            existing["discomfort_level"] = None
         else:
             try:
                 hv = float(v)
@@ -284,9 +306,12 @@ async def gut_update_entry(request: Request, entry_id: str) -> Dict[str, Any]:
                 end_dt = start_dt + timedelta(hours=hv)
                 existing["discomfort_start"] = start_dt.isoformat(timespec="minutes")
                 existing["discomfort_end"] = end_dt.isoformat(timespec="minutes")
+                if _coerce_discomfort_level(existing.get("discomfort_level")) is None:
+                    existing["discomfort_level"] = "med"
             else:
                 existing["discomfort_start"] = None
                 existing["discomfort_end"] = None
+                existing["discomfort_level"] = None
     if "discomfort_start" in payload:
         v = payload["discomfort_start"]
         existing["discomfort_start"] = str(v) if v else None
