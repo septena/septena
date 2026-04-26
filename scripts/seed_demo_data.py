@@ -575,13 +575,22 @@ def seed_settings_and_macros(cfg: SeedConfig) -> None:
     _write_config(cfg.data_dir / "Settings/settings.yaml", {
         "section_order": [
             "next", "training", "nutrition", "habits", "supplements",
-            "chores", "tasks", "groceries", "caffeine", "sleep", "body", "health",
+            "chores", "tasks", "groceries", "caffeine",
+            "sleep", "body", "health", "correlations",
         ],
         # Cannabis stays hidden in the demo (data is intentionally not seeded).
         # Air is the owner's personal Aranet sensor — hide from public demo.
+        # Sleep/body/health/correlations are integration-backed and auto-hide
+        # without Oura/Withings/HAE tokens; the demo serves them from a
+        # pre-seeded cache (SEPTENA_DEMO_HEALTH=1), so force-enable in nav
+        # + dashboard so the topnav pill activates on those pages.
         "sections": {
-            "cannabis": {"enabled": False},
-            "air":      {"enabled": False},
+            "cannabis":     {"enabled": False},
+            "air":          {"enabled": False},
+            "sleep":        {"show_in_nav": True, "show_on_dashboard": True},
+            "body":         {"show_in_nav": True, "show_on_dashboard": True},
+            "health":       {"show_in_nav": True, "show_on_dashboard": True},
+            "correlations": {"show_in_nav": True, "show_on_dashboard": True},
         },
         "animations": {"first_meal": True, "histograms_raise": True},
     })
