@@ -34,7 +34,7 @@ settings:
     # version.sh` can stamp it from the git commit count at archive time
     # (monotonic, conflict-free across parallel sessions).
     MARKETING_VERSION: "0.7.0"
-    DEVELOPMENT_TEAM: 992N457T8D
+    DEVELOPMENT_TEAM: $(SEPTENA_DEVELOPMENT_TEAM)
     CODE_SIGN_STYLE: Automatic
     INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
     INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents: YES
@@ -807,6 +807,8 @@ targets:
       - path: SeptenaCore/SuggestionBlocks.swift
       - path: SeptenaCore/IntakeModel.swift
       - path: SeptenaCore/GutSymptomMigrationMap.swift
+      - path: SeptenaCore/ExerciseKey.swift
+      - path: SeptenaCore/TrainingHistoryImport.swift
       - path: SeptenaCore/ThingsImport/ThingsImportModels.swift
       - path: SeptenaCore/ThingsImport/ThingsDateDecoder.swift
       - path: SeptenaCore/ThingsImport/ThingsSQLiteReader.swift

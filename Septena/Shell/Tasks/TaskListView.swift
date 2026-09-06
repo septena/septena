@@ -18,6 +18,7 @@ struct TaskListView: View {
   @Environment(TaskMutator.self) private var mutator
   @Environment(NavigationState.self) private var nav
   @Environment(SectionTheme.self) private var theme
+  @Environment(CKEngine.self) private var ckEngine
   @Environment(\.modelContext) private var modelContext
   @Environment(\.a11yMotion) private var motion
   @Environment(\.usesPushNavigation) private var usesPushNavigation
@@ -612,7 +613,9 @@ struct TaskListView: View {
     // constant gear (→ Settings) and a contextual "+" (new task). On iPad
     // regular the "+" merges with the sidebar's "···" in the tab bar; on iPhone
     // a pushed list shows gear + "+" in its own nav bar.
-    .modifier(TaskListStandaloneChrome(embedded: embedded, recentlyDeleted: filter == .recentlyDeleted))
+    .modifier(TaskListStandaloneChrome(embedded: embedded,
+                                       recentlyDeleted: filter == .recentlyDeleted,
+                                       showsViewOptions: filter == .today))
     // Applied after standalone chrome so Septask retains its face/plus order.
     .modifier(TaskListClaudeReconnectToolbar(shows: showsClaudeReconnectToolbar))
     // (Keyboard navigation — ↑↓ traversal, Return/Esc, focus reclaim —
@@ -1426,6 +1429,28 @@ struct TaskListView: View {
 
   @ViewBuilder
   private var emptyStateRow: some View {
+    // A first sync on a new device pulls the whole account down. Until it
+    // lands the list is empty for a reason that has nothing to do with the
+    // user, so say that instead of "Nothing here yet" — and say it even where
+    // there IS an inline capture affordance, since the emptiness is what
+    // misleads, not the missing button.
+    if showsEmptyTaskList && ckEngine.isBootstrapping {
+      ContentUnavailableView {
+        Label("Getting your data", systemImage: "icloud.and.arrow.down")
+      } description: {
+        Text(ckEngine.bootstrapStatusText)
+          .monospacedDigit()
+      }
+      .frame(maxWidth: .infinity)
+      .padding(.top, 40)
+      .plainListChrome()
+    } else {
+      settledEmptyStateRow
+    }
+  }
+
+  @ViewBuilder
+  private var settledEmptyStateRow: some View {
     // A creatable list that's empty already offers a "New task" line (Today's
     // Inbox card, or the top quick-add on a project / area) — the big "Nothing
     // here yet" card under it is redundant, and on an area that only holds
@@ -1888,22 +1913,7 @@ struct TaskListView: View {
   /// Mirrors the rendering order of `groupedOpenItems` so arrow keys traverse
   /// rows in exactly the order the user sees them.
   private func orderedFromGroupedOpen(pool: [SeptenaTask]) -> [String] {
-    let byProject = Dictionary(grouping: pool.filter { $0.project != nil },
-                               by: { $0.project! })
-    let byArea = Dictionary(grouping: pool.filter { $0.project == nil && $0.area != nil },
-                            by: { $0.area! })
-    let loose = pool.filter { $0.project == nil && $0.area == nil }
-    var ids: [String] = loose.map(\.id)
-    for area in areas {
-      ids.append(contentsOf: (byArea[area.id] ?? []).map(\.id))
-      for project in projects.filter({ $0.area == area.id }) {
-        ids.append(contentsOf: (byProject[project.id] ?? []).map(\.id))
-      }
-    }
-    for project in projects.filter({ $0.area == nil }) {
-      ids.append(contentsOf: (byProject[project.id] ?? []).map(\.id))
-    }
-    return ids
+    TaskListOrder.byList(pool, areas: areas, projects: projects).map(\.id)
   }
 
   /// ⌘R — open the inline editor for the focused row. iPad resolves via
@@ -2849,9 +2859,12 @@ struct TaskListView: View {
   private var ungroupedOpenItems: some View {
     let base = items
     let pool = base.filter { $0.status == .open || model.settle.isSettling($0.id) }
-    let classified = pool
-      .filter { $0.project != nil || $0.area != nil }
-      .sorted(by: SeptenaTask.compareNextPageOrder)
+    // Sidebar order, not due-first: flat drops the headers, not the sequence
+    // (`TaskListOrder.byList`, shared with `groupedOpenItems`' emission order
+    // and Septask's AppKit list).
+    let classified = TaskListOrder.byList(
+      pool.filter { $0.project != nil || $0.area != nil },
+      areas: areas, projects: projects)
     cardedRows(classified)
   }
 

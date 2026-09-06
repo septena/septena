@@ -236,12 +236,35 @@ final class TaskMutator {
     return cloudBackend.createNextOccurrence(id: id)
   }
 
+  /// Materialize the fixed-schedule occurrences whose day has already come.
+  /// Idempotent and cheap to repeat — see `TasksBackend.catchUpFixedSchedules`
+  /// for why it is safe on every launch, foreground, and day rollover.
+  @discardableResult
+  func catchUpFixedSchedules() -> Int {
+    guard let cloudBackend else {
+      SeptenaLog.error("[TaskMutator] catchUpFixedSchedules called before CK bound — dropping", nil)
+      return 0
+    }
+    return cloudBackend.catchUpFixedSchedules()
+  }
+
   func moveToArea(id: String, area: String?) {
     guard let cloudBackend else {
       SeptenaLog.error("[TaskMutator] moveToArea called before CK bound — dropping", nil)
       return
     }
     cloudBackend.moveToArea(id: id, area: area)
+  }
+
+  /// Move a task to one final filing destination in a single local save and
+  /// notification. `project` wins over `area`, matching the model's invariant
+  /// that a task cannot belong directly to both at once.
+  func moveToList(id: String, area: String?, project: String?) {
+    guard let cloudBackend else {
+      SeptenaLog.error("[TaskMutator] moveToList called before CK bound — dropping", nil)
+      return
+    }
+    cloudBackend.moveToList(id: id, area: area, project: project)
   }
 
   func moveToProject(id: String, project: String?) {
@@ -300,7 +323,16 @@ final class TaskMutator {
       source: source
     )
     if let heading = task.heading { setHeading(id: copy.id, heading: heading) }
-    if let rule = task.recurrence { setRecurrence(id: copy.id, recurrence: rule) }
+    if let rule = task.recurrence {
+      setRecurrence(id: copy.id, recurrence: rule)
+      // `setRecurrence` resets the pause across the series it writes, so a
+      // copy of a PAUSED repeat came back ACTIVE and started spawning
+      // occurrences the original was deliberately holding back. Carry the
+      // pause over. (The copy gets its OWN series id — `create` sets none, so
+      // `setRecurrence` seeds it from the copy — which is why this has to be
+      // re-asserted here rather than inherited.)
+      if task.recurrencePaused { setRecurrencePaused(id: copy.id, paused: true) }
+    }
     return copy
   }
 
