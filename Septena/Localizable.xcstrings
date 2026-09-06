@@ -4155,6 +4155,9 @@
     "How a task conversation moves" : {
 
     },
+    "How far a long task title wraps before it truncates. Taller rows fit fewer tasks on screen." : {
+
+    },
     "How far AI may reach" : {
 
     },
@@ -5564,9 +5567,6 @@
     "No list" : {
       "comment" : "SeptaskKit localization pass 2026-08-09"
     },
-    "No List" : {
-      "comment" : "SeptaskKit localization pass 2026-08-09"
-    },
     "No meals logged yet" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5982,6 +5982,9 @@
     "Onboarding" : {
 
     },
+    "One" : {
+
+    },
     "One app for every corner of your life" : {
       "localizations" : {
         "pt-BR" : {
@@ -6164,6 +6167,9 @@
           }
         }
       }
+    },
+    "Personal access tokens can be revoked or expire. Create a replacement at cloud.ouraring.com and paste it above — the nights backfill on the next refresh." : {
+
     },
     "Personal access tokens expire. Create a replacement with the read:user scope and paste it above — the calendar backfills on the next refresh." : {
 
@@ -6758,6 +6764,9 @@
           }
         }
       }
+    },
+    "Rows" : {
+
     },
     "Rows with 90-day heatmap grid. Optimized for consistency." : {
       "localizations" : {
@@ -8230,6 +8239,9 @@
     "This week's preview" : {
 
     },
+    "Three" : {
+
+    },
     "Three gold rings — the previous thank-you, for comparison" : {
 
     },
@@ -8489,6 +8501,9 @@
       }
     },
     "Turned-off sections disappear from the home tab but keep all their data. Turn one back on anytime." : {
+
+    },
+    "Two" : {
 
     },
     "Two months free" : {
@@ -8978,6 +8993,9 @@
           }
         }
       }
+    },
+    "Withings sign-in expires periodically. Disconnect and connect again to re-authorize — the weigh-ins backfill on the next refresh." : {
+
     },
     "Working…" : {
 

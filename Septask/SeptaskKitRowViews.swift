@@ -597,7 +597,7 @@ enum KitMoveMenu {
     let emoji: String?
     /// Indent project rows that nest under an area.
     let indent: Bool
-    /// Drives the project pie glyph; nil for area / No List rows.
+    /// Drives the project pie glyph; nil for area / Inbox rows.
     let projectId: String?
   }
 
@@ -611,16 +611,16 @@ enum KitMoveMenu {
   /// never both" rule `KitScreenTitleCell`/`SidebarCell` already follow.
   static func destinations(areas: [Area], projects: [Project])
     -> [(title: String, target: Destination, emoji: String?)] {
-    [(String(localized: "No List", comment: "SeptaskKit: move destination"), .none, nil)]
+    [(String(localized: "Inbox", comment: "SeptaskKit: move destination"), .none, nil)]
       + areas.map { ($0.title, .area($0.id), $0.emoji) }
   }
 
-  /// Full Move picker list — No List, loose projects, then each area with
+  /// Full Move picker list — Inbox, loose projects, then each area with
   /// its active projects nested. Mirrors `MovePickerSheet`'s hierarchy.
   static func pickerDestinations(areas: [Area], projects: [Project]) -> [PickerRow] {
     let active = projects.filter { $0.status == .active }
     var rows: [PickerRow] = [
-      PickerRow(title: String(localized: "No List", comment: "SeptaskKit: move destination"),
+      PickerRow(title: String(localized: "Inbox", comment: "SeptaskKit: move destination"),
                 target: .none, emoji: nil, indent: false, projectId: nil)
     ]
     for project in active where project.area == nil {

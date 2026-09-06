@@ -4,7 +4,7 @@ import SwiftData
 
 // The Move command's picker (⌘M / ⌘⇧M / Task ▸ Move…, and the row context menu's
 // "Move to…") — the AppKit counterpart of SwiftUI's `MovePickerSheet`
-// (Septena/Shell/Tasks/TaskPickerSheets.swift). Lists No List, loose
+// (Septena/Shell/Tasks/TaskPickerSheets.swift). Lists Inbox, loose
 // projects, then each area with its projects nested underneath — type to
 // filter, arrows + Return to choose.
 //
@@ -95,7 +95,7 @@ final class SeptaskKitMovePicker {
     selectCurrentOrFirst()
   }
 
-  /// SwiftUI `MovePickerSheet` filter: keep No List / loose projects by title;
+  /// SwiftUI `MovePickerSheet` filter: keep Inbox / loose projects by title;
   /// keep an area if its title matches or any child project matches; keep a
   /// nested project only when its title matches (and emit its parent area
   /// first when needed).
@@ -138,15 +138,14 @@ final class SeptaskKitMovePicker {
   }
 
   /// With no query, mark where the task already lives. With a query, select the
-  /// first row that matches the query ITSELF.
+  /// best matching destination itself. Exact project titles win over an exact
+  /// or partial area match, so typing a nested project such as "Leads" and
+  /// pressing Return cannot silently choose its parent area.
   ///
-  /// Both fallbacks matter. `filterPickerRows` emits an area whenever one of its
-  /// projects matches, so a query that names a project alone still puts the
-  /// parent area first in the list — selecting row 0 there meant typing a
-  /// project name and pressing Return filed the task into the AREA. And the
-  /// `currentDestination` checkmark must not win once a query is typed, or
-  /// filtering down to a project inside the task's current area re-selected that
-  /// area for the same wrong result.
+  /// `filterPickerRows` emits an area whenever one of its projects matches, so
+  /// the parent area can still appear first in the list. The current-destination
+  /// checkmark must not win once a query is typed, either, or filtering down to
+  /// a project inside the task's current area re-selects that area.
   private func selectCurrentOrFirst() {
     guard !rows.isEmpty else { return }
     let query = surface.query.lowercased()
@@ -156,7 +155,17 @@ final class SeptaskKitMovePicker {
         rows.firstIndex { $0.destination == current }
       } ?? 0
     } else {
-      target = rows.firstIndex { $0.title.lowercased().contains(query) } ?? 0
+      let matches = rows.indices.filter { rows[$0].title.lowercased().contains(query) }
+      target = matches.min { lhs, rhs in
+        let lhsExact = rows[lhs].title.lowercased() == query
+        let rhsExact = rows[rhs].title.lowercased() == query
+        if lhsExact != rhsExact { return lhsExact }
+
+        let lhsProject: Bool = if case .project = rows[lhs].destination { true } else { false }
+        let rhsProject: Bool = if case .project = rows[rhs].destination { true } else { false }
+        if lhsProject != rhsProject { return lhsProject }
+        return lhs < rhs
+      } ?? 0
     }
     surface.select(target)
   }

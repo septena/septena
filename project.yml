@@ -8,6 +8,7 @@ options:
     watchOS: "26.0"
   xcodeVersion: "26.0"
   generateEmptyDirectories: true
+  defaultConfig: Release
 
 # Sparkle is linked only by the direct-distribution macOS target below.
 packages:
@@ -33,7 +34,7 @@ settings:
     # version.sh` can stamp it from the git commit count at archive time
     # (monotonic, conflict-free across parallel sessions).
     MARKETING_VERSION: "0.7.0"
-    DEVELOPMENT_TEAM: $(SEPTENA_DEVELOPMENT_TEAM)
+    DEVELOPMENT_TEAM: 992N457T8D
     CODE_SIGN_STYLE: Automatic
     INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
     INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents: YES
@@ -904,7 +905,8 @@ schemes:
       targets:
         Septena: all
     run:
-      config: Debug
+      config: Release
+      debugEnabled: false
       # Local StoreKit testing: the support purchases resolve against this
       # config file (no App Store Connect needed). See Config/Septena.storekit.
       storeKitConfiguration: Config/Septena.storekit
@@ -915,7 +917,7 @@ schemes:
     profile:
       config: Release
     analyze:
-      config: Debug
+      config: Release
     archive:
       config: Release
 
@@ -924,7 +926,8 @@ schemes:
       targets:
         Septask: all
     run:
-      config: Debug
+      config: Release
+      debugEnabled: false
     test:
       config: Debug
       targets:
@@ -932,7 +935,7 @@ schemes:
     profile:
       config: Release
     analyze:
-      config: Debug
+      config: Release
     archive:
       config: Release
 

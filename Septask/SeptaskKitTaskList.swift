@@ -215,6 +215,11 @@ final class SeptaskKitTaskListController: NSViewController {
   /// Completed rows are lingering on screen; refreshes wait (see `beginSettle`).
   private var isSettling = false
   private var settleWorkItem: DispatchWorkItem?
+  /// Move writes can post one synchronous task-change notification per field
+  /// mutation. Keep the table stable until the whole move batch is complete;
+  /// otherwise an intermediate diff can remove the row before its destination
+  /// write has finished.
+  private var isApplyingMove = false
   /// Held so its submenu can be refreshed from the live structure on open.
   private let moveMenuItem = NSMenuItem()
   /// Placement items — titles / visibility refresh on every open from the
@@ -251,6 +256,11 @@ final class SeptaskKitTaskListController: NSViewController {
   var onFocusSidebar: (() -> Void)?
 
   private var context: ModelContext { LocalStore.shared.container.mainContext }
+
+  /// Task ids captured when the Move picker opens. The picker is a separate
+  /// surface and can outlive a list refresh; applying to the live row index
+  /// after it closes can otherwise target a different similarly named task.
+  private var pendingMoveIDs: [String] = []
 
   // MARK: - Undo
 
@@ -678,7 +688,7 @@ final class SeptaskKitTaskListController: NSViewController {
     // Every edit funnels through commitRename, which reloads — so a skipped
     // refresh here is picked up the moment the edit ends. The settle window
     // ends in a reload of its own, so skipping here is likewise not a loss.
-    if isTitleEditorActive || isSettling || composingTaskId != nil { return }
+    if isTitleEditorActive || isSettling || composingTaskId != nil || isApplyingMove { return }
 
     let selected = Set(tableView.selectedRowIndexes.compactMap { row in
       rows.indices.contains(row) ? rows[row].task?.id : nil
@@ -1598,16 +1608,22 @@ final class SeptaskKitTaskListController: NSViewController {
                      })
   }
 
-  /// File the selection. `nil` area+project is the loose "No List" case.
+  /// File the selection. `nil` area+project is the loose "Inbox" case.
   func move(to destination: KitMoveMenu.Destination) {
-    let selection = actionableSelection
-    guard !selection.isEmpty else { return }
-    // Captured before mutating, so undo can restore each task's EXACT prior
-    // (project, area) pair — not just "the previous list", since a batch move
-    // can start from several different lists at once.
-    let previous = selection.map { (id: $0.id, project: $0.project, area: $0.area) }
+    move(to: destination, taskIDs: actionableSelection.map(\.id))
+  }
 
-    func apply(_ destination: KitMoveMenu.Destination, project: String?, area: String?, id: String) {
+  private func move(to destination: KitMoveMenu.Destination, taskIDs: [String]) {
+    let liveByID = Dictionary(LocalCache.allTasks(in: context).map { ($0.id, $0) },
+                              uniquingKeysWith: { current, _ in current })
+    let selection = taskIDs.compactMap { liveByID[$0] }
+    guard !selection.isEmpty else { return }
+    // Captured before mutating, so undo can restore each task's exact prior
+    // filing, including a heading. A batch move can start from several
+    // different lists at once.
+    let previous = selection.map(TaskUndo.FilingSnapshot.init)
+
+    func apply(_ destination: KitMoveMenu.Destination, id: String) {
       switch destination {
       case .none:
         mutator.moveToProject(id: id, project: nil)
@@ -1623,27 +1639,29 @@ final class SeptaskKitTaskListController: NSViewController {
     recordUndo(name: String(localized: "Move Task", comment: "SeptaskKit: undo action"),
               undo: { [weak self] in
                 guard let self else { return }
-                for entry in previous {
-                  self.mutator.moveToProject(id: entry.id, project: entry.project)
-                  self.mutator.moveToArea(id: entry.id, area: entry.area)
-                }
+                TaskUndo.restore(previous, using: self.mutator)
                 self.reload()
                 self.onStoreChanged?()
               },
               redo: { [weak self] in
                 guard let self else { return }
                 for entry in previous {
-                  apply(destination, project: entry.project, area: entry.area, id: entry.id)
+                  apply(destination, id: entry.id)
                 }
                 self.reload()
                 self.onStoreChanged?()
               })
 
+    isApplyingMove = true
     for entry in previous {
-      apply(destination, project: entry.project, area: entry.area, id: entry.id)
+      apply(destination, id: entry.id)
       mutator.acknowledge(id: entry.id)
     }
-    reload()
+    isApplyingMove = false
+    // Each mutator posts synchronously. A single hard refresh after the batch
+    // avoids an intermediate animated diff leaving NSTableView out of sync
+    // with the final rows.
+    reload(animated: false)
     onStoreChanged?()
   }
 
@@ -1651,11 +1669,14 @@ final class SeptaskKitTaskListController: NSViewController {
   /// AppKit counterpart of SwiftUI's `MovePickerSheet`. Built once, reused —
   /// it re-reads structure fresh on every `show`.
   private lazy var movePicker = SeptaskKitMovePicker { [weak self] destination in
-    self?.move(to: destination)
+    guard let self else { return }
+    let taskIDs = self.pendingMoveIDs
+    self.pendingMoveIDs = []
+    self.move(to: destination, taskIDs: taskIDs)
   }
 
   /// Exact destination for the picker's checkmark — project if filed there,
-  /// otherwise the area, otherwise No List.
+  /// otherwise the area, otherwise Inbox.
   private func currentMoveDestination(for task: SeptenaTask) -> KitMoveMenu.Destination? {
     if let project = task.project { return .project(project) }
     if let area = task.area { return .area(area) }
@@ -1675,6 +1696,7 @@ final class SeptaskKitTaskListController: NSViewController {
       : String(localized: "Move \(selection.count) Tasks",
                comment: "SeptaskKit: Move picker title (plural)")
     let current = single ? currentMoveDestination(for: selection[0]) : nil
+    pendingMoveIDs = selection.map(\.id)
     movePicker.show(current: current, title: title,
                     anchor: single ? (anchor ?? selectedRowAnchor ?? .window) : .window)
   }
